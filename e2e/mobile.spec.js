@@ -11,7 +11,7 @@ test('@mobile customer can use storefront and account drawers on mobile', /** In
   await page.getByRole('button', { name: 'Open menu' }).click();
   await expect(page.getByLabel('Mobile navigation')).toHaveClass(/open/);
   await page.getByRole('link', { name: 'Sign in' }).click();
-  await page.getByLabel('Email address').fill(ACOUNTS.customer);
+  await page.getByLabel('Email address').fill(ACCOUNTS.customer);
   await page.getByLabel('Password').fill('ChangeMe12345');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/account/);
