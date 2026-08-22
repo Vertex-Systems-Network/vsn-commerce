@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Catalog\Services\VendorStorefrontMediaService;
 use App\Domain\Finance\Services\VendorFinanceService;
 use App\Domain\Finance\Services\VendorResolver;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,10 @@ use Illuminate\Validation\Rule;
 class SellerOperationsController extends Controller
 {
     /** Initializes the SellerOperationsController instance and its dependencies. */
-    public function __construct(private readonly VendorResolver $vendors) {}
+    public function __construct(
+        private readonly VendorResolver $vendors,
+        private readonly VendorStorefrontMediaService $storefrontMedia,
+    ) {}
 
     /** Handles overview for the seller operations controller workflow. */
     public function overview(Request $request, VendorFinanceService $finance): JsonResponse
@@ -134,7 +138,7 @@ class SellerOperationsController extends Controller
         return response()->json(['data' => $this->returnRow($returnRequest->fresh()->load(['order','items.orderItem.vendorOrder','refund','dispute']), $vendor->id)]);
     }
 
-    /** Updates tings. */
+    /** Returns seller-owned operational and public-storefront settings. */
     public function settings(Request $request): JsonResponse
     {
         $vendor = $this->vendors->forUser($request->user());
@@ -145,7 +149,7 @@ class SellerOperationsController extends Controller
         ]]]);
     }
 
-    /** Handles update settings for the seller operations controller workflow. */
+    /** Updates seller settings and persists the logo by stable Media Library reference. */
     public function updateSettings(Request $request): JsonResponse
     {
         $vendor = $this->vendors->forUser($request->user());
@@ -158,11 +162,25 @@ class SellerOperationsController extends Controller
             'supportEmail' => 'nullable|email|max:190',
             'publicSupportEmail' => 'nullable|email|max:190',
             'supportPhone' => 'nullable|string|max:40',
-            'logoUrl' => 'nullable|url|max:2048',
+            'logoMediaAssetId' => 'nullable|string|max:26',
+            'logoUrl' => 'nullable|string|max:2048',
             'returnAddress' => 'nullable|string|max:1000',
             'dispatchNote' => 'nullable|string|max:1000',
         ]);
-        $metadata = array_merge($vendor->metadata ?? [], Arr::only($data, ['storefrontEnabled','storefrontHeadline','storefrontDescription','supportEmail','publicSupportEmail','supportPhone','logoUrl','returnAddress','dispatchNote']));
+
+        $logo = $this->storefrontMedia->resolveSelection(
+            $vendor,
+            $data['logoMediaAssetId'] ?? null,
+            $data['logoUrl'] ?? null,
+        );
+
+        $metadata = array_merge($vendor->metadata ?? [], Arr::only($data, [
+            'storefrontEnabled','storefrontHeadline','storefrontDescription','supportEmail','publicSupportEmail','supportPhone','returnAddress','dispatchNote',
+        ]));
+        unset($metadata['logoUrl']);
+        if ($logo) $metadata['logoMediaAssetId'] = $logo->public_id;
+        else unset($metadata['logoMediaAssetId']);
+
         $vendor->forceFill(['name' => $data['name'], 'slug'=>$data['shopSlug'], 'metadata' => $metadata])->save();
         return response()->json(['data' => ['vendor' => $this->vendorRow($vendor->fresh())]]);
     }
@@ -176,6 +194,7 @@ class SellerOperationsController extends Controller
     /** Handles vendor row for the seller operations controller workflow. */
     private function vendorRow($vendor): array
     {
+        $logo = $this->storefrontMedia->logoPayload($vendor);
         return [
             'id' => $vendor->id,
             'name' => $vendor->name,
@@ -189,7 +208,9 @@ class SellerOperationsController extends Controller
             'supportEmail' => $vendor->metadata['supportEmail'] ?? null,
             'publicSupportEmail' => $vendor->metadata['publicSupportEmail'] ?? null,
             'supportPhone' => $vendor->metadata['supportPhone'] ?? null,
-            'logoUrl' => $vendor->metadata['logoUrl'] ?? null,
+            'logoMediaAssetId' => $logo['logoMediaAssetId'],
+            'logoUrl' => $logo['logoUrl'],
+            'logoAlt' => $logo['logoAlt'],
             'returnAddress' => $vendor->metadata['returnAddress'] ?? null,
             'dispatchNote' => $vendor->metadata['dispatchNote'] ?? null,
         ];
