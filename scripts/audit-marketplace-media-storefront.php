@@ -30,6 +30,7 @@ function marketplaceRead(string $root, string $relative): string
 $required = [
     'app/Models/MediaLibraryAsset.php',
     'app/Domain/Catalog/Services/MediaLibraryService.php',
+    'app/Domain/Catalog/Services/VendorStorefrontMediaService.php',
     'app/Http/Controllers/Api/V1/MediaLibraryController.php',
     'app/Http/Controllers/Api/V1/PublicVendorController.php',
     'resources/js/components/MediaLibraryPanel.jsx',
@@ -45,6 +46,7 @@ $migration = marketplaceRead($root,'database/migrations/2026_08_14_001000_add_me
 $routes = marketplaceRead($root,'routes/api.php');
 $rbac = marketplaceRead($root,'app/Security/Rbac.php');
 $service = marketplaceRead($root,'app/Domain/Catalog/Services/MediaLibraryService.php');
+$storefrontMedia = marketplaceRead($root,'app/Domain/Catalog/Services/VendorStorefrontMediaService.php');
 $productMedia = marketplaceRead($root,'app/Domain/Catalog/Services/ProductMediaService.php');
 $mediaController = marketplaceRead($root,'app/Http/Controllers/Api/V1/MediaLibraryController.php');
 $publicVendor = marketplaceRead($root,'app/Http/Controllers/Api/V1/PublicVendorController.php');
@@ -58,6 +60,7 @@ $home = marketplaceRead($root,'resources/js/pages/Home.jsx');
 $productPage = marketplaceRead($root,'resources/js/pages/Product.jsx');
 $store = marketplaceRead($root,'resources/js/platform/store.jsx');
 $styles = marketplaceRead($root,'resources/js/styles.scss');
+$featureTests = marketplaceRead($root,'tests/Feature/MarketplaceMediaStorefrontTest.php');
 
 marketplaceCheck($checks,$failures,'media_library_assets migration exists',str_contains($migration,"Schema::create('media_library_assets'"));
 foreach (['public_id','vendor_id','uploaded_by_user_id','scope_key','sha256','width','height','status'] as $column) {
@@ -70,7 +73,7 @@ marketplaceCheck($checks,$failures,'shared product detach preserves library bina
 marketplaceCheck($checks,$failures,'unused library archive removes binary',str_contains($service,"Storage::disk(\$asset->disk)->delete(\$asset->path)"));
 marketplaceCheck($checks,$failures,'seller media hides uploader identity',str_contains($mediaController,"\$includeUploader && \$asset->uploader"));
 marketplaceCheck($checks,$failures,'seller media scope includes own/global only',str_contains($mediaController,"where('vendor_id',\$vendor->id)->orWhereNull('vendor_id')"));
-marketplaceCheck($checks,$failures,'cross-vendor attach blocked',str_contains($mediaController,'Vendor media can only be attached to that vendor'));
+marketplaceCheck($checks,$failures,'cross-vendor product media attach blocked',str_contains($mediaController,'Vendor media can only be attached to that vendor'));
 
 foreach ([
     "Route::get('/vendors'",
@@ -85,6 +88,9 @@ marketplaceCheck($checks,$failures,'seller media RBAC mapped',str_contains($rbac
 
 marketplaceCheck($checks,$failures,'seller slug validation is unique and normalized',str_contains($sellerOps,"Rule::unique('vendors','slug')") && str_contains($sellerOps,"regex:/^[a-z0-9]+"));
 marketplaceCheck($checks,$failures,'seller controls storefront visibility',str_contains($sellerOps,"'storefrontEnabled' => 'required|boolean'"));
+marketplaceCheck($checks,$failures,'seller logo canonical persistence is a media asset id',str_contains($sellerOps,"'logoMediaAssetId' => 'nullable|string|max:26'") && str_contains($sellerOps,"\$metadata['logoMediaAssetId'] = \$logo->public_id") && str_contains($sellerOps,"unset(\$metadata['logoUrl'])"));
+marketplaceCheck($checks,$failures,'seller logo selection is scoped to active own/global media',str_contains($storefrontMedia,"where('status', 'active')") && str_contains($storefrontMedia,"whereNull('vendor_id')->orWhere('vendor_id', \$vendor->id)"));
+marketplaceCheck($checks,$failures,'seller logo URL is derived from storage at response time',str_contains($storefrontMedia,"Storage::disk(\$asset->disk)->url(\$asset->path)") && str_contains($publicVendor,"'logoMediaAssetId'=>\$logo['logoMediaAssetId']") && str_contains($publicVendor,"'logoUrl'=>\$logo['logoUrl']"));
 marketplaceCheck($checks,$failures,'public vendor output uses explicit public support email only',str_contains($publicVendor,"'supportEmail'=>\$meta['publicSupportEmail']??null") && ! str_contains($publicVendor,"\$meta['supportEmail']"));
 marketplaceCheck($checks,$failures,'public vendor products are published-only',str_contains($publicVendor,"where('status','published')"));
 
@@ -93,13 +99,14 @@ marketplaceCheck($checks,$failures,'public seller-shop SPA route',str_contains($
 marketplaceCheck($checks,$failures,'vendor media navigation',str_contains($vendorShell,'/vendor/media'));
 marketplaceCheck($checks,$failures,'dead admin migration navigation removed',! str_contains($adminShell,'/admin/migration'));
 marketplaceCheck($checks,$failures,'obsolete read-only AdminMediaController API removed',! is_file($root.'/app/Http/Controllers/Api/V1/AdminMediaController.php') && ! str_contains($routes,'AdminMediaController'));
-marketplaceCheck($checks,$failures,'product editor uses reusable media picker',str_contains($productEditor,'<MediaLibraryPanel'));
-marketplaceCheck($checks,$failures,'seller logo uses reusable media picker',str_contains($sellerCenter,'<MediaLibraryPanel mode="vendor" compact'));
+marketplaceCheck($checks,$failures,'product editor exposes reusable media picker',str_contains($productEditor,'<MediaLibraryPanel'));
+marketplaceCheck($checks,$failures,'seller logo picker uses seller media library',str_contains($sellerCenter,'<MediaLibraryPanel mode="vendor" compact'));
 marketplaceCheck($checks,$failures,'seller shop link is exposed',str_contains($sellerCenter,'Your public shop') && str_contains($sellerCenter,'Copy link'));
 marketplaceCheck($checks,$failures,'admin workspace spacing override present',str_contains($styles,'.admin-content') && str_contains($styles,'.admin-content>.simple-page'));
 
-marketplaceCheck($checks,$failures,'Laravel home does not substitute legacy games when server has zero games',str_contains($home,"const liveGames=apiBackend==='laravel'?lg.games.filter") && ! str_contains($home,"apiBackend==='laravel'&&lg.games.length?"));
-marketplaceCheck($checks,$failures,'Laravel home loads live public categories/vendors/products',str_contains($home,"apiGet('/categories')") && str_contains($home,"apiGet('/vendors')") && str_contains($home,"apiGet('/products?sort=popular&perPage=12')"));
+marketplaceCheck($checks,$failures,'home no longer imports static catalog or legacy StoreProvider state',! str_contains($home,"../data/catalog") && ! str_contains($home,"../platform/store") && ! str_contains($home,'apiBackend'));
+marketplaceCheck($checks,$failures,'home uses only server-authorized game collection',str_contains($home,'const liveGames=lg.games.filter'));
+marketplaceCheck($checks,$failures,'home loads live public categories/vendors/products',str_contains($home,"apiGet('/categories')") && str_contains($home,"apiGet('/vendors')") && str_contains($home,"apiGet('/products?sort=popular&perPage=12')"));
 marketplaceCheck($checks,$failures,'Laravel product page blocks demo fallback on API failure',str_contains($productPage,"if (apiBackend==='laravel' && remoteLoading)") && str_contains($productPage,"if (apiBackend==='laravel' && remoteError && !remoteProduct)"));
 marketplaceCheck($checks,$failures,'personal mock orders removed',str_contains($store,'const initialOrders=[];'));
 marketplaceCheck($checks,$failures,'personal mock notifications removed',str_contains($store,'const initialNotifications=[];'));
@@ -107,7 +114,10 @@ marketplaceCheck($checks,$failures,'personal mock messages removed',str_contains
 marketplaceCheck($checks,$failures,'personal mock identity removed',! str_contains($store,'Muhammad Ahmed Khan') && ! str_contains($store,'ahmed@example.com'));
 marketplaceCheck($checks,$failures,'dummy seller score rows removed',str_contains($store,'const sellerScores=[];'));
 
-marketplaceCheck($checks,$failures,'feature isolation tests present',str_contains(marketplaceRead($root,'tests/Feature/MarketplaceMediaStorefrontTest.php'),'test_customer_address_data_is_scoped_to_authenticated_user'));
+marketplaceCheck($checks,$failures,'customer data isolation regression test present',str_contains($featureTests,'test_customer_address_data_is_scoped_to_authenticated_user'));
+marketplaceCheck($checks,$failures,'seller logo stable-id regression test present',str_contains($featureTests,'test_seller_logo_persists_media_asset_reference_not_delivery_url'));
+marketplaceCheck($checks,$failures,'cross-vendor seller logo regression test present',str_contains($featureTests,'test_seller_cannot_select_cross_vendor_logo_media'));
+marketplaceCheck($checks,$failures,'public seller logo resolution regression test present',str_contains($featureTests,'test_public_vendor_logo_is_resolved_from_media_library_reference'));
 marketplaceCheck($checks,$failures,'media RBAC regression test present',str_contains(marketplaceRead($root,'tests/Unit/MarketplaceFeatureContractTest.php'),'test_media_library_routes_have_rbac_mappings'));
 
 printf("Marketplace media/storefront audit: %d/%d PASS\n", count($checks)-count($failures), count($checks));
