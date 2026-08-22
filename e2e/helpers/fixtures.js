@@ -22,6 +22,16 @@ function resetDatabase() {
   });
 }
 
+/** Returns true when a browser request belongs to the local E2E application. */
+function isApplicationUrl(value) {
+  try {
+    const url = new URL(value);
+    return ['127.0.0.1', 'localhost'].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export const test = base.extend({
   dbReset: [/** Inline callback for this operation. */ async ({}, use) => {
     resetDatabase();
@@ -34,6 +44,14 @@ export const test = base.extend({
       if (message.type() === 'error' && !/favicon|ERR_BLOCKED_BY_CLIENT/i.test(message.text())) {
         runtimeErrors.push(`console.error: ${message.text()}`);
       }
+    });
+    page.on('requestfailed', /** Treats failed first-party network requests as interaction regressions. */ request => {
+      if (!isApplicationUrl(request.url())) return;
+      runtimeErrors.push(`requestfailed: ${request.method()} ${request.url()} — ${request.failure()?.errorText || 'unknown error'}`);
+    });
+    page.on('response', /** Treats first-party server errors as browser-flow failures. */ response => {
+      if (!isApplicationUrl(response.url()) || response.status() < 500) return;
+      runtimeErrors.push(`http ${response.status()}: ${response.request().method()} ${response.url()}`);
     });
     await page.route('**/*', /** Inline callback for this operation. */ async route => {
       const url = new URL(route.request().url());
