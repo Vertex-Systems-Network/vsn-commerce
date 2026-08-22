@@ -14,9 +14,10 @@ class MobileClientContext
     /** Executes the mobile client context operation. */
     public function handle(Request $request, Closure $next): Response
     {
+        $presentedBearer = $request->bearerToken();
         $candidate = null;
-        if ($request->bearerToken()) {
-            $found = PersonalAccessToken::findToken((string) $request->bearerToken());
+        if ($presentedBearer) {
+            $found = PersonalAccessToken::findToken((string) $presentedBearer);
             if ($found instanceof PersonalAccessToken && $found->can('mobile:access')) {
                 $candidate = $found;
             }
@@ -30,6 +31,13 @@ class MobileClientContext
         if (! $isAndroid) return $next($request);
         if (strtolower((string) $request->header('X-VSN-Client')) !== 'android') {
             $request->headers->set('X-VSN-Client', 'android');
+        }
+
+        // A mobile request that explicitly presents a Bearer credential must never
+        // fall back to a stateful browser session when that credential is invalid,
+        // revoked, or lacks the mobile:access ability.
+        if ($presentedBearer && ! $candidate instanceof PersonalAccessToken) {
+            return $this->error($request, 401, 'mobile_token_invalid', 'This Android access token is invalid or has been revoked.');
         }
 
         $isConfig = $request->is('api/mobile/v1/config');
