@@ -81,7 +81,7 @@ class BrowserE2EContractTest extends TestCase
         $lock = json_decode($this->source('package-lock.json'), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame($package['dependencies'] ?? [], $lock['packages']['']['dependencies'] ?? []);
         $this->assertSame($package['devDependencies'] ?? [], $lock['packages']['']['devDependencies'] ?? []);
-        $this->assertStringContainsString('@playwright/test@1.62.0', $package['scripts']['e2e:bootstrap']);
+        $this->assertStringContainsString('@playwright/test@1.62.1', $package['scripts']['e2e:bootstrap']);
         $this->assertStringContainsString('--no-save', $package['scripts']['e2e:bootstrap']);
         $this->assertStringContainsString('--package-lock=false', $package['scripts']['e2e:bootstrap']);
     }
