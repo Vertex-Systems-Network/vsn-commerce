@@ -14,7 +14,7 @@ export function UXProvider({children}){
 
   useEffect(/** Moves route-change focus to the active workspace rather than repeated global chrome. */ ()=>{
     window.scrollTo({top:0,behavior:'auto'});
-    const main=document.querySelector('#account-content, main');
+    const main=document.querySelector('#account-content')||document.querySelector('main');
     if(main){main.setAttribute('tabindex','-1');requestAnimationFrame(/** Focuses the new route without introducing an additional scroll jump. */ ()=>main.focus({preventScroll:true}));}
   },[location.pathname]);
 
