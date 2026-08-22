@@ -49,7 +49,7 @@
             "@php artisan key:generate --ansi"
         ],
         "test": [
-            "@php artisan test"
+            "@php vendor/bin/phpunit --configuration=phpunit.xml"
         ],
         "dev": "@php scripts/dev-unified.php",
         "pre-autoload-dump": [
@@ -62,11 +62,11 @@
         "audit:mysql-schema": "@php scripts/audit-mysql-schema.php",
         "audit:database-portability": "@php scripts/audit-database-portability.php",
         "preflight:mysql": "@php scripts/mysql-runtime-preflight.php",
-        "test:mysql": "@php artisan test --configuration=phpunit.mysql.xml",
-        "test:unit": "@php artisan test --testsuite=Unit",
-        "test:feature": "@php artisan test --testsuite=Feature",
-        "test:sqlite": "@php artisan test --configuration=phpunit.xml",
-        "test:postgres": "@php artisan test --configuration=phpunit.postgres.xml",
+        "test:mysql": "@php vendor/bin/phpunit --configuration=phpunit.mysql.xml",
+        "test:unit": "@php vendor/bin/phpunit --configuration=phpunit.xml --testsuite=Unit",
+        "test:feature": "@php vendor/bin/phpunit --configuration=phpunit.xml --testsuite=Feature",
+        "test:sqlite": "@php vendor/bin/phpunit --configuration=phpunit.xml",
+        "test:postgres": "@php vendor/bin/phpunit --configuration=phpunit.postgres.xml",
         "test:static": "@php scripts/test-matrix.php --static-only",
         "test:matrix": "@php scripts/test-matrix.php",
         "audit:performance-security": "@php scripts/audit-performance-security.php",
