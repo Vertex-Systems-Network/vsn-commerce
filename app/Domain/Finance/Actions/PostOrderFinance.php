@@ -30,9 +30,16 @@ class PostOrderFinance
             foreach($order->vendorOrders as $vo){
                 if(!$vo->finance_posted_at){
                     $sellerDiscount=(int)$vo->seller_discount_minor;
-                    $platformDiscount=max(0,(int)$vo->discount_minor-$sellerDiscount);
+                    $vendorPlatformDiscount=max(0,(int)$vo->discount_minor-$sellerDiscount);
+                    $existingSubsidy=(int)$vo->coupon_subsidy_minor;
                     $expectedSeller=max(0,(int)$vo->seller_payable_minor);
-                    $vo->update(['coupon_subsidy_minor'=>$platformDiscount,'seller_payable_minor'=>$expectedSeller]);$vo->refresh();
+                    // Legacy rows reduced seller payable by the whole customer discount even
+                    // when the platform funded it. Modern checkout rows already persist the
+                    // subsidy and the correct payable, so restore only unmigrated legacy rows.
+                    if($vendorPlatformDiscount>0 && $existingSubsidy===0){
+                        $expectedSeller+=$vendorPlatformDiscount;
+                    }
+                    $vo->update(['coupon_subsidy_minor'=>$vendorPlatformDiscount,'seller_payable_minor'=>$expectedSeller]);$vo->refresh();
                 }
                 if((int)$vo->seller_payable_minor>0)$entries[]=['account'=>FinanceAccounts::SELLER_PAYABLE,'direction'=>FinanceDirection::Credit->value,'amount'=>(int)$vo->seller_payable_minor,'vendor_id'=>$vo->vendor_id,'metadata'=>['vendor_order_id'=>$vo->public_id]];
                 $commission+=(int)$vo->platform_commission_minor;$platformTax+=(int)$vo->platform_tax_minor;
