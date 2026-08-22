@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+
+parameters:
+    paths:
+        - app
+
+    # Start broad rather than hiding debt in a generated baseline. Raise this
+    # level as existing dynamic/domain code is made type-safe.
+    level: 1
+
+    tmpDir: storage/framework/cache/phpstan
