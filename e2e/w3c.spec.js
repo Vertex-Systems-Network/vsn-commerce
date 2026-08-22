@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+import {test,expect,loginAs} from './helpers/fixtures.js';
+
+const require=createRequire(import.meta.url);
+const {vnu}=require('vnu-jar');
+
+/** Validates one rendered React document with the Nu HTML Checker. */
+async function validateRenderedHtml(page,route,label){
+  await page.goto(route);
+  await page.locator('body').waitFor({state:'visible'});
+  const html=await page.content();
+  const file=path.join(os.tmpdir(),`vsn-${label.replace(/[^a-z0-9]+/gi,'-')}-${Date.now()}.html`);
+  fs.writeFileSync(file,html,'utf8');
+  try {
+    let output='';
+    try {
+      output=String(await vnu.check(['--errors-only',file])||'').trim();
+    } catch(error) {
+      output=String(error?.message||error).trim();
+    }
+    expect(output,`W3C Nu HTML errors on ${route}`).toBe('');
+  } finally {
+    fs.rmSync(file,{force:true});
+  }
+}
+
+test.describe('W3C rendered HTML conformance',()=>{
+  test('public shell and authentication HTML are conforming',async({page})=>{
+    await validateRenderedHtml(page,'/','home');
+    await validateRenderedHtml(page,'/login','login');
+    await validateRenderedHtml(page,'/search','search');
+  });
+
+  test('authenticated workspace shells produce conforming HTML',async({page})=>{
+    await loginAs(page,'customer');
+    await validateRenderedHtml(page,'/account','account');
+  });
+
+  test('seller workspace produces conforming HTML',async({page})=>{
+    await loginAs(page,'seller');
+    await validateRenderedHtml(page,'/vendor','seller');
+  });
+
+  test('admin workspace produces conforming HTML',async({page})=>{
+    await loginAs(page,'superAdmin');
+    await validateRenderedHtml(page,'/admin','admin');
+  });
+});
