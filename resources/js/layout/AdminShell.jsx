@@ -2,6 +2,7 @@ import {useEffect,useState} from "react";
 import { NavLink, Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { FaBars,FaBell, FaBoxOpen, FaChartLine, FaCheckCircle, FaCreditCard, FaClipboardCheck, FaCoins, FaCog, FaFileInvoiceDollar, FaIdCard, FaList, FaMoneyBillWave, FaPercentage, FaPhotoVideo, FaShippingFast, FaShieldAlt, FaSignOutAlt, FaStore, FaTags, FaTimes, FaUndo, FaUsers, FaUserShield, FaWrench } from "react-icons/fa";
 import { useAuth } from "../platform/auth";
+import SkipLink from "../components/SkipLink";
 
 const items = [
   ["/admin", "Overview", FaChartLine, "admin.overview.view", true],
@@ -42,6 +43,7 @@ export default function AdminShell() {
   const visible = items.filter(/** Inline callback for this operation. */ ([, , , permission]) => hasPermission(permission));
   const signOut = /** Handles sign out for the VSN Ecommerce interface. */ async () => { await logout(); navigate("/login", { replace: true }); };
   return <div className={`admin-app-shell ${open?'nav-open':''}`}>
+    <SkipLink/>
     <button className="shell-overlay" aria-label="Close navigation" onClick={/** Inline callback for this operation. */ ()=>setOpen(false)}/>
     <aside className="admin-sidebar" aria-label="Admin navigation">
       <div className="mobile-drawer-head"><span>Navigation</span><button type="button" aria-label="Close navigation" onClick={/** Inline callback for this operation. */ ()=>setOpen(false)}><FaTimes/></button></div>
@@ -59,7 +61,7 @@ export default function AdminShell() {
         <div className="admin-topbar-title"><button className="shell-menu-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={/** Inline callback for this operation. */ ()=>setOpen(true)}><FaBars/></button><div><small>VSN Ecommerce</small><strong>Admin Panel</strong></div></div>
         <div className="admin-user-chip"><span>{user?.name?.slice(0,1)?.toUpperCase()}</span><div><b>{user?.name}</b><small>{String(user?.role || "").replaceAll("_"," ")}</small></div></div>
       </header>
-      <main className="admin-content" id="main-content"><Outlet/></main>
+      <main className="admin-content" id="main-content" tabIndex="-1"><Outlet/></main>
     </section>
   </div>;
 }
