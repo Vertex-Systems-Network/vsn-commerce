@@ -36,7 +36,8 @@
   box-shadow: 0 0 0 2px var(--a11y-focus-offset) !important;
 }
 
-#main-content:focus {
+#main-content:focus,
+#account-content:focus {
   outline: none !important;
   box-shadow: none !important;
 }
