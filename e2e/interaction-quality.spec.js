@@ -25,7 +25,7 @@ async function assertInteractiveContract(page,label){
 }
 
 /** Clicks every currently available workspace navigation link and verifies a live route renders. */
-async function clickWorkspaceNavigation(page,home,sidebarSelector){
+async function clickWorkspaceNavigation(page,home,sidebarSelector,contentSelector='#main-content'){
   await page.goto(home);
   const hrefs=await page.locator(`${sidebarSelector} a[href]`).evaluateAll(nodes=>[...new Set(nodes.map(node=>node.getAttribute('href')).filter(href=>href&&href.startsWith('/')))]);
   expect(hrefs.length,`${home} should expose workspace navigation`).toBeGreaterThan(0);
@@ -36,7 +36,7 @@ async function clickWorkspaceNavigation(page,home,sidebarSelector){
     await expect(link,`Navigation link ${href} should remain available`).toBeVisible();
     await link.click();
     await expect.poll(()=>new URL(page.url()).pathname,{message:`Clicking ${href} should navigate to the intended route`}).toBe(href);
-    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page.locator(contentSelector)).toBeVisible();
     await expect(page.locator('body')).not.toContainText(/page not found|404 not found/i);
     await assertInteractiveContract(page,href);
   }
@@ -69,20 +69,20 @@ test.describe('interaction quality and click safety',()=>{
   });
 
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{
-    await loginAs(page,'customer');
     test.setTimeout(120_000);
-    await clickWorkspaceNavigation(page,'/account','.account-sidebar');
+    await loginAs(page,'customer');
+    await clickWorkspaceNavigation(page,'/account','.account-sidebar','#account-content');
   });
 
   test('seller workspace navigation clicks render without runtime errors',async({page})=>{
-    await loginAs(page,'seller');
     test.setTimeout(150_000);
+    await loginAs(page,'seller');
     await clickWorkspaceNavigation(page,'/vendor','.vendor-sidebar');
   });
 
   test('admin workspace navigation clicks render without runtime errors',async({page})=>{
-    await loginAs(page,'superAdmin');
     test.setTimeout(210_000);
+    await loginAs(page,'superAdmin');
     await clickWorkspaceNavigation(page,'/admin','.admin-sidebar');
   });
 });
