@@ -91,7 +91,7 @@ class OrderResource extends JsonResource
                 'packedAt' => $vendorOrder->packed_at?->toISOString(),
                 'dispatchedAt' => $vendorOrder->dispatched_at?->toISOString(),
                 'deliveredAt' => $vendorOrder->delivered_at?->toISOString(),
-                'shipmentId' => $vendorOrder->shipments?->sortByDesc('id')->first()?->public_id,
+                'shipmentId' => $vendorOrder->relationLoaded('shipments') ? $vendorOrder->shipments->sortByDesc('id')->first()?->public_id : null,
                 'items' => $vendorOrder->items->count(),
             ])->values(),
         ];
