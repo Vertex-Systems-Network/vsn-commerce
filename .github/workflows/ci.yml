@@ -95,7 +95,7 @@ jobs:
 
   browser-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -107,23 +107,33 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci --no-audit --no-fund
-      - name: Install pinned Playwright runner
+      - name: Install pinned Playwright, axe and W3C Nu tooling
         run: npm run e2e:bootstrap
       - name: Build React application
         run: npm run build
       - name: Install Chromium browser dependencies
         run: npx playwright install --with-deps chromium
-      - name: Run desktop + mobile browser E2E
+      - name: Run desktop + mobile browser E2E, click, WCAG and W3C gates
         run: npx playwright test --project=chromium --project=mobile-chromium
+      - name: Run WAVE public staging audit when configured
+        env:
+          WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
+          WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
+          WAVE_ROUTES: ${{ vars.WAVE_ROUTES }}
+        run: npm run audit:wave
       - name: Record browser acceptance evidence
         run: |
           mkdir -p runtime-artifacts
           cat > runtime-artifacts/browser-e2e.json <<JSON
-          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"]}
+          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"],"qualityGates":["runtime-errors","interaction-clicks","axe-wcag-2.2","w3c-nu","wave-when-configured"]}
           JSON
-      - name: Upload browser evidence
+      - name: Upload browser and accessibility evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -133,6 +143,7 @@ jobs:
             runtime-artifacts/playwright-results/
             runtime-artifacts/playwright-junit.xml
             runtime-artifacts/browser-e2e.json
+            runtime-artifacts/wave-a11y.json
           if-no-files-found: warn
 
   runtime-integration:
