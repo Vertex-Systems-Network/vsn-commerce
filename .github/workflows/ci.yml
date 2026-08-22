@@ -27,6 +27,8 @@ jobs:
       - run: composer validate --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci --no-audit --no-fund
+      - name: Run frontend source and routing quality audit
+        run: npm test
       - run: npm run build
 
   sqlite-tests:
