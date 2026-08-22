@@ -19,10 +19,25 @@ class PublishMarketplaceNotification
         if(!$enabled('in_app')&&!collect(['email','sms','push'])->contains(/** Inline callback for this operation. */ fn($c)=>$enabled($c)))return null;
         $notification=DB::transaction(/** Inline callback for this operation. */ function()use($user,$category,$type,$title,$body,$dedupKey,$actionUrl,$referenceType,$referenceId,$data,$enabled){
             $fullKey=hash('sha256',"{$user->id}|{$dedupKey}");
-            $row=MarketplaceNotification::query()->createOrFirst(
-                ['dedup_key'=>$fullKey],
-                ['public_id'=>(string)Str::uuid(),'user_id'=>$user->id,'category'=>$category,'type'=>$type,'title'=>$title,'body'=>$body,'action_url'=>$actionUrl,'reference_type'=>$referenceType,'reference_id'=>$referenceId,'data'=>$data,'in_app_visible'=>$enabled('in_app')]
-            );
+            $now=now();
+            $inserted=DB::table('marketplace_notifications')->insertOrIgnore([
+                'dedup_key'=>$fullKey,
+                'public_id'=>(string)Str::uuid(),
+                'user_id'=>$user->id,
+                'category'=>$category,
+                'type'=>$type,
+                'title'=>$title,
+                'body'=>$body,
+                'action_url'=>$actionUrl,
+                'reference_type'=>$referenceType,
+                'reference_id'=>$referenceId,
+                'data'=>json_encode($data,JSON_THROW_ON_ERROR),
+                'in_app_visible'=>$enabled('in_app'),
+                'created_at'=>$now,
+                'updated_at'=>$now,
+            ]);
+            $row=MarketplaceNotification::query()->where('dedup_key',$fullKey)->firstOrFail();
+            $row->wasRecentlyCreated=$inserted===1;
             if($row->wasRecentlyCreated)foreach(['email','sms','push'] as $channel)if($enabled($channel))NotificationDelivery::query()->firstOrCreate(['marketplace_notification_id'=>$row->id,'channel'=>$channel],['status'=>'pending','available_at'=>now()]);
             return $row;
         },3);
