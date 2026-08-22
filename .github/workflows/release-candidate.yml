@@ -13,7 +13,7 @@ on:
 jobs:
   locked-runtime-acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -25,6 +25,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Require committed dependency locks
         run: |
           test -f composer.lock || { echo 'composer.lock is required for a release candidate'; exit 1; }
@@ -37,10 +41,23 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install pinned browser accessibility and W3C tooling
+        run: npm run e2e:bootstrap
       - name: Build frontend
         run: npm run build
+      - name: Install Chromium browser dependencies
+        run: npx playwright install --with-deps chromium
       - name: Laravel SQLite regression
         run: php vendor/bin/phpunit --configuration=phpunit.xml
+      - name: Browser interaction, WCAG and W3C acceptance
+        run: npx playwright test e2e/accessibility.spec.js e2e/w3c.spec.js e2e/interaction-quality.spec.js --project=chromium
+      - name: Require WAVE public staging acceptance
+        env:
+          WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
+          WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
+          WAVE_ROUTES: ${{ vars.WAVE_ROUTES }}
+          WAVE_REQUIRED: '1'
+        run: npm run audit:wave
       - name: Static final acceptance audits
         run: bash scripts/final-static-acceptance.sh
       - name: Record lock-bound candidate evidence
@@ -53,11 +70,13 @@ jobs:
           NPM_SHA="$(sha256sum package-lock.json | awk '{print $1}')"
           TREE_SHA="$(find . -type f ! -path './vendor/*' ! -path './node_modules/*' ! -path './runtime-artifacts/*' -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
           cat > runtime-artifacts/locked-runtime-candidate.json <<JSON
-          {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+          {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","accessibilityGates":["axe-wcag-2.2","w3c-nu","wave-public-staging","interaction-clicks"],"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
           JSON
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: vsn-locked-runtime-candidate
-          path: runtime-artifacts/
+          path: |
+            runtime-artifacts/
+            playwright-report/
           if-no-files-found: error
