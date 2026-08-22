@@ -38,6 +38,7 @@ $required = [
     'resources/js/pages/VendorMedia.jsx',
     'resources/js/pages/Vendors.jsx',
     'tests/Feature/MarketplaceMediaStorefrontTest.php',
+    'tests/Feature/CatalogMediaWriteContractTest.php',
     'tests/Unit/MarketplaceFeatureContractTest.php',
 ];
 foreach ($required as $file) marketplaceCheck($checks,$failures,"required file {$file}",is_file($root.'/'.$file));
@@ -48,9 +49,12 @@ $rbac = marketplaceRead($root,'app/Security/Rbac.php');
 $service = marketplaceRead($root,'app/Domain/Catalog/Services/MediaLibraryService.php');
 $storefrontMedia = marketplaceRead($root,'app/Domain/Catalog/Services/VendorStorefrontMediaService.php');
 $productMedia = marketplaceRead($root,'app/Domain/Catalog/Services/ProductMediaService.php');
+$catalogMutation = marketplaceRead($root,'app/Domain/Catalog/Services/CatalogMutationService.php');
 $mediaController = marketplaceRead($root,'app/Http/Controllers/Api/V1/MediaLibraryController.php');
 $publicVendor = marketplaceRead($root,'app/Http/Controllers/Api/V1/PublicVendorController.php');
 $sellerOps = marketplaceRead($root,'app/Http/Controllers/Api/V1/SellerOperationsController.php');
+$sellerCatalog = marketplaceRead($root,'app/Http/Controllers/Api/V1/SellerCatalogController.php');
+$adminCatalog = marketplaceRead($root,'app/Http/Controllers/Api/V1/AdminCatalogController.php');
 $app = marketplaceRead($root,'resources/js/App.jsx');
 $adminShell = marketplaceRead($root,'resources/js/layout/AdminShell.jsx');
 $vendorShell = marketplaceRead($root,'resources/js/layout/VendorShell.jsx');
@@ -61,6 +65,7 @@ $productPage = marketplaceRead($root,'resources/js/pages/Product.jsx');
 $store = marketplaceRead($root,'resources/js/platform/store.jsx');
 $styles = marketplaceRead($root,'resources/js/styles.scss');
 $featureTests = marketplaceRead($root,'tests/Feature/MarketplaceMediaStorefrontTest.php');
+$catalogMediaTests = marketplaceRead($root,'tests/Feature/CatalogMediaWriteContractTest.php');
 
 marketplaceCheck($checks,$failures,'media_library_assets migration exists',str_contains($migration,"Schema::create('media_library_assets'"));
 foreach (['public_id','vendor_id','uploaded_by_user_id','scope_key','sha256','width','height','status'] as $column) {
@@ -94,12 +99,18 @@ marketplaceCheck($checks,$failures,'seller logo URL is derived from storage at r
 marketplaceCheck($checks,$failures,'public vendor output uses explicit public support email only',str_contains($publicVendor,"'supportEmail'=>\$meta['publicSupportEmail']??null") && ! str_contains($publicVendor,"\$meta['supportEmail']"));
 marketplaceCheck($checks,$failures,'public vendor products are published-only',str_contains($publicVendor,"where('status','published')"));
 
+marketplaceCheck($checks,$failures,'product editor exposes reusable media picker',str_contains($productEditor,'<MediaLibraryPanel'));
+marketplaceCheck($checks,$failures,'product editor has no editable legacy imageUrl state/payload',! str_contains($productEditor,'imageUrl') && ! str_contains($productEditor,'images:form.'));
+marketplaceCheck($checks,$failures,'seller catalog prohibits arbitrary image payloads',str_contains($sellerCatalog,"'images'=>['prohibited']"));
+marketplaceCheck($checks,$failures,'admin catalog prohibits arbitrary image payloads',str_contains($adminCatalog,"'images'=>['prohibited']"));
+marketplaceCheck($checks,$failures,'catalog mutation service cannot create legacy URL image rows',! str_contains($catalogMutation,'syncImages(') && ! str_contains($catalogMutation,"'source'=>'legacy_url'"));
+marketplaceCheck($checks,$failures,'product URL write rejection behavior test present',str_contains($catalogMediaTests,'test_seller_product_create_rejects_arbitrary_image_urls'));
+
 marketplaceCheck($checks,$failures,'public all-vendors SPA route',str_contains($app,'path="/vendors"'));
 marketplaceCheck($checks,$failures,'public seller-shop SPA route',str_contains($app,'path="/shop/:slug"'));
 marketplaceCheck($checks,$failures,'vendor media navigation',str_contains($vendorShell,'/vendor/media'));
 marketplaceCheck($checks,$failures,'dead admin migration navigation removed',! str_contains($adminShell,'/admin/migration'));
 marketplaceCheck($checks,$failures,'obsolete read-only AdminMediaController API removed',! is_file($root.'/app/Http/Controllers/Api/V1/AdminMediaController.php') && ! str_contains($routes,'AdminMediaController'));
-marketplaceCheck($checks,$failures,'product editor exposes reusable media picker',str_contains($productEditor,'<MediaLibraryPanel'));
 marketplaceCheck($checks,$failures,'seller logo picker uses seller media library',str_contains($sellerCenter,'<MediaLibraryPanel mode="vendor" compact'));
 marketplaceCheck($checks,$failures,'seller shop link is exposed',str_contains($sellerCenter,'Your public shop') && str_contains($sellerCenter,'Copy link'));
 marketplaceCheck($checks,$failures,'admin workspace spacing override present',str_contains($styles,'.admin-content') && str_contains($styles,'.admin-content>.simple-page'));
