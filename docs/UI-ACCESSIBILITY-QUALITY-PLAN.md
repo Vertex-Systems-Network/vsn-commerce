@@ -12,7 +12,7 @@ This plan is additive to `AGENTS.md`. It does not authorize redesigning the cust
 - W3C Nu HTML Checker is the machine-enforced HTML conformance gate for rendered pages.
 - axe-core/Playwright is the mandatory automated accessibility regression gate for local and CI rendered pages.
 - WAVE is an independent second-engine validation gate for a publicly reachable staging/production URL. WAVE API results must not be represented as passing when credentials or a public target URL are unavailable.
-- Human keyboard, screen-reader and visual review remains required because no automated scanner can prove full accessibility.
+- Human keyboard, screen-reader and visual review remains required because no automated scanner can prove full accessibility or full interaction correctness.
 
 ## Implemented baseline — 2026-08-22
 
