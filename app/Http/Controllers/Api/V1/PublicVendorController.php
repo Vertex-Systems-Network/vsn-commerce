@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Catalog\Services\VendorStorefrontMediaService;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Vendor;
@@ -11,6 +12,9 @@ use Illuminate\Http\Request;
 /** Serves public vendor directory and vendor-storefront data without exposing seller-private records. */
 class PublicVendorController extends Controller
 {
+    /** Creates the public storefront controller with reusable-media resolution. */
+    public function __construct(private readonly VendorStorefrontMediaService $storefrontMedia) {}
+
     /** Lists active storefront-enabled vendors with marketplace-safe summary metrics. */
     public function index(Request $request): JsonResponse
     {
@@ -36,9 +40,11 @@ class PublicVendorController extends Controller
     private function vendorRow(Vendor $vendor): array
     {
         $meta=$vendor->metadata??[];
+        $logo=$this->storefrontMedia->logoPayload($vendor);
         return [
             'id'=>$vendor->id,'name'=>$vendor->name,'slug'=>$vendor->slug,'shopUrl'=>'/shop/'.$vendor->slug,
-            'logoUrl'=>$meta['logoUrl']??null,'headline'=>$meta['storefrontHeadline']??null,'description'=>$meta['storefrontDescription']??null,
+            'logoMediaAssetId'=>$logo['logoMediaAssetId'],'logoUrl'=>$logo['logoUrl'],'logoAlt'=>$logo['logoAlt'],
+            'headline'=>$meta['storefrontHeadline']??null,'description'=>$meta['storefrontDescription']??null,
             'supportEmail'=>$meta['publicSupportEmail']??null,
             'productsCount'=>(int)($vendor->products_count??$vendor->products()->where('status','published')->count()),
         ];
