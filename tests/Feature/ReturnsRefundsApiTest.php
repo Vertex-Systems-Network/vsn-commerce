@@ -178,7 +178,7 @@ class ReturnsRefundsApiTest extends TestCase
     private function order(string $method,int $qty,int $lineTotal,int $commissionBps): array
     {
         $user=User::factory()->create(); $vendor=Vendor::create(['name'=>'Seller','slug'=>'seller-'.Str::lower((string)Str::ulid()),'status'=>'active','commission_bps'=>$commissionBps]);
-        $product=Product::create(['public_id'=>(string)Str::ulid(),'vendor_id'=>$vendor->id,'sku'=>'P-'.Str::ulid(),'slug'=>'p-'.Str::lower((string)Str::ulid()),'name'=>'Returnable product','status'=>ProductStatus::Active,'currency'=>'PKR','base_price_minor'=>intdiv($lineTotal,$qty)]);
+        $product=Product::create(['public_id'=>(string)Str::ulid(),'vendor_id'=>$vendor->id,'sku'=>'P-'.Str::ulid(),'slug'=>'p-'.Str::lower((string)Str::ulid()),'name'=>'Returnable product','status'=>ProductStatus::Published,'currency'=>'PKR','base_price_minor'=>intdiv($lineTotal,$qty)]);
         $variant=ProductVariant::create(['product_id'=>$product->id,'sku'=>'V-'.Str::ulid(),'name'=>'Default','price_minor'=>intdiv($lineTotal,$qty),'is_default'=>true,'is_active'=>true]);
         $warehouse=Warehouse::create(['code'=>'WH-'.Str::ulid(),'name'=>'Main']); $inventory=Inventory::create(['warehouse_id'=>$warehouse->id,'product_variant_id'=>$variant->id,'on_hand'=>9,'reserved'=>0,'safety_stock'=>0]);
         $cart=Cart::create(['public_id'=>(string)Str::ulid(),'user_id'=>$user->id,'status'=>CartStatus::Converted,'currency'=>'PKR']);
