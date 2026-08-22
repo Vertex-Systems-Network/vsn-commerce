@@ -163,7 +163,7 @@ class MarketplaceAnalyticsService
         $entries=GameEntry::query()->whereBetween('created_at',[$from,$to]);
         $coins=(int)(clone $entries)->sum('coins_spent');
         $refundCoins=(int)GameEntryRefund::query()->whereBetween('refunded_at',[$from,$to])->join('game_entries','game_entries.id','=','game_entry_refunds.game_entry_id')->sum('game_entries.coins_spent');
-        $prizeLiability=(int)Game::query()->where('status',GameStatus::WinnerSelected->value)->whereNull('fulfilled_at')->join('products','products.id','=','games.product_id')->where('products.currency',$currency)->sum('products.base_price_minor');
+        $prizeLiability=(int)Game::query()->where('games.status',GameStatus::WinnerSelected->value)->whereNull('games.fulfilled_at')->join('products','products.id','=','games.product_id')->where('products.currency',$currency)->sum('products.base_price_minor');
         return ['activity'=>['entries'=>(clone $entries)->sum('quantity'),'entryCoins'=>$coins,'refundedEntryCoins'=>$refundCoins,'gamesDrawn'=>Game::query()->whereBetween('drawn_at',[$from,$to])->count()],'liability'=>['gamePrizeLiabilityMinor'=>$prizeLiability]];
     }
 
