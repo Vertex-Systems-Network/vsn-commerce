@@ -1,0 +1,146 @@
+/*
+ * Accessibility and interaction-quality overrides.
+ * Loaded after the historical stylesheet so this layer can improve focus,
+ * target sizing and contrast without redesigning the established storefront.
+ */
+
+:root {
+  --a11y-focus: #1d4ed8;
+  --a11y-focus-offset: #ffffff;
+  --a11y-action-orange: #b45309;
+  --a11y-coin-text: #8a5a00;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  transform: translateY(-160%);
+  padding: 10px 14px;
+  border: 2px solid var(--a11y-focus);
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .18);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+:where(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid var(--a11y-focus) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 2px var(--a11y-focus-offset) !important;
+}
+
+#main-content:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:not(.review-photo-preview button),
+.ui-btn,
+.shell-menu-button,
+.mobile-header-menu,
+.account-mobile-bar button,
+.mobile-drawer-head button {
+  min-height: 40px;
+}
+
+.ui-field input:not([type="checkbox"]):not([type="radio"]),
+.ui-field select,
+.ui-field textarea,
+.admin-filter-row input,
+.admin-filter-row select,
+.search-toolbar input,
+.chat-compose input,
+.account-form textarea,
+.message-compose textarea {
+  min-height: 44px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  min-width: 20px;
+  min-height: 20px;
+}
+
+.admin-nav a,
+.account-sidebar nav a,
+.storefront-drawer nav a,
+.site-footer a,
+.admin-sidebar-footer a,
+.admin-sidebar-footer button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-sidebar-footer button {
+  width: 100%;
+}
+
+.review-photo-preview button {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+}
+
+.search-btn {
+  min-height: 36px;
+  background: var(--a11y-action-orange);
+}
+
+.category-bar .all-deals,
+.hero-rail span,
+.ui-badge--deal {
+  color: var(--a11y-action-orange);
+}
+
+.coin-value,
+.reward-balance,
+.reward-balance small,
+.promo-coins > svg,
+.promo-coins small,
+.gift-level-mini strong,
+.gift-level-mini span,
+.gift-level > strong,
+.gift-level > p,
+.gift-level > span,
+.locked-coupon,
+.coupon-card > svg,
+.coupon-card small,
+.dashboard-review-row span,
+.pdp-review-reward {
+  color: var(--a11y-coin-text);
+}
+
+.ui-btn--coin {
+  background: #8a5a00;
+}
+
+.ui-btn--coin:hover {
+  background: #704800;
+}
+
+[aria-disabled="true"],
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link,
+  .department-grid > a,
+  .account-metric,
+  .seller-metric-card,
+  .social-auth,
+  .ui-card {
+    transform: none !important;
+  }
+}
