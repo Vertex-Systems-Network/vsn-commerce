@@ -33,7 +33,7 @@ jobs:
           extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --configuration=phpunit.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.xml
 
   mysql-tests:
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test
-      - run: php artisan test --configuration=phpunit.mysql.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.mysql.xml
 
   postgres-tests:
     runs-on: ubuntu-latest
@@ -85,7 +85,7 @@ jobs:
           extensions: pdo_pgsql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --configuration=phpunit.postgres.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.postgres.xml
 
   browser-e2e:
     runs-on: ubuntu-latest
