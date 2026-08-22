@@ -20,7 +20,7 @@ class DailyWalletCheckin
     {
         $timezone = $user->profile?->timezone ?: config('app.timezone', 'UTC');
         $today = Carbon::now($timezone)->toDateString();
-        $existing = DailyCheckin::query()->where('user_id',$user->id)->where('checkin_date',$today)->first();
+        $existing = DailyCheckin::query()->where('user_id',$user->id)->whereDate('checkin_date',$today)->first();
         if ($existing) throw new WalletException('Daily coins have already been claimed today.', 'checkin');
 
         return DB::transaction(/** Inline callback for this operation. */ function () use ($user,$today,$timezone): DailyCheckin {
@@ -29,11 +29,11 @@ class DailyWalletCheckin
             // PostgreSQL because a constraint violation aborts the active transaction.
             User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-            $existing = DailyCheckin::query()->where('user_id',$user->id)->where('checkin_date',$today)->first();
+            $existing = DailyCheckin::query()->where('user_id',$user->id)->whereDate('checkin_date',$today)->first();
             if ($existing) throw new WalletException('Daily coins have already been claimed today.', 'checkin');
 
             $yesterday = Carbon::parse($today, $timezone)->subDay()->toDateString();
-            $previous = DailyCheckin::query()->where('user_id',$user->id)->where('checkin_date',$yesterday)->first();
+            $previous = DailyCheckin::query()->where('user_id',$user->id)->whereDate('checkin_date',$yesterday)->first();
             $streak = $previous ? $previous->streak_day + 1 : 1;
             $base = (int) config('vsn.wallet.daily_checkin_coins', 70);
             $bonus = $streak % 7 === 0 ? (int) config('vsn.wallet.seven_day_bonus_coins', 350) : 0;
