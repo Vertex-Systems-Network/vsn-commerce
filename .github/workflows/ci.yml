@@ -26,6 +26,12 @@ jobs:
       - run: php scripts/test-matrix.php --static-only
       - run: composer validate --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Preserve resolved Composer lock candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsn-composer-lock-candidate
+          path: composer.lock
+          if-no-files-found: error
       - run: npm ci --no-audit --no-fund
       - name: Run frontend source and routing quality audit
         run: npm test
