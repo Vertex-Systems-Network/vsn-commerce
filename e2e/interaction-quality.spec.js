@@ -8,19 +8,30 @@ async function assertInteractiveContract(page,label){
       const rect=node.getBoundingClientRect();
       return style.display!=='none'&&style.visibility!=='hidden'&&rect.width>0&&rect.height>0;
     };
+    const labelledByText=node=>{
+      const ids=(node.getAttribute('aria-labelledby')||'').trim().split(/\s+/).filter(Boolean);
+      return ids.map(id=>document.getElementById(id)?.textContent||'').join(' ').trim();
+    };
     const controls=[...document.querySelectorAll('button,a[href],[role="button"]')].filter(visible);
     const unnamed=controls.filter(node=>{
-      const name=(node.getAttribute('aria-label')||node.getAttribute('title')||node.innerText||node.textContent||'').trim();
+      const name=(node.getAttribute('aria-label')||labelledByText(node)||node.getAttribute('title')||node.innerText||node.textContent||'').trim();
       const imageAlt=[...node.querySelectorAll('img[alt]')].map(img=>img.getAttribute('alt')||'').join(' ').trim();
       return !name&&!imageAlt;
+    }).map(node=>node.outerHTML.slice(0,220));
+    const fields=[...document.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(visible);
+    const unlabeledFields=fields.filter(node=>{
+      const labels=[...(node.labels||[])].map(label=>label.textContent||'').join(' ').trim();
+      const name=(node.getAttribute('aria-label')||labelledByText(node)||node.getAttribute('title')||labels).trim();
+      return !name;
     }).map(node=>node.outerHTML.slice(0,220));
     const deadLinks=[...document.querySelectorAll('a[href]')].filter(visible).filter(node=>{
       const href=(node.getAttribute('href')||'').trim();
       return href===''||href==='#'||href.toLowerCase().startsWith('javascript:');
     }).map(node=>node.outerHTML.slice(0,220));
-    return {unnamed,deadLinks};
+    return {unnamed,unlabeledFields,deadLinks};
   });
   expect(issues.unnamed,`${label}: unnamed visible interactive controls`).toEqual([]);
+  expect(issues.unlabeledFields,`${label}: visible form controls without an accessible label`).toEqual([]);
   expect(issues.deadLinks,`${label}: placeholder/dead links`).toEqual([]);
 }
 
