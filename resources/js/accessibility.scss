@@ -112,6 +112,31 @@ input[type="radio"] {
   letter-spacing: -.01em;
 }
 
+.section-head button.section-head-action {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.section-head button.section-head-action:hover {
+  color: #1d4ed8;
+}
+
+.modal-head button[aria-label="Close dialog"] {
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+}
+
 .search-btn {
   min-height: 36px;
   background: var(--a11y-action-orange);
