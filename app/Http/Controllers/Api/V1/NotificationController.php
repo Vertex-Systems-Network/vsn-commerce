@@ -20,7 +20,7 @@ class NotificationController extends Controller
     /** Handles read for the notification controller workflow. */
     public function read(Request $request,MarketplaceNotification $notification):MarketplaceNotificationResource{abort_unless($notification->user_id===$request->user()->id,404);if(!$notification->read_at)$notification->update(['read_at'=>now()]);return new MarketplaceNotificationResource($notification->fresh());}
     /** Handles read all for the notification controller workflow. */
-    public function readAll(Request $request):JsonResponse{$count=MarketplaceNotification::query()->where('user_id',$request->user()->id)->where('in_app_visible',true)->whereNull('read_at')->update(['read_at'=>now()]);return response()->json(['data'=>['updated'=>$count,'unreadCount'=>0]]);}
+    public function readAll(Request $request):JsonResponse{$count=MarketplaceNotification::query()->where('user_id',$request->user()->id)->where('in_app_visible',true)->whereNull('read_at')->update(['read_at'=>now()]);return response()->json(['data'=>['ok'=>true,'updated'=>$count,'unreadCount'=>0]]);}
     /** Handles preferences for the notification controller workflow. */
     public function preferences(Request $request,NotificationPreferenceService $service):JsonResponse{return response()->json(['data'=>['preferences'=>$service->matrix($request->user()),'categories'=>NotificationPreferenceService::CATEGORIES,'channels'=>NotificationPreferenceService::CHANNELS]]);}
     /** Handles update preferences for the notification controller workflow. */
