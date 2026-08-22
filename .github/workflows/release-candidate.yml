@@ -39,8 +39,16 @@ jobs:
         run: composer validate --strict --no-check-publish
       - name: Install locked dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run Larastan / PHPStan release gate
+        run: composer run quality:phpstan
+      - name: Run full Pint release gate
+        run: composer run quality:pint
       - name: Install locked frontend dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install pinned ESLint quality tooling
+        run: npm run lint:bootstrap
+      - name: Run React, hooks and accessibility lint release gate
+        run: npm run lint
       - name: Install pinned browser accessibility and W3C tooling
         run: npm run e2e:bootstrap
       - name: Build frontend
@@ -70,7 +78,7 @@ jobs:
           NPM_SHA="$(sha256sum package-lock.json | awk '{print $1}')"
           TREE_SHA="$(find . -type f ! -path './vendor/*' ! -path './node_modules/*' ! -path './runtime-artifacts/*' -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
           cat > runtime-artifacts/locked-runtime-candidate.json <<JSON
-          {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","accessibilityGates":["axe-wcag-2.2","w3c-nu","wave-public-staging","interaction-clicks"],"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+          {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","staticQualityGates":["larastan-phpstan","pint","eslint-react-hooks-a11y"],"accessibilityGates":["axe-wcag-2.2","w3c-nu","wave-public-staging","interaction-clicks"],"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
           JSON
       - uses: actions/upload-artifact@v4
         if: always()
