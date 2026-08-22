@@ -14,6 +14,25 @@ This plan is additive to `AGENTS.md`. It does not authorize redesigning the cust
 - WAVE is an independent second-engine validation gate for a publicly reachable staging/production URL. WAVE API results must not be represented as passing when credentials or a public target URL are unavailable.
 - Human keyboard, screen-reader and visual review remains required because no automated scanner can prove full accessibility.
 
+## Implemented baseline — 2026-08-22
+
+The current remediation branch now includes:
+
+- reusable skip-navigation links and focusable page landmarks
+- unique nested Account workspace landmark IDs
+- a post-load accessibility stylesheet for visible focus, target sizes and selected contrast corrections
+- logically grouped Admin navigation with a dynamic current-section title
+- Playwright runtime failure collection for uncaught page errors, console errors, failed first-party requests and first-party HTTP 5xx responses
+- safe interaction/navigation tests that click role-appropriate workspace navigation and reject unnamed controls/dead placeholder links
+- desktop/mobile navigation coverage for storefront, Account, Seller and Admin shells
+- axe automated WCAG scans on critical public/customer/seller/admin routes
+- W3C Nu validation against rendered React HTML
+- WAVE API integration with explicit evidence for PASS/FAIL/SKIP
+- normal PR CI wiring for browser/runtime/axe/W3C and optional configured WAVE staging scans
+- release-candidate wiring where WAVE configuration and passing WAVE results are mandatory
+
+This is a baseline, not a claim that every screen already passes. New gates are expected to expose defects; those defects must be repaired rather than suppressing the checks.
+
 ## UI design contract
 
 ### Visual hierarchy
