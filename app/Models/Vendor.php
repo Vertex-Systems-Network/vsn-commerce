@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Defines the Vendor class and its project responsibilities. */
 class Vendor extends Model
@@ -64,7 +65,7 @@ class Vendor extends Model
     }
 
     /** Handles tax profile for the vendor workflow. */
-    public function taxProfile(): \Illuminate\Database\Eloquent\Relations\HasOne { return $this->hasOne(VendorTaxProfile::class); }
+    public function taxProfile(): HasOne { return $this->hasOne(VendorTaxProfile::class); }
 
     /** Handles shipments for the vendor workflow. */
     public function shipments(): HasMany
