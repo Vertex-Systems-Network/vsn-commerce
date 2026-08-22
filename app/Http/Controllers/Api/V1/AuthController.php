@@ -60,8 +60,14 @@ class AuthController extends Controller
         }
 
         event(new Registered($user));
-        Auth::login($user);
-        $request->session()->regenerate();
+
+        // The registration endpoint is shared by first-party SPA and stateless API/mobile
+        // clients. Only establish a browser session when session middleware is present.
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
+
         $events->record($user, 'account_registered', SecuritySeverity::Low, $request);
         $devices->touch($user, $request);
 
