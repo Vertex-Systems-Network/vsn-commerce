@@ -40,7 +40,7 @@ jobs:
       - name: Build frontend
         run: npm run build
       - name: Laravel SQLite regression
-        run: php artisan test --configuration=phpunit.xml
+        run: php vendor/bin/phpunit --configuration=phpunit.xml
       - name: Static final acceptance audits
         run: bash scripts/final-static-acceptance.sh
       - name: Record lock-bound candidate evidence
