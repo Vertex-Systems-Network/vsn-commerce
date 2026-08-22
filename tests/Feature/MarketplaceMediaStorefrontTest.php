@@ -8,7 +8,6 @@ use App\Enums\UserRole;
 use App\Models\Address;
 use App\Models\MediaLibraryAsset;
 use App\Models\Product;
-use App\Models\ProductImage;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -66,10 +65,89 @@ class MarketplaceMediaStorefrontTest extends TestCase
     {
         $seller=User::factory()->create(['role'=>UserRole::Seller]);
         $vendor=Vendor::create(['owner_user_id'=>$seller->id,'name'=>'Old Store','slug'=>'old-store','status'=>'active','commission_bps'=>1000]);
-        $payload=['name'=>'My New Store','shopSlug'=>'my-new-store','storefrontEnabled'=>true,'storefrontHeadline'=>'Fresh marketplace finds','storefrontDescription'=>'Seller storefront copy','supportEmail'=>'ops@example.test','publicSupportEmail'=>'help@example.test','supportPhone'=>'+920000000','logoUrl'=>null,'returnAddress'=>'Warehouse','dispatchNote'=>'Pack carefully'];
+        $payload=['name'=>'My New Store','shopSlug'=>'my-new-store','storefrontEnabled'=>true,'storefrontHeadline'=>'Fresh marketplace finds','storefrontDescription'=>'Seller storefront copy','supportEmail'=>'ops@example.test','publicSupportEmail'=>'help@example.test','supportPhone'=>'+920000000','logoMediaAssetId'=>null,'logoUrl'=>null,'returnAddress'=>'Warehouse','dispatchNote'=>'Pack carefully'];
         $response=$this->actingAs($seller)->putJson('/api/v1/vendor/settings',$payload);
         $response->assertOk()->assertJsonPath('data.vendor.shopUrl','/shop/my-new-store');
         $this->assertSame('my-new-store',$vendor->fresh()->slug);
+    }
+
+    /** Confirms a seller logo is persisted by stable Media Library id while the API derives its current URL. */
+    public function test_seller_logo_persists_media_asset_reference_not_delivery_url(): void
+    {
+        Storage::fake('public');
+        $seller=User::factory()->create(['role'=>UserRole::Seller]);
+        $vendor=Vendor::create(['owner_user_id'=>$seller->id,'name'=>'Logo Store','slug'=>'logo-store','status'=>'active','commission_bps'=>1000]);
+        $asset=$this->media($vendor,$seller,'logo.jpg','vendor:'.$vendor->id);
+        Storage::disk('public')->put($asset->path,'logo-binary');
+
+        $response=$this->actingAs($seller)->putJson('/api/v1/vendor/settings',$this->settingsPayload($vendor,[
+            'logoMediaAssetId'=>$asset->public_id,
+            'logoUrl'=>null,
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('data.vendor.logoMediaAssetId',$asset->public_id)
+            ->assertJsonPath('data.vendor.logoUrl',Storage::disk('public')->url($asset->path));
+
+        $metadata=$vendor->fresh()->metadata;
+        $this->assertSame($asset->public_id,$metadata['logoMediaAssetId'] ?? null);
+        $this->assertArrayNotHasKey('logoUrl',$metadata);
+    }
+
+    /** Confirms the current URL-based picker compatibility path is normalized back to a stable asset id. */
+    public function test_existing_logo_picker_url_is_normalized_to_media_asset_reference(): void
+    {
+        Storage::fake('public');
+        $seller=User::factory()->create(['role'=>UserRole::Seller]);
+        $vendor=Vendor::create(['owner_user_id'=>$seller->id,'name'=>'Picker Store','slug'=>'picker-store','status'=>'active','commission_bps'=>1000]);
+        $asset=$this->media($vendor,$seller,'picker-logo.jpg','vendor:'.$vendor->id);
+        Storage::disk('public')->put($asset->path,'logo-binary');
+        $url=Storage::disk('public')->url($asset->path);
+
+        $this->actingAs($seller)->putJson('/api/v1/vendor/settings',$this->settingsPayload($vendor,[
+            'logoMediaAssetId'=>null,
+            'logoUrl'=>$url,
+        ]))->assertOk()->assertJsonPath('data.vendor.logoMediaAssetId',$asset->public_id);
+
+        $metadata=$vendor->fresh()->metadata;
+        $this->assertSame($asset->public_id,$metadata['logoMediaAssetId'] ?? null);
+        $this->assertArrayNotHasKey('logoUrl',$metadata);
+    }
+
+    /** Confirms a seller cannot use another seller's private media as storefront identity. */
+    public function test_seller_cannot_select_cross_vendor_logo_media(): void
+    {
+        $sellerA=User::factory()->create(['role'=>UserRole::Seller]);
+        $sellerB=User::factory()->create(['role'=>UserRole::Seller]);
+        $vendorA=Vendor::create(['owner_user_id'=>$sellerA->id,'name'=>'Alpha','slug'=>'alpha','status'=>'active','commission_bps'=>1000]);
+        $vendorB=Vendor::create(['owner_user_id'=>$sellerB->id,'name'=>'Beta','slug'=>'beta','status'=>'active','commission_bps'=>1000]);
+        $foreign=$this->media($vendorB,$sellerB,'foreign-logo.jpg','vendor:'.$vendorB->id);
+
+        $this->actingAs($sellerA)->putJson('/api/v1/vendor/settings',$this->settingsPayload($vendorA,[
+            'logoMediaAssetId'=>$foreign->public_id,
+            'logoUrl'=>null,
+        ]))->assertUnprocessable()->assertJsonValidationErrors('logoMediaAssetId');
+
+        $this->assertArrayNotHasKey('logoMediaAssetId',$vendorA->fresh()->metadata ?? []);
+    }
+
+    /** Confirms public seller data exposes the resolved logo URL from the stored media reference. */
+    public function test_public_vendor_logo_is_resolved_from_media_library_reference(): void
+    {
+        Storage::fake('public');
+        $owner=User::factory()->create(['role'=>UserRole::Seller]);
+        $vendor=Vendor::create(['owner_user_id'=>$owner->id,'name'=>'Public Logo Store','slug'=>'public-logo-store','status'=>'active','commission_bps'=>1000,'metadata'=>['storefrontEnabled'=>true]]);
+        $asset=$this->media($vendor,$owner,'public-logo.jpg','vendor:'.$vendor->id);
+        Storage::disk('public')->put($asset->path,'logo-binary');
+        $vendor->forceFill(['metadata'=>['storefrontEnabled'=>true,'logoMediaAssetId'=>$asset->public_id]])->save();
+
+        $this->getJson('/api/v1/vendors')
+            ->assertOk()
+            ->assertJsonFragment([
+                'name'=>'Public Logo Store',
+                'logoMediaAssetId'=>$asset->public_id,
+                'logoUrl'=>Storage::disk('public')->url($asset->path),
+            ]);
     }
 
     /** Confirms public seller directory hides disabled storefronts and does not leak internal support emails. */
@@ -91,6 +169,25 @@ class MarketplaceMediaStorefrontTest extends TestCase
         Address::create(['user_id'=>$bob->id,'label'=>'Bob Home','recipient_name'=>'Bob','phone'=>'2','line1'=>'B Street','city'=>'Lahore','country_code'=>'PK','is_default'=>true]);
         $response=$this->actingAs($alice)->getJson('/api/v1/addresses');
         $response->assertOk()->assertJsonFragment(['label'=>'Alice Home'])->assertJsonMissing(['label'=>'Bob Home']);
+    }
+
+    /** Creates a complete seller-settings request with optional overrides. */
+    private function settingsPayload(Vendor $vendor, array $overrides=[]): array
+    {
+        return array_merge([
+            'name'=>$vendor->name,
+            'shopSlug'=>$vendor->slug,
+            'storefrontEnabled'=>true,
+            'storefrontHeadline'=>'Seller headline',
+            'storefrontDescription'=>'Seller storefront copy',
+            'supportEmail'=>'ops@example.test',
+            'publicSupportEmail'=>'help@example.test',
+            'supportPhone'=>'+920000000',
+            'logoMediaAssetId'=>null,
+            'logoUrl'=>null,
+            'returnAddress'=>'Warehouse',
+            'dispatchNote'=>'Pack carefully',
+        ],$overrides);
     }
 
     /** Creates a media-library row for an isolated seller/global scope test. */
