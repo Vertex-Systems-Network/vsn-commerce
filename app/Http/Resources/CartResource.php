@@ -2,11 +2,16 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Cart;
 use App\Models\CartItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** Defines the CartResource class and its project responsibilities. */
+/**
+ * Defines the CartResource class and its project responsibilities.
+ *
+ * @mixin Cart
+ */
 class CartResource extends JsonResource
 {
     /** Handles to array for the cart resource workflow. */
@@ -31,7 +36,7 @@ class CartResource extends JsonResource
                 'priceChanged' => $currentPrice !== $item->unit_price_minor,
                 'stockAvailable' => $available,
                 'stockIssue' => ! $purchasable || $available < $item->quantity,
-                'selectedOptions' => $item->selected_options ?? new \stdClass(),
+                'selectedOptions' => $item->selected_options ?? new \stdClass,
                 'product' => [
                     'id' => $product?->id,
                     'slug' => $product?->slug,
