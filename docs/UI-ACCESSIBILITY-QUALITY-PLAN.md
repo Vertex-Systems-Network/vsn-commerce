@@ -112,7 +112,7 @@ Critical rendered pages are serialized after React has loaded and validated with
 Required configuration:
 
 - GitHub secret: `WAVE_API_KEY`
-- GitHub repository/environment variable: `WAVE_BASE_URL` (public staging URL recommended)
+- GitHub repository/environment variable: `WAVE_BASE_URL` (public staging URL recommended; localhost cannot be scanned by WAVE cloud)
 - optional `WAVE_ROUTES` comma-separated route list
 
 WAVE cloud cannot evaluate a localhost-only CI server. For protected/non-public environments use the licensed WAVE stand-alone API/Testing Engine or WAVE browser extension during acceptance review.
