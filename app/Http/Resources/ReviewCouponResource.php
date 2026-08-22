@@ -2,14 +2,14 @@
 
 namespace App\Http\Resources;
 
-use App\Models\ReviewCoupon;
+use App\Models\ReviewRewardCoupon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Defines the ReviewCouponResource class and its project responsibilities.
  *
- * @mixin ReviewCoupon
+ * @mixin ReviewRewardCoupon
  */
 class ReviewCouponResource extends JsonResource
 {
