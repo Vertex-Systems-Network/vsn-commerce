@@ -36,6 +36,12 @@ function runStep(string $name, string $command, bool $required = true): void
     if ($required && $code !== 0) $failed = true;
 }
 
+/** Builds the direct PHPUnit command so tests do not depend on Collision's Artisan command. */
+function phpunitCommand(string $configuration): string
+{
+    return escapeshellarg(PHP_BINARY).' '.escapeshellarg('vendor/bin/phpunit').' --configuration='.escapeshellarg($configuration);
+}
+
 runStep('Seeder contract audit', escapeshellarg(PHP_BINARY).' scripts/audit-seeders.php');
 runStep('Enum integrity audit', escapeshellarg(PHP_BINARY).' scripts/audit-enum-integrity.php');
 runStep('Cache readiness audit', escapeshellarg(PHP_BINARY).' scripts/audit-cache-readiness.php');
@@ -57,13 +63,19 @@ if (!$staticOnly) {
         }
         if (is_file('vendor/autoload.php')) {
             runStep('Laravel cache reset', escapeshellarg(PHP_BINARY).' artisan optimize:clear');
-            runStep('SQLite unit + feature suite', escapeshellarg(PHP_BINARY).' artisan test --configuration=phpunit.xml');
-            if ($runMysql) {
-                runStep('MySQL live preflight', escapeshellarg(PHP_BINARY).' scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test --create-database');
-                runStep('MySQL full suite', escapeshellarg(PHP_BINARY).' artisan test --configuration=phpunit.mysql.xml');
-            }
-            if ($runPostgres) {
-                runStep('PostgreSQL full suite', escapeshellarg(PHP_BINARY).' artisan test --configuration=phpunit.postgres.xml');
+            if (!is_file('vendor/bin/phpunit')) {
+                fwrite(STDERR, "BLOCKED: vendor/bin/phpunit is unavailable after dependency installation.\n");
+                $results[] = ['name'=>'PHPUnit availability','exitCode'=>2,'required'=>true,'status'=>'blocked'];
+                $failed = true;
+            } else {
+                runStep('SQLite unit + feature suite', phpunitCommand('phpunit.xml'));
+                if ($runMysql) {
+                    runStep('MySQL live preflight', escapeshellarg(PHP_BINARY).' scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test --create-database');
+                    runStep('MySQL full suite', phpunitCommand('phpunit.mysql.xml'));
+                }
+                if ($runPostgres) {
+                    runStep('PostgreSQL full suite', phpunitCommand('phpunit.postgres.xml'));
+                }
             }
         } else {
             fwrite(STDERR, "BLOCKED: vendor/autoload.php is unavailable after dependency step.\n");
