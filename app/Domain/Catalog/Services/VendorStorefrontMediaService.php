@@ -10,6 +10,35 @@ use Illuminate\Validation\ValidationException;
 /** Resolves reusable media-library assets used by vendor storefront identity. */
 class VendorStorefrontMediaService
 {
+    /** Resolves a requested logo from its stable asset id or the existing picker URL compatibility path. */
+    public function resolveSelection(Vendor $vendor, ?string $publicId, ?string $legacyUrl = null): ?MediaLibraryAsset
+    {
+        if ($publicId !== null && trim($publicId) !== '') {
+            return $this->validateLogoSelection($vendor, $publicId);
+        }
+
+        $legacyUrl = trim((string) $legacyUrl);
+        if ($legacyUrl === '') return null;
+
+        $asset = MediaLibraryAsset::query()
+            ->where('status', 'active')
+            ->where(/** Restricts compatibility matching to seller-visible media. */ function ($query) use ($vendor): void {
+                $query->whereNull('vendor_id')->orWhere('vendor_id', $vendor->id);
+            })
+            ->get()
+            ->first(/** Matches the current resolved storage URL without persisting that URL as identity. */ function (MediaLibraryAsset $candidate) use ($legacyUrl): bool {
+                return Storage::disk($candidate->disk)->url($candidate->path) === $legacyUrl;
+            });
+
+        if (! $asset) {
+            throw ValidationException::withMessages([
+                'logoUrl' => ['Choose the store logo from your Media Library instead of entering an external image URL.'],
+            ]);
+        }
+
+        return $asset;
+    }
+
     /** Validates that a selected logo is active and visible to the vendor. */
     public function validateLogoSelection(Vendor $vendor, ?string $publicId): ?MediaLibraryAsset
     {
