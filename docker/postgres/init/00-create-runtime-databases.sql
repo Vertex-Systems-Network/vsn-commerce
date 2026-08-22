@@ -1,0 +1,2 @@
+CREATE DATABASE vsn_test;
+CREATE DATABASE vsn_restore;

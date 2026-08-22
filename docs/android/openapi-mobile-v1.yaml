@@ -1,0 +1,966 @@
+openapi: 3.1.0
+info:
+  title: VSN Ecommerce Android API
+  version: 1.1.0
+  description: Final Android lifecycle/auth/device/push contract. Device-bound mobile bearer tokens also authenticate the
+    existing /api/v1 customer commerce API. Privileged /api/v1/admin/* and /api/v1/vendor/* operational routes reject
+    mobile:access bearer tokens and are intentionally outside this customer Android contract.
+servers:
+- url: http://localhost
+security: []
+tags:
+- name: Mobile Config
+- name: Mobile Auth
+- name: Mobile Session
+- name: Mobile Push
+- name: Customer Commerce
+paths:
+  /api/mobile/v1/config:
+    get:
+      tags:
+      - Mobile Config
+      operationId: mobileConfig
+      responses:
+        '200':
+          description: Mobile compatibility/configuration data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MobileConfig'
+  /api/mobile/v1/auth/register:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: mobileRegister
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/mobile/v1/auth/login:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: mobileLogin
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /api/mobile/v1/auth/otp/send:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: sendLoginOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Generic OTP send acknowledgement
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/otp/verify:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: verifyMobileOtp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/DeviceContext'
+              - type: object
+                required:
+                - email
+                - code
+                properties:
+                  email:
+                    type: string
+                    format: email
+                  code:
+                    type: string
+                    pattern: ^[0-9]{6}$
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthResponse'
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/refresh:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: refreshMobileTokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/DeviceContext'
+              - type: object
+                required:
+                - refreshToken
+                properties:
+                  refreshToken:
+                    type: string
+                    writeOnly: true
+      responses:
+        '200':
+          description: Rotated token pair
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      auth:
+                        $ref: '#/components/schemas/AuthTokens'
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/oauth/providers:
+    get:
+      tags:
+      - Mobile Auth
+      operationId: mobileOAuthProviders
+      responses:
+        '200':
+          description: Google/Facebook mobile OAuth availability
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/oauth/{provider}/start:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: startMobileOAuth
+      parameters:
+      - in: path
+        name: provider
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+          - facebook
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - deviceId
+              - appVersion
+              properties:
+                deviceId:
+                  type: string
+                appVersion:
+                  type: string
+      responses:
+        '200':
+          description: Authorization URL for Android Custom Tab
+  /api/mobile/v1/auth/oauth/{provider}/callback:
+    get:
+      tags:
+      - Mobile Auth
+      operationId: mobileOAuthCallback
+      description: Browser callback registered with Google/Facebook. Redirects to the configured Android App Link with a one-time
+        exchange code; never puts VSN bearer/refresh tokens in the URL.
+      parameters:
+      - in: path
+        name: provider
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+          - facebook
+      responses:
+        '302':
+          description: Redirect to Android App Link
+  /api/mobile/v1/auth/oauth/exchange:
+    post:
+      tags:
+      - Mobile Auth
+      operationId: exchangeMobileOAuthCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+              - $ref: '#/components/schemas/DeviceContext'
+              - type: object
+                required:
+                - code
+                properties:
+                  code:
+                    type: string
+                    writeOnly: true
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/bootstrap:
+    get:
+      tags:
+      - Mobile Session
+      operationId: mobileBootstrap
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Initial authenticated app state
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/me:
+    get:
+      tags:
+      - Mobile Session
+      operationId: mobileMe
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: User and current mobile session
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/logout:
+    post:
+      tags:
+      - Mobile Session
+      operationId: mobileLogout
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Session revoked
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/auth/logout-all:
+    post:
+      tags:
+      - Mobile Session
+      operationId: mobileLogoutAll
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: All Android sessions revoked
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/sessions:
+    get:
+      tags:
+      - Mobile Session
+      operationId: mobileSessions
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: User Android sessions
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+  /api/mobile/v1/sessions/{session}:
+    delete:
+      tags:
+      - Mobile Session
+      operationId: revokeMobileSession
+      security:
+      - bearerAuth: []
+      parameters:
+      - in: path
+        name: session
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      responses:
+        '200':
+          description: Session revoked
+        '404':
+          description: Not found or not owned by user
+  /api/mobile/v1/device/push-token:
+    put:
+      tags:
+      - Mobile Session
+      operationId: updatePushToken
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - provider
+              properties:
+                provider:
+                  type: string
+                  enum:
+                  - fcm
+                token:
+                  type:
+                  - string
+                  - 'null'
+                  writeOnly: true
+      responses:
+        '200':
+          description: FCM registration updated
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+    delete:
+      tags:
+      - Mobile Push
+      operationId: removePushToken
+      security:
+      - bearerAuth: []
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      responses:
+        '200':
+          description: FCM registration removed from the current Android installation
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/products:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileProducts
+      summary: Browse products
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/cart:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileCart
+      summary: Get current cart
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: &id001
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/cart/items:
+    post:
+      tags:
+      - Customer Commerce
+      operationId: mobileAddCartItem
+      summary: Add an item to the cart
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/checkout/options:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileCheckoutOptions
+      summary: Checkout delivery/payment options
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/checkout/current:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileCurrentCheckout
+      summary: Resume the active checkout
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/checkout/sessions:
+    post:
+      tags:
+      - Customer Commerce
+      operationId: mobileCreateCheckout
+      summary: Create/reserve checkout
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/checkout/sessions/{checkoutSession}/payments:
+    post:
+      tags:
+      - Customer Commerce
+      operationId: mobileCreatePayment
+      summary: Create checkout payment
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      - in: path
+        name: checkoutSession
+        required: true
+        schema:
+          type: string
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/checkout/sessions/{checkoutSession}/order:
+    post:
+      tags:
+      - Customer Commerce
+      operationId: mobilePlaceOrder
+      summary: Place order from reserved checkout
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      - in: path
+        name: checkoutSession
+        required: true
+        schema:
+          type: string
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/orders:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileOrders
+      summary: List customer orders
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/orders/{order}:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileOrder
+      summary: Get order lifecycle and tracking
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      - in: path
+        name: order
+        required: true
+        schema:
+          type: string
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/returns:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileReturns
+      summary: List return requests
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+      - Customer Commerce
+      operationId: mobileCreateReturn
+      summary: Create return request
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/wallet:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileWallet
+      summary: Get VSN Coins wallet
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/notifications:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileNotifications
+      summary: List account notifications
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/security:
+    get:
+      tags:
+      - Customer Commerce
+      operationId: mobileSecurity
+      summary: List account/device security state
+      parameters:
+      - $ref: '#/components/parameters/AppVersion'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Client'
+      security: *id001
+      responses:
+        '200':
+          description: Successful marketplace response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  parameters:
+    AppVersion:
+      in: header
+      name: X-App-Version
+      required: true
+      schema:
+        type: string
+        example: 1.0.0
+    DeviceId:
+      in: header
+      name: X-Device-Id
+      required: true
+      schema:
+        type: string
+        example: 550e8400-e29b-41d4-a716-446655440000
+    Client:
+      in: header
+      name: X-VSN-Client
+      required: true
+      schema:
+        type: string
+        enum:
+        - android
+  schemas:
+    DeviceContext:
+      type: object
+      required:
+      - deviceId
+      - deviceName
+      - appVersion
+      properties:
+        deviceId:
+          type: string
+          minLength: 16
+          maxLength: 190
+        deviceName:
+          type: string
+          maxLength: 120
+        appVersion:
+          type: string
+          maxLength: 40
+        osVersion:
+          type:
+          - string
+          - 'null'
+          maxLength: 80
+    RegisterRequest:
+      allOf:
+      - $ref: '#/components/schemas/DeviceContext'
+      - type: object
+        required:
+        - name
+        - email
+        - password
+        - password_confirmation
+        properties:
+          name:
+            type: string
+          email:
+            type: string
+            format: email
+          password:
+            type: string
+            format: password
+            writeOnly: true
+          password_confirmation:
+            type: string
+            format: password
+            writeOnly: true
+          referralCode:
+            type:
+            - string
+            - 'null'
+    LoginRequest:
+      allOf:
+      - $ref: '#/components/schemas/DeviceContext'
+      - type: object
+        required:
+        - email
+        - password
+        properties:
+          email:
+            type: string
+            format: email
+          password:
+            type: string
+            format: password
+            writeOnly: true
+    AuthTokens:
+      type: object
+      required:
+      - tokenType
+      - accessToken
+      - accessExpiresAt
+      - refreshToken
+      - refreshExpiresAt
+      - sessionId
+      - refreshGeneration
+      properties:
+        tokenType:
+          type: string
+          const: Bearer
+        accessToken:
+          type: string
+          writeOnly: true
+        accessExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+          writeOnly: true
+        refreshExpiresAt:
+          type: string
+          format: date-time
+        sessionId:
+          type: string
+        refreshGeneration:
+          type: integer
+          minimum: 1
+    MobileConfig:
+      type: object
+      properties:
+        apiVersion:
+          type: integer
+        release:
+          type: string
+        serverTime:
+          type: string
+          format: date-time
+        android:
+          type: object
+        maintenance:
+          type: object
+        auth:
+          type: object
+        endpoints:
+          type: object
+        features:
+          type: object
+          additionalProperties:
+            type: boolean
+        push:
+          type: object
+          properties:
+            provider:
+              type: string
+            serverConfigured:
+              type: boolean
+            channelId:
+              type: string
+    MobileError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            requestId:
+              type:
+              - string
+              - 'null'
+            fields:
+              type: object
+              additionalProperties: true
+  responses:
+    AuthResponse:
+      description: User and new access/refresh token pair
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    additionalProperties: true
+                  auth:
+                    $ref: '#/components/schemas/AuthTokens'
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MobileError'
+    Unauthorized:
+      description: Access token missing, expired or revoked
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MobileError'
+    UpdateRequired:
+      description: Installed Android app is below the supported minimum version
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MobileError'

@@ -1,0 +1,135 @@
+name: vsn-ecommerce-runtime
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    environment:
+      POSTGRES_DB: vsn_ecommerce
+      POSTGRES_USER: vsn
+      POSTGRES_PASSWORD: vsn-local-only
+    ports:
+      - "${VSN_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - vsn_postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vsn -d vsn_ecommerce"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8.8.1-alpine
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    ports:
+      - "${VSN_REDIS_PORT:-6379}:6379"
+    volumes:
+      - vsn_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    environment: &app_env
+      APP_NAME: VSN Ecommerce
+      APP_ENV: local
+      APP_KEY: base64:Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      FRONTEND_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: vsn_ecommerce
+      DB_USERNAME: vsn
+      DB_PASSWORD: vsn-local-only
+      DB_SSLMODE: disable
+      CACHE_STORE: redis
+      CACHE_LIMITER_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: database
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_QUEUE_RETRY_AFTER: "1200"
+      VSN_ASYNC_SCHEDULER: "true"
+      VSN_HEALTH_REQUIRE_SCHEDULER: "true"
+      VSN_HEALTH_REQUIRE_QUEUE_WORKER: "true"
+      VSN_BACKUPS_ENABLED: "true"
+      VSN_BACKUP_DISK: local
+      VSN_BACKUP_RETENTION_DAYS: "3"
+      VSN_LAUNCH_REQUIRE_VERIFICATION_MANIFEST: "true"
+      VSN_LAUNCH_VERIFICATION_MANIFEST: /var/www/html/runtime/launch-verification.json
+      VSN_SANDBOX_PAYMENT_SIMULATOR_ENABLED: "true"
+      VSN_SANDBOX_PAYMENT_VAULT_SIMULATOR_ENABLED: "true"
+      VSN_SANDBOX_SHIPPING_SIMULATOR_ENABLED: "true"
+      VSN_SANDBOX_SMS_ENABLED: "true"
+      MAIL_MAILER: log
+      VITE_VSN_API_BASE: ""
+      VITE_VSN_BACKEND: laravel
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "${VSN_APP_PORT:-8000}:8000"
+    volumes:
+      - ./runtime:/var/www/html/runtime
+      - vsn_app_storage:/var/www/html/storage
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+      target: runtime-test
+    environment: *app_env
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    volumes:
+      - ./runtime:/var/www/html/runtime
+      - vsn_app_storage:/var/www/html/storage
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    environment: *app_env
+    command: ["php","artisan","queue:work","redis","--queue=critical,maintenance,notifications,reports,default","--sleep=1","--tries=5","--timeout=900","--max-time=3600"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    stop_grace_period: 930s
+    volumes:
+      - ./runtime:/var/www/html/runtime
+      - vsn_app_storage:/var/www/html/storage
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    environment: *app_env
+    command: ["php","artisan","schedule:work"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    volumes:
+      - ./runtime:/var/www/html/runtime
+      - vsn_app_storage:/var/www/html/storage
+
+volumes:
+  vsn_postgres_data:
+  vsn_redis_data:
+  vsn_app_storage:

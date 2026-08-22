@@ -1,0 +1,2 @@
+<?php
+namespace App\Models; use Illuminate\Database\Eloquent\Model; class TaxClass extends Model { protected $hidden=['mysql_default_guard']; protected $fillable=['public_id','code','name','description','is_default','status']; protected function casts():array{return ['is_default'=>'boolean'];} public function getRouteKeyName():string{return 'public_id';} public function rates(){return $this->hasMany(TaxRate::class);} }

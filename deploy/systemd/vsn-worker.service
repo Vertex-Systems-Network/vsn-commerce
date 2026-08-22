@@ -1,0 +1,19 @@
+[Unit]
+Description=VSN Ecommerce Queue Worker
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/vsn/current
+EnvironmentFile=/var/www/vsn/shared/.env
+ExecStart=/usr/bin/php artisan queue:work redis --queue=critical,maintenance,notifications,reports,default --sleep=1 --tries=5 --timeout=900 --max-time=3600
+ExecReload=/usr/bin/php artisan queue:restart
+Restart=always
+RestartSec=3
+TimeoutStopSec=930
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,109 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "vsn/ecommerce",
+    "type": "project",
+    "description": "Unified Laravel + React ecommerce application for VSN Ecommerce.",
+    "keywords": [
+        "laravel",
+        "marketplace",
+        "ecommerce"
+    ],
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "laravel/framework": "^13.0",
+        "laravel/sanctum": "^4.3",
+        "laravel/socialite": "^5.29",
+        "predis/predis": "^3.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.24",
+        "laravel/pint": "^1.24",
+        "mockery/mockery": "^1.6",
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ],
+        "test": [
+            "@php artisan test"
+        ],
+        "dev": "@php scripts/dev-unified.php",
+        "pre-autoload-dump": [
+            "@php scripts/prepare-laravel-dirs.php",
+            "@php scripts/audit-mysql-migrations.php",
+            "@php scripts/audit-enum-integrity.php"
+        ],
+        "audit:mysql-identifiers": "@php scripts/audit-mysql-identifiers.php",
+        "audit:mysql-migrations": "@php scripts/audit-mysql-migrations.php",
+        "audit:mysql-schema": "@php scripts/audit-mysql-schema.php",
+        "audit:database-portability": "@php scripts/audit-database-portability.php",
+        "preflight:mysql": "@php scripts/mysql-runtime-preflight.php",
+        "test:mysql": "@php artisan test --configuration=phpunit.mysql.xml",
+        "test:unit": "@php artisan test --testsuite=Unit",
+        "test:feature": "@php artisan test --testsuite=Feature",
+        "test:sqlite": "@php artisan test --configuration=phpunit.xml",
+        "test:postgres": "@php artisan test --configuration=phpunit.postgres.xml",
+        "test:static": "@php scripts/test-matrix.php --static-only",
+        "test:matrix": "@php scripts/test-matrix.php",
+        "audit:performance-security": "@php scripts/audit-performance-security.php",
+        "audit:production-operations": "php scripts/audit-production-operations.php",
+        "audit:final-acceptance": "@php scripts/audit-final-production-acceptance.php",
+        "audit:runtime-acceptance": "@php scripts/audit-runtime-acceptance.php",
+        "acceptance:runtime": "bash scripts/runtime-acceptance.sh",
+        "audit:go-live-stabilization": "@php scripts/audit-go-live-stabilization.php",
+        "audit:seeders": "@php scripts/audit-seeders.php",
+        "audit:cache-readiness": "@php scripts/audit-cache-readiness.php",
+        "test:pure-unit": "@php scripts/pure-unit-smoke.php",
+        "test:zero-to-end": "@php scripts/zero-to-end.php",
+        "audit:enum-integrity": "@php scripts/audit-enum-integrity.php",
+        "audit:project-isolation": "@php scripts/audit-project-isolation.php",
+        "audit:documentation": [
+            "@php scripts/audit-code-documentation.php",
+            "@php scripts/audit-anonymous-documentation.php",
+            "node scripts/audit-code-documentation.cjs",
+            "@php scripts/audit-kotlin-documentation.php"
+        ],
+        "audit:file-names": "@php scripts/audit-file-names.php",
+        "audit:routing": "@php scripts/audit-routing-deployment.php",
+        "audit:marketplace": "php scripts/audit-marketplace-media-storefront.php"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "suggest": {
+        "laravel/horizon": "Recommended on Linux/WSL production workers for Redis queue monitoring; requires pcntl and posix.",
+        "laravel/reverb": "Optional Laravel 13-compatible WebSocket server for live notifications and chat; HTTP polling works without it.",
+        "league/flysystem-aws-s3-v3": "Optional S3-compatible product media storage (AWS S3 / Cloudflare R2) for production CDN delivery."
+    }
+}

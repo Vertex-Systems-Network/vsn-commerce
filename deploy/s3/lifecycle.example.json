@@ -1,0 +1,1 @@
+{"Rules":[{"ID":"vsn-private-backup-retention","Status":"Enabled","Filter":{"Prefix":"backups/postgres/"},"Expiration":{"Days":21},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":1}}]}

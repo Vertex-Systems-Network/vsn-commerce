@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /dashboard
+Disallow: /cart
+Sitemap: http://localhost/sitemap.xml

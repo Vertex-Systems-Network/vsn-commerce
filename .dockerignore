@@ -1,0 +1,12 @@
+.git
+node_modules
+vendor
+public/build
+public/hot
+runtime-artifacts
+runtime/launch-verification.json
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+*.zip

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd" bootstrap="vendor/autoload.php" colors="true" failOnRisky="true" failOnWarning="true" beStrictAboutOutputDuringTests="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="testing" force="true" />
+        <env name="APP_KEY" value="base64:Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=" force="true" />
+        <env name="CACHE_STORE" value="array" force="true" />
+        <env name="SESSION_DRIVER" value="array" force="true" />
+        <env name="QUEUE_CONNECTION" value="sync" force="true" />
+        <env name="MAIL_MAILER" value="array" force="true" />
+        <env name="BROADCAST_CONNECTION" value="null" force="true" />
+        <env name="DB_CONNECTION" value="mysql" />
+        <env name="DB_HOST" value="127.0.0.1" />
+        <env name="DB_PORT" value="3306" />
+        <env name="DB_DATABASE" value="vsn_ecommerce_test" />
+        <env name="DB_USERNAME" value="root" />
+        <env name="DB_PASSWORD" value="" />
+        <env name="DB_CHARSET" value="utf8mb4" />
+        <env name="DB_COLLATION" value="utf8mb4_unicode_ci" />
+        <env name="VSN_DEMO_SEED_ENABLED" value="false" force="true" />
+        <env name="VSN_PAYOUT_REQUIRE_PHONE_VERIFICATION" value="false" force="true" />
+        <env name="VSN_PAYOUT_REQUIRE_IDENTITY_KYC" value="false" force="true" />
+    </php>
+</phpunit>

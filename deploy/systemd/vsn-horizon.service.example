@@ -1,0 +1,18 @@
+[Unit]
+Description=VSN Ecommerce Horizon
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/vsn/current
+EnvironmentFile=/var/www/vsn/shared/.env
+ExecStart=/usr/bin/php artisan horizon
+ExecReload=/usr/bin/php artisan horizon:terminate
+Restart=always
+RestartSec=3
+TimeoutStopSec=930
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,55 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:22-alpine AS frontend
+WORKDIR /app
+COPY package.json package-lock.json vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+RUN npm ci --no-audit --no-fund && npm run build
+
+# composer.* always matches composer.json and also picks up composer.lock once it
+# has been generated. Production Launch Gate still blocks release without a lock.
+FROM composer:2.8 AS composer-base
+WORKDIR /app
+COPY composer.* ./
+
+FROM composer-base AS vendor-dev
+RUN composer install --no-interaction --prefer-dist --no-progress --no-scripts
+COPY . .
+RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs runtime \
+    && composer dump-autoload --optimize --no-interaction \
+    && php artisan package:discover --ansi
+
+FROM composer-base AS vendor-prod
+RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --no-scripts --classmap-authoritative
+COPY . .
+RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs runtime \
+    && composer dump-autoload --no-dev --classmap-authoritative --no-interaction \
+    && php artisan package:discover --ansi
+
+FROM php:8.4-cli-alpine AS php-base
+RUN apk add --no-cache \
+        bash curl postgresql-client mariadb-client \
+        libpq icu-libs oniguruma libxml2 freetype libjpeg-turbo libpng \
+    && apk add --no-cache --virtual .build-deps \
+        libpq-dev icu-dev oniguruma-dev libxml2-dev freetype-dev libjpeg-turbo-dev libpng-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql pdo_pgsql pcntl posix bcmath intl mbstring opcache gd dom xml xmlwriter \
+    && apk del .build-deps
+WORKDIR /var/www/html
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs runtime
+
+FROM php-base AS runtime-test
+COPY --from=vendor-dev /app /var/www/html
+COPY --from=frontend /app/public/build /var/www/html/public/build
+RUN chown -R www-data:www-data storage bootstrap/cache runtime public/build
+USER www-data
+CMD ["php","-v"]
+
+FROM php-base AS runtime
+COPY --from=vendor-prod /app /var/www/html
+COPY --from=frontend /app/public/build /var/www/html/public/build
+RUN chown -R www-data:www-data storage bootstrap/cache runtime public/build
+USER www-data
+EXPOSE 8000
+CMD ["php","artisan","serve","--host=0.0.0.0","--port=8000"]

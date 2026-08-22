@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>http://localhost/</loc></url>
+  <url><loc>http://localhost/search</loc></url>
+  <url><loc>http://localhost/games</loc></url>
+  <url><loc>http://localhost/help</loc></url>
+  <url><loc>http://localhost/affiliate</loc></url>
+  <url><loc>http://localhost/reviews</loc></url>
+</urlset>

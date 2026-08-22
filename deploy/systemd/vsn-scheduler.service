@@ -1,0 +1,11 @@
+[Unit]
+Description=VSN Ecommerce Scheduler Tick
+After=network.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/vsn/current
+EnvironmentFile=/var/www/vsn/shared/.env
+ExecStart=/usr/bin/php artisan schedule:run

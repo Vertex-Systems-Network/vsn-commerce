@@ -1,0 +1,10 @@
+import { apiGet, apiPost, apiPut } from './api';
+export const getDeals=/** Handles get deals for the VSN Ecommerce interface. */ (limit=24)=>apiGet(`/deals?limit=${encodeURIComponent(limit)}`);
+export const getSellerPromotions=/** Handles get seller promotions for the VSN Ecommerce interface. */ ()=>apiGet('/vendor/promotions');
+export const createSellerPromotion=/** Handles create seller promotion for the VSN Ecommerce interface. */ (payload)=>apiPost('/vendor/promotions',payload);
+export const updateSellerPromotion=/** Handles update seller promotion for the VSN Ecommerce interface. */ (id,payload)=>apiPut(`/vendor/promotions/${id}`,payload);
+export const setSellerPromotionStatus=/** Handles set seller promotion status for the VSN Ecommerce interface. */ (id,status)=>apiPost(`/vendor/promotions/${id}/status`,{status});
+export const getAdminPromotions=/** Handles get admin promotions for the VSN Ecommerce interface. */ ()=>apiGet('/admin/promotions');
+export const createAdminPromotion=/** Handles create admin promotion for the VSN Ecommerce interface. */ (payload)=>apiPost('/admin/promotions',payload);
+export const updateAdminPromotion=/** Handles update admin promotion for the VSN Ecommerce interface. */ (id,payload)=>apiPut(`/admin/promotions/${id}`,payload);
+export const setAdminPromotionStatus=/** Handles set admin promotion status for the VSN Ecommerce interface. */ (id,status)=>apiPost(`/admin/promotions/${id}/status`,{status});
