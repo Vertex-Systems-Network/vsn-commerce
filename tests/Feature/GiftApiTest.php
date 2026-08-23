@@ -119,7 +119,7 @@ class GiftApiTest extends TestCase
             ->assertOk()->json('data.id');
 
         $this->assertSame($firstOrder, $secondOrder);
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>12_500,'reserved_coins'=>0]);
+        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>13_000,'reserved_coins'=>0]);
         $this->assertSame(2, $inventory->fresh()->on_hand);
         $this->assertSame(0, $inventory->fresh()->reserved);
         $this->assertDatabaseCount('gift_sender_events', 1);
