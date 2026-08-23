@@ -27,7 +27,8 @@ class SellerOperationsController extends Controller
     /** Handles overview for the seller operations controller workflow. */
     public function overview(Request $request, VendorFinanceService $finance): JsonResponse
     {
-        $vendor = $this->vendors->forUser($request->user());
+        $user = $request->user()->loadMissing('profile');
+        $vendor = $this->vendors->forUser($user);
         $products = $vendor->products()->with('variants.inventories')->get();
         $orders = $vendor->vendorOrders()->get();
         $returns = $this->returnQuery($vendor->id)->count();
@@ -36,37 +37,37 @@ class SellerOperationsController extends Controller
         $lowStock = 0;
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
-                $available = $variant->inventories->sum(/** Inline callback for this operation. */ fn (Inventory $row) => $row->available());
+                $available = $variant->inventories->sum(fn (Inventory $row) => $row->available());
                 $availableUnits += $available;
                 if ($variant->is_active && $available <= max(2, (int) $variant->inventories->sum('safety_stock'))) {
                     $lowStock++;
                 }
             }
         }
-        $kyc = $request->user()->kycVerifications()->latest()->get();
+        $kyc = $user->kycVerifications()->latest()->get();
         $financeData = $finance->summary($vendor);
 
         return response()->json(['data' => [
             'vendor' => $this->vendorRow($vendor),
             'metrics' => [
                 'products' => $products->count(),
-                'publishedProducts' => $products->filter(/** Inline callback for this operation. */ fn ($product) => $product->status->value === 'published')->count(),
+                'publishedProducts' => $products->filter(fn ($product) => $product->status->value === 'published')->count(),
                 'availableUnits' => $availableUnits,
                 'lowStockVariants' => $lowStock,
                 'orders' => $orders->count(),
-                'openOrders' => $orders->filter(/** Inline callback for this operation. */ fn ($order) => ! in_array($order->status->value, ['delivered', 'cancelled', 'returned', 'refunded'], true))->count(),
+                'openOrders' => $orders->filter(fn ($order) => ! in_array($order->status->value, ['delivered', 'cancelled', 'returned', 'refunded'], true))->count(),
                 'returns' => $returns,
                 'shipments' => $shipments->count(),
                 'availablePayoutMinor' => (int) ($financeData['availableMinor'] ?? 0),
                 'pendingPayoutMinor' => (int) ($financeData['pendingMinor'] ?? 0),
             ],
             'verification' => [
-                'emailVerified' => (bool) $request->user()->email_verified_at,
-                'phoneVerified' => (bool) $request->user()->profile?->phone_verified_at,
+                'emailVerified' => (bool) $user->email_verified_at,
+                'phoneVerified' => (bool) $user->profile?->phone_verified_at,
                 'governmentId' => $kyc->firstWhere('type.value', 'government_id')?->status?->value,
                 'addressProof' => $kyc->firstWhere('type.value', 'address_proof')?->status?->value,
             ],
-            'recentOrders' => $vendor->vendorOrders()->with(['order.user', 'items', 'shipments'])->latest()->limit(6)->get()->map(/** Inline callback for this operation. */ fn ($row) => $this->orderRow($row, false))->values(),
+            'recentOrders' => $vendor->vendorOrders()->with(['order.user', 'items', 'shipments'])->latest()->limit(6)->get()->map(fn ($row) => $this->orderRow($row, false))->values(),
             'recentShipments' => ShipmentResource::collection($vendor->shipments()->with(['order', 'vendorOrder.vendor', 'items.orderItem', 'events'])->latest()->limit(5)->get())->resolve($request),
         ]]);
     }
@@ -83,7 +84,7 @@ class SellerOperationsController extends Controller
         $rows = $query->paginate(min(100, max(10, (int) $request->query('perPage', 30))));
 
         return response()->json(['data' => [
-            'items' => collect($rows->items())->map(/** Inline callback for this operation. */ fn ($row) => $this->orderRow($row, false))->values(),
+            'items' => collect($rows->items())->map(fn ($row) => $this->orderRow($row, false))->values(),
             'pagination' => ['currentPage' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'perPage' => $rows->perPage(), 'total' => $rows->total()],
         ]]);
     }
@@ -106,7 +107,7 @@ class SellerOperationsController extends Controller
             ->with(['order', 'items.orderItem.vendorOrder', 'refund', 'dispute'])
             ->latest('submitted_at')->limit(100)->get();
 
-        return response()->json(['data' => $rows->map(/** Inline callback for this operation. */ fn (ReturnRequest $row) => $this->returnRow($row, $vendor->id))->values()]);
+        return response()->json(['data' => $rows->map(fn (ReturnRequest $row) => $this->returnRow($row, $vendor->id))->values()]);
     }
 
     /** Handles return show for the seller operations controller workflow. */
@@ -114,7 +115,7 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         $returnRequest->load(['order', 'items.orderItem.vendorOrder', 'refund', 'dispute']);
-        abort_unless($returnRequest->items->contains(/** Inline callback for this operation. */ fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendor->id), 404);
+        abort_unless($returnRequest->items->contains(fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendor->id), 404);
 
         return response()->json(['data' => $this->returnRow($returnRequest, $vendor->id)]);
     }
@@ -124,7 +125,7 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         $returnRequest->load(['items.orderItem.vendorOrder']);
-        abort_unless($returnRequest->items->contains(/** Inline callback for this operation. */ fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendor->id), 404);
+        abort_unless($returnRequest->items->contains(fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendor->id), 404);
         $data = $request->validate([
             'recommendation' => 'required|in:accept,inspect,reject,needs_information',
             'note' => 'nullable|string|max:2000',
@@ -148,12 +149,13 @@ class SellerOperationsController extends Controller
     /** Returns seller-owned operational and public-storefront settings. */
     public function settings(Request $request): JsonResponse
     {
-        $vendor = $this->vendors->forUser($request->user());
+        $user = $request->user()->loadMissing('profile');
+        $vendor = $this->vendors->forUser($user);
 
         return response()->json(['data' => ['vendor' => $this->vendorRow($vendor), 'profile' => [
-            'ownerName' => $request->user()->name,
-            'ownerEmail' => $request->user()->email,
-            'phone' => $request->user()->profile?->phone,
+            'ownerName' => $user->name,
+            'ownerEmail' => $user->email,
+            'phone' => $user->profile?->phone,
         ]]]);
     }
 
@@ -207,7 +209,7 @@ class SellerOperationsController extends Controller
     /** Handles return query for the seller operations controller workflow. */
     private function returnQuery(int $vendorId)
     {
-        return ReturnRequest::query()->whereHas('items.orderItem.vendorOrder', /** Inline callback for this operation. */ fn ($query) => $query->where('vendor_id', $vendorId));
+        return ReturnRequest::query()->whereHas('items.orderItem.vendorOrder', fn ($query) => $query->where('vendor_id', $vendorId));
     }
 
     /** Handles vendor row for the seller operations controller workflow. */
@@ -257,7 +259,7 @@ class SellerOperationsController extends Controller
             'dispatchedAt' => $row->dispatched_at?->toIso8601String(),
             'deliveredAt' => $row->delivered_at?->toIso8601String(),
             'buyer' => ['name' => $row->order?->user?->name],
-            'items' => $row->items->map(/** Inline callback for this operation. */ fn ($item) => [
+            'items' => $row->items->map(fn ($item) => [
                 'id' => $item->id, 'productName' => $item->product_name, 'variantName' => $item->variant_name, 'sku' => $item->sku,
                 'quantity' => (int) $item->quantity, 'returnedQuantity' => (int) $item->returned_quantity, 'refundedQuantity' => (int) $item->refunded_quantity,
                 'unitPriceMinor' => (int) $item->unit_price_minor, 'lineTotalMinor' => (int) $item->line_total_minor,
@@ -271,7 +273,7 @@ class SellerOperationsController extends Controller
             'recipientName' => $address->recipient_name, 'phone' => $address->phone, 'line1' => $address->line1, 'line2' => $address->line2,
             'city' => $address->city, 'state' => $address->state, 'postalCode' => $address->postal_code, 'countryCode' => $address->country_code,
         ] : null;
-        $base['shipments'] = $row->shipments->map(/** Inline callback for this operation. */ fn ($shipment) => [
+        $base['shipments'] = $row->shipments->map(fn ($shipment) => [
             'id' => $shipment->public_id, 'status' => $shipment->status->value, 'trackingNumber' => $shipment->tracking_number, 'serviceCode' => $shipment->service_code,
             'labelUrl' => $shipment->label_url, 'readyAt' => $shipment->ready_at?->toIso8601String(), 'deliveredAt' => $shipment->delivered_at?->toIso8601String(),
         ])->values();
@@ -286,7 +288,7 @@ class SellerOperationsController extends Controller
     /** Handles return row for the seller operations controller workflow. */
     private function returnRow(ReturnRequest $row, int $vendorId): array
     {
-        $items = $row->items->filter(/** Inline callback for this operation. */ fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendorId)->values();
+        $items = $row->items->filter(fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendorId)->values();
         $feedback = (array) (($row->metadata ?? [])['seller_feedback'] ?? []);
 
         return [
@@ -295,7 +297,7 @@ class SellerOperationsController extends Controller
             'requestedMinor' => (int) $items->sum('requested_minor'), 'approvedMinor' => (int) $items->sum('approved_minor'),
             'trackingReference' => $row->return_tracking_reference, 'submittedAt' => $row->submitted_at?->toIso8601String(),
             'reviewedAt' => $row->reviewed_at?->toIso8601String(), 'receivedAt' => $row->received_at?->toIso8601String(), 'resolvedAt' => $row->resolved_at?->toIso8601String(),
-            'items' => $items->map(/** Inline callback for this operation. */ fn ($item) => [
+            'items' => $items->map(fn ($item) => [
                 'id' => $item->id, 'productName' => $item->orderItem?->product_name, 'variantName' => $item->orderItem?->variant_name,
                 'quantity' => (int) $item->quantity, 'approvedQuantity' => (int) $item->approved_quantity, 'receivedQuantity' => (int) $item->received_quantity, 'acceptedQuantity' => (int) $item->accepted_quantity, 'requestedMinor' => (int) $item->requested_minor, 'approvedMinor' => (int) $item->approved_minor, 'condition' => $item->condition,
             ])->values(),
