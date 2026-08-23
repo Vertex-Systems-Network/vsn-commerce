@@ -76,7 +76,7 @@ class ReviewController extends Controller
 
         return response()->json([
             'data' => (new ReviewResource($review))->resolve($request),
-        ]);
+        ], 201);
     }
 
     /** Handles product for the review controller workflow. */
