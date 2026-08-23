@@ -12,6 +12,7 @@
         <env name="APP_ENV" value="testing" force="true" />
         <env name="APP_KEY" value="base64:Z2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2c=" force="true" />
         <env name="CACHE_STORE" value="array" force="true" />
+        <env name="CACHE_LIMITER_STORE" value="array" force="true" />
         <env name="SESSION_DRIVER" value="array" force="true" />
         <env name="QUEUE_CONNECTION" value="sync" force="true" />
         <env name="MAIL_MAILER" value="array" force="true" />
@@ -26,6 +27,7 @@
         <env name="VSN_CARD_PAYMENTS_ENABLED" value="true" force="true" />
         <env name="VSN_SANDBOX_PAYMENT_SIMULATOR_ENABLED" value="true" force="true" />
         <env name="VSN_SANDBOX_PAYMENT_VAULT_SIMULATOR_ENABLED" value="true" force="true" />
+        <env name="VSN_SANDBOX_SMS_ENABLED" value="false" force="true" />
         <env name="VSN_PAYOUT_REQUIRE_PHONE_VERIFICATION" value="false" force="true" />
         <env name="VSN_PAYOUT_REQUIRE_IDENTITY_KYC" value="false" force="true" />
         <env name="VSN_DEMO_SEED_ENABLED" value="false" force="true" />

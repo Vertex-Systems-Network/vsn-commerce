@@ -100,7 +100,6 @@ services:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     volumes:
-      - ./runtime:/var/www/html/runtime
       - vsn_app_storage:/var/www/html/storage
 
   worker:
