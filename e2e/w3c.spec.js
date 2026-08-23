@@ -12,7 +12,8 @@ async function validateRenderedHtml(page,route,label){
   await page.goto(route);
   await page.locator('body').waitFor({state:'visible'});
   const html=await page.content();
-  const file=path.join(os.tmpdir(),`vsn-${label.replace(/[^a-z0-9]+/gi,'-')}-${Date.now()}.html`);
+  const tempDir=fs.mkdtempSync(path.join(os.tmpdir(),'vsn-w3c-'));
+  const file=path.join(tempDir,`${label.replace(/[^a-z0-9]+/gi,'-')||'page'}.html`);
   fs.writeFileSync(file,html,'utf8');
   try {
     let output='';
@@ -23,7 +24,7 @@ async function validateRenderedHtml(page,route,label){
     }
     expect(output,`W3C Nu HTML errors on ${route}`).toBe('');
   } finally {
-    fs.rmSync(file,{force:true});
+    fs.rmSync(tempDir,{recursive:true,force:true});
   }
 }
 
