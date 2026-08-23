@@ -32,6 +32,23 @@ function isApplicationUrl(value) {
   }
 }
 
+/** Ignores only the browser's expected unauthenticated session-probe console noise. */
+function isExpectedAuthConsoleNoise(text) {
+  return /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/i.test(text);
+}
+
+/** Treats navigation-aborted Sanctum CSRF bootstrap requests as benign. */
+function isBenignCsrfAbort(request) {
+  try {
+    const url = new URL(request.url());
+    return request.method() === 'GET'
+      && url.pathname === '/sanctum/csrf-cookie'
+      && /net::ERR_ABORTED/i.test(request.failure()?.errorText || '');
+  } catch {
+    return false;
+  }
+}
+
 export const test = base.extend({
   dbReset: [/** Inline callback for this operation. */ async ({}, use) => {
     resetDatabase();
@@ -41,12 +58,16 @@ export const test = base.extend({
     const runtimeErrors = [];
     page.on('pageerror', /** Inline callback for this operation. */ error => runtimeErrors.push(`pageerror: ${error.message}`));
     page.on('console', /** Inline callback for this operation. */ message => {
-      if (message.type() === 'error' && !/favicon|ERR_BLOCKED_BY_CLIENT/i.test(message.text())) {
+      if (
+        message.type() === 'error'
+        && !/favicon|ERR_BLOCKED_BY_CLIENT/i.test(message.text())
+        && !isExpectedAuthConsoleNoise(message.text())
+      ) {
         runtimeErrors.push(`console.error: ${message.text()}`);
       }
     });
     page.on('requestfailed', /** Treats failed first-party network requests as interaction regressions. */ request => {
-      if (!isApplicationUrl(request.url())) return;
+      if (!isApplicationUrl(request.url()) || isBenignCsrfAbort(request)) return;
       runtimeErrors.push(`requestfailed: ${request.method()} ${request.url()} — ${request.failure()?.errorText || 'unknown error'}`);
     });
     page.on('response', /** Treats first-party server errors as browser-flow failures. */ response => {
