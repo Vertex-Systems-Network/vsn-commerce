@@ -8,9 +8,7 @@ use App\Domain\Finance\Services\VendorResolver;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ShipmentResource;
 use App\Models\Inventory;
-use App\Models\KycVerification;
 use App\Models\ReturnRequest;
-use App\Models\Shipment;
 use App\Models\VendorOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +38,9 @@ class SellerOperationsController extends Controller
             foreach ($product->variants as $variant) {
                 $available = $variant->inventories->sum(/** Inline callback for this operation. */ fn (Inventory $row) => $row->available());
                 $availableUnits += $available;
-                if ($variant->is_active && $available <= max(2, (int) $variant->inventories->sum('safety_stock'))) $lowStock++;
+                if ($variant->is_active && $available <= max(2, (int) $variant->inventories->sum('safety_stock'))) {
+                    $lowStock++;
+                }
             }
         }
         $kyc = $request->user()->kycVerifications()->latest()->get();
@@ -54,7 +54,7 @@ class SellerOperationsController extends Controller
                 'availableUnits' => $availableUnits,
                 'lowStockVariants' => $lowStock,
                 'orders' => $orders->count(),
-                'openOrders' => $orders->filter(/** Inline callback for this operation. */ fn ($order) => ! in_array($order->status->value, ['delivered','cancelled','returned','refunded'], true))->count(),
+                'openOrders' => $orders->filter(/** Inline callback for this operation. */ fn ($order) => ! in_array($order->status->value, ['delivered', 'cancelled', 'returned', 'refunded'], true))->count(),
                 'returns' => $returns,
                 'shipments' => $shipments->count(),
                 'availablePayoutMinor' => (int) ($financeData['availableMinor'] ?? 0),
@@ -66,8 +66,8 @@ class SellerOperationsController extends Controller
                 'governmentId' => $kyc->firstWhere('type.value', 'government_id')?->status?->value,
                 'addressProof' => $kyc->firstWhere('type.value', 'address_proof')?->status?->value,
             ],
-            'recentOrders' => $vendor->vendorOrders()->with(['order.user','items','shipments'])->latest()->limit(6)->get()->map(/** Inline callback for this operation. */ fn ($row) => $this->orderRow($row, false))->values(),
-            'recentShipments' => ShipmentResource::collection($vendor->shipments()->with(['order','vendorOrder.vendor','items.orderItem','events'])->latest()->limit(5)->get())->resolve($request),
+            'recentOrders' => $vendor->vendorOrders()->with(['order.user', 'items', 'shipments'])->latest()->limit(6)->get()->map(/** Inline callback for this operation. */ fn ($row) => $this->orderRow($row, false))->values(),
+            'recentShipments' => ShipmentResource::collection($vendor->shipments()->with(['order', 'vendorOrder.vendor', 'items.orderItem', 'events'])->latest()->limit(5)->get())->resolve($request),
         ]]);
     }
 
@@ -76,12 +76,15 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         $status = trim((string) $request->query('status'));
-        $query = $vendor->vendorOrders()->with(['order.user','order.shippingAddress','items','shipments.events'])->latest();
-        if ($status !== '') $query->where('status', $status);
+        $query = $vendor->vendorOrders()->with(['order.user', 'order.shippingAddress', 'items', 'shipments.events'])->latest();
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
         $rows = $query->paginate(min(100, max(10, (int) $request->query('perPage', 30))));
+
         return response()->json(['data' => [
             'items' => collect($rows->items())->map(/** Inline callback for this operation. */ fn ($row) => $this->orderRow($row, false))->values(),
-            'pagination' => ['currentPage'=>$rows->currentPage(),'lastPage'=>$rows->lastPage(),'perPage'=>$rows->perPage(),'total'=>$rows->total()],
+            'pagination' => ['currentPage' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'perPage' => $rows->perPage(), 'total' => $rows->total()],
         ]]);
     }
 
@@ -90,7 +93,8 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         abort_unless($vendorOrder->vendor_id === $vendor->id, 404);
-        $vendorOrder->load(['order.user','order.shippingAddress','items','shipments.items.orderItem','shipments.events','settlement']);
+        $vendorOrder->load(['order.user', 'order.shippingAddress', 'items', 'shipments.items.orderItem', 'shipments.events', 'settlement']);
+
         return response()->json(['data' => $this->orderRow($vendorOrder, true)]);
     }
 
@@ -99,8 +103,9 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         $rows = $this->returnQuery($vendor->id)
-            ->with(['order','items.orderItem.vendorOrder','refund','dispute'])
+            ->with(['order', 'items.orderItem.vendorOrder', 'refund', 'dispute'])
             ->latest('submitted_at')->limit(100)->get();
+
         return response()->json(['data' => $rows->map(/** Inline callback for this operation. */ fn (ReturnRequest $row) => $this->returnRow($row, $vendor->id))->values()]);
     }
 
@@ -108,8 +113,9 @@ class SellerOperationsController extends Controller
     public function returnShow(Request $request, ReturnRequest $returnRequest): JsonResponse
     {
         $vendor = $this->vendors->forUser($request->user());
-        $returnRequest->load(['order','items.orderItem.vendorOrder','refund','dispute']);
+        $returnRequest->load(['order', 'items.orderItem.vendorOrder', 'refund', 'dispute']);
         abort_unless($returnRequest->items->contains(/** Inline callback for this operation. */ fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendor->id), 404);
+
         return response()->json(['data' => $this->returnRow($returnRequest, $vendor->id)]);
     }
 
@@ -135,13 +141,15 @@ class SellerOperationsController extends Controller
         ];
         $metadata['seller_feedback'] = $feedback;
         $returnRequest->forceFill(['metadata' => $metadata])->save();
-        return response()->json(['data' => $this->returnRow($returnRequest->fresh()->load(['order','items.orderItem.vendorOrder','refund','dispute']), $vendor->id)]);
+
+        return response()->json(['data' => $this->returnRow($returnRequest->fresh()->load(['order', 'items.orderItem.vendorOrder', 'refund', 'dispute']), $vendor->id)]);
     }
 
     /** Returns seller-owned operational and public-storefront settings. */
     public function settings(Request $request): JsonResponse
     {
         $vendor = $this->vendors->forUser($request->user());
+
         return response()->json(['data' => ['vendor' => $this->vendorRow($vendor), 'profile' => [
             'ownerName' => $request->user()->name,
             'ownerEmail' => $request->user()->email,
@@ -155,7 +163,7 @@ class SellerOperationsController extends Controller
         $vendor = $this->vendors->forUser($request->user());
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:160',
-            'shopSlug' => ['sometimes','required','string','min:3','max:190','regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',Rule::unique('vendors','slug')->ignore($vendor->id)],
+            'shopSlug' => ['sometimes', 'required', 'string', 'min:3', 'max:190', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('vendors', 'slug')->ignore($vendor->id)],
             'storefrontEnabled' => 'sometimes|required|boolean',
             'storefrontHeadline' => 'sometimes|nullable|string|max:190',
             'storefrontDescription' => 'sometimes|nullable|string|max:2000',
@@ -169,7 +177,7 @@ class SellerOperationsController extends Controller
         ]);
 
         $metadata = array_merge($vendor->metadata ?? [], Arr::only($data, [
-            'storefrontEnabled','storefrontHeadline','storefrontDescription','supportEmail','publicSupportEmail','supportPhone','returnAddress','dispatchNote',
+            'storefrontEnabled', 'storefrontHeadline', 'storefrontDescription', 'supportEmail', 'publicSupportEmail', 'supportPhone', 'returnAddress', 'dispatchNote',
         ]));
         unset($metadata['logoUrl']);
 
@@ -180,8 +188,11 @@ class SellerOperationsController extends Controller
                 $data['logoMediaAssetId'] ?? null,
                 $data['logoUrl'] ?? null,
             );
-            if ($logo) $metadata['logoMediaAssetId'] = $logo->public_id;
-            else unset($metadata['logoMediaAssetId']);
+            if ($logo) {
+                $metadata['logoMediaAssetId'] = $logo->public_id;
+            } else {
+                unset($metadata['logoMediaAssetId']);
+            }
         }
 
         $vendor->forceFill([
@@ -189,6 +200,7 @@ class SellerOperationsController extends Controller
             'slug' => $data['shopSlug'] ?? $vendor->slug,
             'metadata' => $metadata,
         ])->save();
+
         return response()->json(['data' => ['vendor' => $this->vendorRow($vendor->fresh())]]);
     }
 
@@ -202,6 +214,7 @@ class SellerOperationsController extends Controller
     private function vendorRow($vendor): array
     {
         $logo = $this->storefrontMedia->logoPayload($vendor);
+
         return [
             'id' => $vendor->id,
             'name' => $vendor->name,
@@ -245,25 +258,28 @@ class SellerOperationsController extends Controller
             'deliveredAt' => $row->delivered_at?->toIso8601String(),
             'buyer' => ['name' => $row->order?->user?->name],
             'items' => $row->items->map(/** Inline callback for this operation. */ fn ($item) => [
-                'id'=>$item->id,'productName'=>$item->product_name,'variantName'=>$item->variant_name,'sku'=>$item->sku,
-                'quantity'=>(int)$item->quantity,'returnedQuantity'=>(int)$item->returned_quantity,'refundedQuantity'=>(int)$item->refunded_quantity,
-                'unitPriceMinor'=>(int)$item->unit_price_minor,'lineTotalMinor'=>(int)$item->line_total_minor,
+                'id' => $item->id, 'productName' => $item->product_name, 'variantName' => $item->variant_name, 'sku' => $item->sku,
+                'quantity' => (int) $item->quantity, 'returnedQuantity' => (int) $item->returned_quantity, 'refundedQuantity' => (int) $item->refunded_quantity,
+                'unitPriceMinor' => (int) $item->unit_price_minor, 'lineTotalMinor' => (int) $item->line_total_minor,
             ])->values(),
             'shipmentIds' => $row->shipments->pluck('public_id')->values(),
         ];
-        if (! $detailed) return $base;
+        if (! $detailed) {
+            return $base;
+        }
         $base['shippingAddress'] = $address ? [
-            'recipientName'=>$address->recipient_name,'phone'=>$address->phone,'line1'=>$address->line1,'line2'=>$address->line2,
-            'city'=>$address->city,'state'=>$address->state,'postalCode'=>$address->postal_code,'countryCode'=>$address->country_code,
+            'recipientName' => $address->recipient_name, 'phone' => $address->phone, 'line1' => $address->line1, 'line2' => $address->line2,
+            'city' => $address->city, 'state' => $address->state, 'postalCode' => $address->postal_code, 'countryCode' => $address->country_code,
         ] : null;
         $base['shipments'] = $row->shipments->map(/** Inline callback for this operation. */ fn ($shipment) => [
-            'id'=>$shipment->public_id,'status'=>$shipment->status->value,'trackingNumber'=>$shipment->tracking_number,'serviceCode'=>$shipment->service_code,
-            'labelUrl'=>$shipment->label_url,'readyAt'=>$shipment->ready_at?->toIso8601String(),'deliveredAt'=>$shipment->delivered_at?->toIso8601String(),
+            'id' => $shipment->public_id, 'status' => $shipment->status->value, 'trackingNumber' => $shipment->tracking_number, 'serviceCode' => $shipment->service_code,
+            'labelUrl' => $shipment->label_url, 'readyAt' => $shipment->ready_at?->toIso8601String(), 'deliveredAt' => $shipment->delivered_at?->toIso8601String(),
         ])->values();
         $base['settlement'] = $row->settlement ? [
-            'id'=>$row->settlement->public_id,'status'=>$row->settlement->status->value,'sellerPayableMinor'=>(int)$row->settlement->seller_payable_minor,
-            'availableMinor'=>$row->settlement->availableMinor(),'eligibleAt'=>$row->settlement->eligible_at?->toIso8601String(),
+            'id' => $row->settlement->public_id, 'status' => $row->settlement->status->value, 'sellerPayableMinor' => (int) $row->settlement->seller_payable_minor,
+            'availableMinor' => $row->settlement->availableMinor(), 'eligibleAt' => $row->settlement->eligible_at?->toIso8601String(),
         ] : null;
+
         return $base;
     }
 
@@ -272,19 +288,20 @@ class SellerOperationsController extends Controller
     {
         $items = $row->items->filter(/** Inline callback for this operation. */ fn ($item) => $item->orderItem?->vendorOrder?->vendor_id === $vendorId)->values();
         $feedback = (array) (($row->metadata ?? [])['seller_feedback'] ?? []);
+
         return [
-            'id'=>$row->public_id,'orderId'=>$row->order?->public_id,'status'=>$row->status->value,'resolution'=>$row->resolution->value,
-            'reason'=>$row->reason,'details'=>$row->details,'currency'=>$row->currency,
-            'requestedMinor'=>(int)$items->sum('requested_minor'),'approvedMinor'=>(int)$items->sum('approved_minor'),
-            'trackingReference'=>$row->return_tracking_reference,'submittedAt'=>$row->submitted_at?->toIso8601String(),
-            'reviewedAt'=>$row->reviewed_at?->toIso8601String(),'receivedAt'=>$row->received_at?->toIso8601String(),'resolvedAt'=>$row->resolved_at?->toIso8601String(),
-            'items'=>$items->map(/** Inline callback for this operation. */ fn ($item) => [
-                'id'=>$item->id,'productName'=>$item->orderItem?->product_name,'variantName'=>$item->orderItem?->variant_name,
-                'quantity'=>(int)$item->quantity,'approvedQuantity'=>(int)$item->approved_quantity,'receivedQuantity'=>(int)$item->received_quantity,'acceptedQuantity'=>(int)$item->accepted_quantity,'requestedMinor'=>(int)$item->requested_minor,'approvedMinor'=>(int)$item->approved_minor,'condition'=>$item->condition,
+            'id' => $row->public_id, 'orderId' => $row->order?->public_id, 'status' => $row->status->value, 'resolution' => $row->resolution->value,
+            'reason' => $row->reason, 'details' => $row->details, 'currency' => $row->currency,
+            'requestedMinor' => (int) $items->sum('requested_minor'), 'approvedMinor' => (int) $items->sum('approved_minor'),
+            'trackingReference' => $row->return_tracking_reference, 'submittedAt' => $row->submitted_at?->toIso8601String(),
+            'reviewedAt' => $row->reviewed_at?->toIso8601String(), 'receivedAt' => $row->received_at?->toIso8601String(), 'resolvedAt' => $row->resolved_at?->toIso8601String(),
+            'items' => $items->map(/** Inline callback for this operation. */ fn ($item) => [
+                'id' => $item->id, 'productName' => $item->orderItem?->product_name, 'variantName' => $item->orderItem?->variant_name,
+                'quantity' => (int) $item->quantity, 'approvedQuantity' => (int) $item->approved_quantity, 'receivedQuantity' => (int) $item->received_quantity, 'acceptedQuantity' => (int) $item->accepted_quantity, 'requestedMinor' => (int) $item->requested_minor, 'approvedMinor' => (int) $item->approved_minor, 'condition' => $item->condition,
             ])->values(),
-            'sellerFeedback'=>$feedback[(string)$vendorId] ?? null,
-            'refund'=>$row->refund ? ['id'=>$row->refund->public_id,'status'=>$row->refund->status->value,'amountMinor'=>(int)$row->refund->amount_minor] : null,
-            'dispute'=>$row->dispute ? ['id'=>$row->dispute->public_id,'status'=>$row->dispute->status->value,'outcome'=>$row->dispute->outcome] : null,
+            'sellerFeedback' => $feedback[(string) $vendorId] ?? null,
+            'refund' => $row->refund ? ['id' => $row->refund->public_id, 'status' => $row->refund->status->value, 'amountMinor' => (int) $row->refund->amount_minor] : null,
+            'dispute' => $row->dispute ? ['id' => $row->dispute->public_id, 'status' => $row->dispute->status->value, 'outcome' => $row->dispute->outcome] : null,
         ];
     }
 }

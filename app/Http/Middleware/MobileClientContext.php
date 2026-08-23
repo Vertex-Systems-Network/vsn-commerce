@@ -28,7 +28,9 @@ class MobileClientContext
             || strtolower((string) $request->header('X-VSN-Client')) === 'android'
             || $candidate instanceof PersonalAccessToken;
 
-        if (! $isAndroid) return $next($request);
+        if (! $isAndroid) {
+            return $next($request);
+        }
         if (strtolower((string) $request->header('X-VSN-Client')) !== 'android') {
             $request->headers->set('X-VSN-Client', 'android');
         }
@@ -105,11 +107,16 @@ class MobileClientContext
 
         $response->headers->set('X-VSN-API-Version', '1');
         $response->headers->set('X-VSN-Release', (string) config('vsn.operations.release', 'unknown'));
-        if ($minimum !== '') $response->headers->set('X-VSN-Min-App-Version', $minimum);
-        if ($latest !== '') $response->headers->set('X-VSN-Latest-App-Version', $latest);
+        if ($minimum !== '') {
+            $response->headers->set('X-VSN-Min-App-Version', $minimum);
+        }
+        if ($latest !== '') {
+            $response->headers->set('X-VSN-Latest-App-Version', $latest);
+        }
         if (! $compatExempt && $latest !== '' && version_compare($version, $latest, '<')) {
             $response->headers->set('X-VSN-App-Update-Available', '1');
         }
+
         return $response;
     }
 

@@ -38,7 +38,7 @@ class DatabaseIndexAuditService
         $required = self::REQUIRED;
 
         if ($driver === 'pgsql') {
-            $names = collect(DB::select("select indexname from pg_indexes where schemaname=current_schema()"))->pluck('indexname');
+            $names = collect(DB::select('select indexname from pg_indexes where schemaname=current_schema()'))->pluck('indexname');
         } elseif ($driver === 'sqlite') {
             $names = collect();
             foreach ([

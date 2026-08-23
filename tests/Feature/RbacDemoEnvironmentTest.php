@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Security\Rbac;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -46,7 +47,7 @@ class RbacDemoEnvironmentTest extends TestCase
     {
         $support = new User(['name' => 'Support', 'email' => 'support@example.test', 'role' => UserRole::Support]);
         $support->id = 101;
-        $resource = (new \App\Http\Resources\UserResource($support))->resolve(Request::create('/api/v1/auth/me'));
+        $resource = (new UserResource($support))->resolve(Request::create('/api/v1/auth/me'));
         $this->assertContains('orders.view', $resource['permissions']);
         $this->assertNotContains('orders.manage', $resource['permissions']);
     }

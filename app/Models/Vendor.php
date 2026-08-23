@@ -65,7 +65,10 @@ class Vendor extends Model
     }
 
     /** Handles tax profile for the vendor workflow. */
-    public function taxProfile(): HasOne { return $this->hasOne(VendorTaxProfile::class); }
+    public function taxProfile(): HasOne
+    {
+        return $this->hasOne(VendorTaxProfile::class);
+    }
 
     /** Handles shipments for the vendor workflow. */
     public function shipments(): HasMany
@@ -74,11 +77,26 @@ class Vendor extends Model
     }
 
     /** Handles risk profile for the vendor workflow. */
-    public function riskProfile(): HasOne { return $this->hasOne(RiskProfile::class); }
+    public function riskProfile(): HasOne
+    {
+        return $this->hasOne(RiskProfile::class);
+    }
+
     /** Handles risk events for the vendor workflow. */
-    public function riskEvents(): HasMany { return $this->hasMany(RiskEvent::class); }
+    public function riskEvents(): HasMany
+    {
+        return $this->hasMany(RiskEvent::class);
+    }
+
     /** Handles risk cases for the vendor workflow. */
-    public function riskCases(): HasMany { return $this->hasMany(RiskCase::class); }
+    public function riskCases(): HasMany
+    {
+        return $this->hasMany(RiskCase::class);
+    }
+
     /** Handles risk holds for the vendor workflow. */
-    public function riskHolds(): HasMany { return $this->hasMany(RiskHold::class); }
+    public function riskHolds(): HasMany
+    {
+        return $this->hasMany(RiskHold::class);
+    }
 }

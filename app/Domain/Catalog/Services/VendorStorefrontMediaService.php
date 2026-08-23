@@ -18,7 +18,9 @@ class VendorStorefrontMediaService
         }
 
         $legacyUrl = trim((string) $legacyUrl);
-        if ($legacyUrl === '') return null;
+        if ($legacyUrl === '') {
+            return null;
+        }
 
         $asset = MediaLibraryAsset::query()
             ->where('status', 'active')
@@ -42,7 +44,9 @@ class VendorStorefrontMediaService
     /** Validates that a selected logo is active and visible to the vendor. */
     public function validateLogoSelection(Vendor $vendor, ?string $publicId): ?MediaLibraryAsset
     {
-        if ($publicId === null || trim($publicId) === '') return null;
+        if ($publicId === null || trim($publicId) === '') {
+            return null;
+        }
 
         $asset = MediaLibraryAsset::query()
             ->where('public_id', trim($publicId))
@@ -65,7 +69,9 @@ class VendorStorefrontMediaService
     public function logoAsset(Vendor $vendor): ?MediaLibraryAsset
     {
         $publicId = trim((string) (($vendor->metadata ?? [])['logoMediaAssetId'] ?? ''));
-        if ($publicId === '') return null;
+        if ($publicId === '') {
+            return null;
+        }
 
         return MediaLibraryAsset::query()
             ->where('public_id', $publicId)

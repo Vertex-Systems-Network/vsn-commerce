@@ -9,6 +9,7 @@ use App\Domain\Cart\Exceptions\CartValidationException;
 use App\Domain\Cart\Services\CartLoader;
 use App\Domain\Cart\Services\CartResolver;
 use App\Domain\Checkout\Actions\ReleaseCheckoutSession;
+use App\Enums\CheckoutStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\MergeCartRequest;
@@ -141,7 +142,7 @@ class CartController extends Controller
     private function releaseReservedCheckout(Cart $cart, ReleaseCheckoutSession $release): void
     {
         $sessions = $cart->checkoutSessions()
-            ->where('status', \App\Enums\CheckoutStatus::Reserved->value)
+            ->where('status', CheckoutStatus::Reserved->value)
             ->orderBy('id')
             ->get();
 
