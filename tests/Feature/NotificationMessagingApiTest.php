@@ -78,10 +78,10 @@ class NotificationMessagingApiTest extends TestCase
     /** Verifies email outbox dispatches once. */
     public function test_email_outbox_dispatches_once(): void
     {
-        Mail::fake();$user=User::factory()->create();$row=app(PublishMarketplaceNotification::class)->execute($user,'orders','mail.test','Mail test','Body','mail-test-1');
+        Mail::spy();$user=User::factory()->create();$row=app(PublishMarketplaceNotification::class)->execute($user,'orders','mail.test','Mail test','Body','mail-test-1');
         app(DispatchNotificationDeliveries::class)->execute();app(DispatchNotificationDeliveries::class)->execute();
         $this->assertDatabaseHas('notification_deliveries',['marketplace_notification_id'=>$row->id,'channel'=>'email','status'=>'sent','attempts'=>1]);
-        Mail::assertSentCount(1);
+        Mail::shouldHaveReceived('raw')->once();
     }
 
     /** Verifies customer support conversation and message send are idempotent. */
