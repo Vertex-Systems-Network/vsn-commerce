@@ -180,3 +180,36 @@ jobs:
             runtime/launch-verification.json
             runtime-artifacts/
           if-no-files-found: warn
+
+  pint-fix-once:
+    if: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ai/audit-admin-untitled-master-plan
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, dom, xml, xmlwriter
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Apply Pint to PR PHP diff
+        run: php vendor/bin/pint --diff=origin/main
+      - name: Commit formatting and remove one-shot job
+        shell: bash
+        run: |
+          git show HEAD^:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git commit -m "style: apply Pint to PR PHP diff"
+          git push origin HEAD:ai/audit-admin-untitled-master-plan
