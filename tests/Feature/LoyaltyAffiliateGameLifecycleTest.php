@@ -64,7 +64,7 @@ class LoyaltyAffiliateGameLifecycleTest extends TestCase
         $user=User::factory()->create(); $admin=User::factory()->create(['role'=>UserRole::Admin]); Wallet::create(['user_id'=>$user->id,'balance_coins'=>500,'reserved_coins'=>0]);
         $game=$this->game(maxPerUser:5,bonus:250);
         Sanctum::actingAs($user);
-        $this->postJson("/api/v1/games/{$game->public_id}/entries",['entries'=>1,'idempotencyKey'=>'am-win','acceptRules'=>true])->assertCreated();
+        $this->postJson("/api/v1/games/{$game->public_id}/entries",['entries'=>1,'idempotencyKey'=>'am-win-001','acceptRules'=>true])->assertCreated();
         Carbon::setTestNow(now()->addHours(2)); app(CloseGame::class)->execute($game); app(DrawGame::class)->execute($game);
         $first=app(FulfillGamePrize::class)->execute($game->fresh(),$admin,'courier','AM-TRACK');
         $second=app(FulfillGamePrize::class)->execute($game->fresh(),$admin,'courier','AM-TRACK');
