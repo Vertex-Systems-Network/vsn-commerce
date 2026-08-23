@@ -139,6 +139,6 @@ marketplaceCheck($checks, $failures, 'media RBAC regression test present', str_c
 
 printf("Marketplace media/storefront audit: %d/%d PASS\n", count($checks) - count($failures), count($checks));
 if ($failures) {
-    echo "Failures:\n - ".implode("\n - ",$failures).PHP_EOL;
+    echo "Failures:\n - ".implode("\n - ", $failures).PHP_EOL;
     exit(1);
 }
