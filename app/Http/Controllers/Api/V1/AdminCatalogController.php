@@ -27,10 +27,23 @@ class AdminCatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->admin($request);
-        $q = Product::query()->with(['vendor', 'category', 'images.mediaAsset', 'variants.inventories'])->when($request->string('status')->toString(), /** Inline callback for this operation. */ fn ($x, $s) => $x->where('status', $s))->when($request->string('q')->toString(), /** Inline callback for this operation. */ fn ($x, $s) => $x->where('name', 'like', '%'.$s.'%'))->latest();
+        $q = Product::query()
+            ->with(['vendor', 'category', 'taxClass', 'images.mediaAsset', 'variants.inventories'])
+            ->when($request->string('status')->toString(), fn ($x, $s) => $x->where('status', $s))
+            ->when($request->string('q')->toString(), fn ($x, $s) => $x->where('name', 'like', '%'.$s.'%'))
+            ->latest();
         $rows = $q->paginate(60);
 
-        return response()->json(['data' => ['items' => CatalogManagementProductResource::collection($rows->getCollection())->resolve($request), 'meta' => ['total' => $rows->total(), 'currentPage' => $rows->currentPage(), 'lastPage' => $rows->lastPage()], 'categories' => $this->categoryRows(), 'vendors' => Vendor::query()->orderBy('name')->get(['id', 'name', 'slug', 'status'])]]);
+        return response()->json(['data' => [
+            'items' => CatalogManagementProductResource::collection($rows->getCollection())->resolve($request),
+            'meta' => [
+                'total' => $rows->total(),
+                'currentPage' => $rows->currentPage(),
+                'lastPage' => $rows->lastPage(),
+            ],
+            'categories' => $this->categoryRows(),
+            'vendors' => Vendor::query()->orderBy('name')->get(['id', 'name', 'slug', 'status']),
+        ]]);
     }
 
     /** Handles the show request for this resource. */
@@ -38,7 +51,13 @@ class AdminCatalogController extends Controller
     {
         $this->admin($request);
 
-        return new CatalogManagementProductResource($product->load(['vendor', 'category', 'images.mediaAsset', 'variants.inventories']));
+        return new CatalogManagementProductResource($product->load([
+            'vendor',
+            'category',
+            'taxClass',
+            'images.mediaAsset',
+            'variants.inventories',
+        ]));
     }
 
     /** Handles the store request for this resource. */
@@ -64,13 +83,27 @@ class AdminCatalogController extends Controller
     public function review(Request $request, Product $product): CatalogManagementProductResource
     {
         $this->admin($request);
-        $d = $request->validate(['status' => 'required|in:published,draft,suspended,archived', 'note' => 'nullable|string|max:1000']);
+        $d = $request->validate([
+            'status' => 'required|in:published,draft,suspended,archived',
+            'note' => 'nullable|string|max:1000',
+        ]);
         $meta = $product->metadata ?? [];
-        $meta['last_catalog_review'] = ['status' => $d['status'], 'note' => $d['note'] ?? null, 'actor' => $request->user()->id, 'at' => now()->toIso8601String()];
+        $meta['last_catalog_review'] = [
+            'status' => $d['status'],
+            'note' => $d['note'] ?? null,
+            'actor' => $request->user()->id,
+            'at' => now()->toIso8601String(),
+        ];
         $product->update(['status' => ProductStatus::from($d['status']), 'metadata' => $meta]);
         $this->cache->bump();
 
-        return new CatalogManagementProductResource($product->fresh(['vendor', 'category', 'images.mediaAsset', 'variants.inventories']));
+        return new CatalogManagementProductResource($product->fresh([
+            'vendor',
+            'category',
+            'taxClass',
+            'images.mediaAsset',
+            'variants.inventories',
+        ]));
     }
 
     /** Handles categories for the admin catalog controller workflow. */
@@ -85,20 +118,44 @@ class AdminCatalogController extends Controller
     public function storeCategory(Request $request): JsonResponse
     {
         $this->admin($request);
-        $d = $request->validate(['name' => 'required|string|max:120', 'slug' => 'nullable|string|max:160', 'parentId' => 'nullable|integer|exists:categories,id', 'isActive' => 'nullable|boolean', 'sortOrder' => 'nullable|integer|min:0']);
-        $c = Category::create(['name' => $d['name'], 'slug' => $this->categorySlug($d['slug'] ?? $d['name']), 'parent_id' => $d['parentId'] ?? null, 'is_active' => $d['isActive'] ?? true, 'sort_order' => $d['sortOrder'] ?? 0]);
+        $d = $request->validate([
+            'name' => 'required|string|max:120',
+            'slug' => 'nullable|string|max:160',
+            'parentId' => 'nullable|integer|exists:categories,id',
+            'isActive' => 'nullable|boolean',
+            'sortOrder' => 'nullable|integer|min:0',
+        ]);
+        $category = Category::create([
+            'name' => $d['name'],
+            'slug' => $this->categorySlug($d['slug'] ?? $d['name']),
+            'parent_id' => $d['parentId'] ?? null,
+            'is_active' => $d['isActive'] ?? true,
+            'sort_order' => $d['sortOrder'] ?? 0,
+        ]);
         $this->cache->bump();
 
-        return response()->json(['data' => $c], 201);
+        return response()->json(['data' => $category], 201);
     }
 
     /** Handles update category for the admin catalog controller workflow. */
     public function updateCategory(Request $request, Category $category): JsonResponse
     {
         $this->admin($request);
-        $d = $request->validate(['name' => 'sometimes|string|max:120', 'slug' => 'sometimes|string|max:160', 'parentId' => 'sometimes|nullable|integer|exists:categories,id', 'isActive' => 'sometimes|boolean', 'sortOrder' => 'sometimes|integer|min:0']);
+        $d = $request->validate([
+            'name' => 'sometimes|string|max:120',
+            'slug' => 'sometimes|string|max:160',
+            'parentId' => 'sometimes|nullable|integer|exists:categories,id',
+            'isActive' => 'sometimes|boolean',
+            'sortOrder' => 'sometimes|integer|min:0',
+        ]);
         abort_if(isset($d['parentId']) && (int) $d['parentId'] === $category->id, 422, 'Category cannot be its own parent.');
-        $category->update(array_filter(['name' => $d['name'] ?? null, 'slug' => isset($d['slug']) ? $this->categorySlug($d['slug'], $category->id) : null, 'parent_id' => array_key_exists('parentId', $d) ? $d['parentId'] : null, 'is_active' => $d['isActive'] ?? null, 'sort_order' => $d['sortOrder'] ?? null], /** Inline callback for this operation. */ fn ($v) => $v !== null));
+        $category->update(array_filter([
+            'name' => $d['name'] ?? null,
+            'slug' => isset($d['slug']) ? $this->categorySlug($d['slug'], $category->id) : null,
+            'parent_id' => array_key_exists('parentId', $d) ? $d['parentId'] : null,
+            'is_active' => $d['isActive'] ?? null,
+            'sort_order' => $d['sortOrder'] ?? null,
+        ], fn ($value) => $value !== null));
         $this->cache->bump();
 
         return response()->json(['data' => $category->fresh()]);
@@ -108,43 +165,106 @@ class AdminCatalogController extends Controller
     public function stock(Request $request, ProductVariant $variant, CatalogMutationService $service): JsonResponse
     {
         $this->admin($request);
-        $d = $request->validate(['onHand' => 'required|integer|min:0', 'safetyStock' => 'nullable|integer|min:0', 'reason' => 'nullable|string|max:190']);
-        $row = $service->setStock($variant, $request->user(), (int) $d['onHand'], isset($d['safetyStock']) ? (int) $d['safetyStock'] : null, $d['reason'] ?? 'admin_adjustment');
+        $d = $request->validate([
+            'onHand' => 'required|integer|min:0',
+            'safetyStock' => 'nullable|integer|min:0',
+            'reason' => 'nullable|string|max:190',
+        ]);
+        $row = $service->setStock(
+            $variant,
+            $request->user(),
+            (int) $d['onHand'],
+            isset($d['safetyStock']) ? (int) $d['safetyStock'] : null,
+            $d['reason'] ?? 'admin_adjustment'
+        );
 
-        return response()->json(['data' => ['variantId' => $variant->id, 'onHand' => $row->on_hand, 'reserved' => $row->reserved, 'safetyStock' => $row->safety_stock, 'available' => $row->available()]]);
+        return response()->json(['data' => [
+            'variantId' => $variant->id,
+            'onHand' => $row->on_hand,
+            'reserved' => $row->reserved,
+            'safetyStock' => $row->safety_stock,
+            'available' => $row->available(),
+        ]]);
     }
 
     /** Handles admin for the admin catalog controller workflow. */
-    private function admin(Request $r): void
+    private function admin(Request $request): void
     {
-        $v = $r->user()?->role instanceof UserRole ? $r->user()->role->value : (string) $r->user()?->role;
-        abort_unless(in_array($v, [UserRole::Admin->value, UserRole::SuperAdmin->value], true), 403);
+        $role = $request->user()?->role instanceof UserRole
+            ? $request->user()->role->value
+            : (string) $request->user()?->role;
+        abort_unless(in_array($role, [UserRole::Admin->value, UserRole::SuperAdmin->value], true), 403);
     }
 
     /** Handles category rows for the admin catalog controller workflow. */
     private function categoryRows(): array
     {
-        return Category::query()->withCount('products')->orderBy('sort_order')->orderBy('name')->get()->map(/** Inline callback for this operation. */ fn ($c) => ['id' => $c->id, 'name' => $c->name, 'slug' => $c->slug, 'parentId' => $c->parent_id, 'isActive' => $c->is_active, 'sortOrder' => $c->sort_order, 'productsCount' => $c->products_count])->all();
+        return Category::query()
+            ->withCount('products')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'parentId' => $category->parent_id,
+                'isActive' => $category->is_active,
+                'sortOrder' => $category->sort_order,
+                'productsCount' => $category->products_count,
+            ])
+            ->all();
     }
 
     /** Handles category slug for the admin catalog controller workflow. */
-    private function categorySlug(string $v, ?int $except = null): string
+    private function categorySlug(string $value, ?int $except = null): string
     {
-        $base = Str::slug($v) ?: 'category';
-        $s = $base;
-        $n = 2;
-        while (Category::query()->where('slug', $s)->when($except, /** Inline callback for this operation. */ fn ($q) => $q->where('id', '!=', $except))->exists()) {
-            $s = $base.'-'.$n++;
+        $base = Str::slug($value) ?: 'category';
+        $slug = $base;
+        $number = 2;
+        while (Category::query()
+            ->where('slug', $slug)
+            ->when($except, fn ($query) => $query->where('id', '!=', $except))
+            ->exists()) {
+            $slug = $base.'-'.$number++;
         }
 
-        return $s;
+        return $slug;
     }
 
     /** Validates admin catalog fields; product images are managed only through media endpoints. */
     private function validated(Request $request, bool $partial = false): array
     {
-        $req = $partial ? 'sometimes' : 'required';
+        $required = $partial ? 'sometimes' : 'required';
 
-        return $request->validate(['vendorId' => [$partial ? 'sometimes' : 'required', 'integer', 'exists:vendors,id'], 'name' => [$req, 'string', 'max:190'], 'slug' => ['sometimes', 'nullable', 'string', 'max:190'], 'sku' => ['sometimes', 'nullable', 'string', 'max:120', Rule::unique('products', 'sku')->ignore($request->route('product')?->id)], 'categoryId' => [$req, 'integer', 'exists:categories,id'], 'shortDescription' => ['sometimes', 'nullable', 'string', 'max:1000'], 'description' => ['sometimes', 'nullable', 'string', 'max:20000'], 'currency' => ['sometimes', 'string', 'size:3'], 'basePriceMinor' => [$req, 'integer', 'min:1'], 'compareAtPriceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'], 'installmentEnabled' => ['sometimes', 'boolean'], 'gameEnabled' => ['sometimes', 'boolean'], 'taxClassId' => ['sometimes', 'nullable', 'string', 'exists:tax_classes,public_id'], 'priceIncludesTax' => ['sometimes', 'nullable', 'boolean'], 'status' => ['sometimes', 'in:draft,pending_review,published,suspended,archived'], 'images' => ['prohibited'], 'variants' => [$req, 'array', 'min:1', 'max:100'], 'variants.*.id' => ['sometimes', 'integer'], 'variants.*.sku' => ['sometimes', 'nullable', 'string', 'max:120'], 'variants.*.name' => ['required_with:variants', 'string', 'max:160'], 'variants.*.options' => ['sometimes', 'array'], 'variants.*.priceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'], 'variants.*.compareAtPriceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'], 'variants.*.isDefault' => ['sometimes', 'boolean'], 'variants.*.isActive' => ['sometimes', 'boolean'], 'variants.*.stock' => ['sometimes', 'integer', 'min:0'], 'variants.*.safetyStock' => ['sometimes', 'integer', 'min:0']]);
+        return $request->validate([
+            'vendorId' => [$partial ? 'sometimes' : 'required', 'integer', 'exists:vendors,id'],
+            'name' => [$required, 'string', 'max:190'],
+            'slug' => ['sometimes', 'nullable', 'string', 'max:190'],
+            'sku' => ['sometimes', 'nullable', 'string', 'max:120', Rule::unique('products', 'sku')->ignore($request->route('product')?->id)],
+            'categoryId' => [$required, 'integer', 'exists:categories,id'],
+            'shortDescription' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:20000'],
+            'currency' => ['sometimes', 'string', 'size:3'],
+            'basePriceMinor' => [$required, 'integer', 'min:1'],
+            'compareAtPriceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'installmentEnabled' => ['sometimes', 'boolean'],
+            'gameEnabled' => ['sometimes', 'boolean'],
+            'taxClassId' => ['sometimes', 'nullable', 'string', 'exists:tax_classes,public_id'],
+            'priceIncludesTax' => ['sometimes', 'nullable', 'boolean'],
+            'status' => ['sometimes', 'in:draft,pending_review,published,suspended,archived'],
+            'images' => ['prohibited'],
+            'variants' => [$required, 'array', 'min:1', 'max:100'],
+            'variants.*.id' => ['sometimes', 'integer'],
+            'variants.*.sku' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'variants.*.name' => ['required_with:variants', 'string', 'max:160'],
+            'variants.*.options' => ['sometimes', 'array'],
+            'variants.*.priceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'variants.*.compareAtPriceMinor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'variants.*.isDefault' => ['sometimes', 'boolean'],
+            'variants.*.isActive' => ['sometimes', 'boolean'],
+            'variants.*.stock' => ['sometimes', 'integer', 'min:0'],
+            'variants.*.safetyStock' => ['sometimes', 'integer', 'min:0'],
+        ]);
     }
 }
