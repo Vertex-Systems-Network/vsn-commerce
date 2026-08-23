@@ -177,7 +177,6 @@ class SellerOperationsController extends Controller
             'returnAddress' => 'sometimes|nullable|string|max:1000',
             'dispatchNote' => 'sometimes|nullable|string|max:1000',
         ]);
-
         $metadata = array_merge($vendor->metadata ?? [], Arr::only($data, [
             'storefrontEnabled', 'storefrontHeadline', 'storefrontDescription', 'supportEmail', 'publicSupportEmail', 'supportPhone', 'returnAddress', 'dispatchNote',
         ]));
@@ -241,7 +240,6 @@ class SellerOperationsController extends Controller
     /** Handles order row for the seller operations controller workflow. */
     private function orderRow(VendorOrder $row, bool $detailed): array
     {
-        $address = $row->order?->shippingAddress;
         $base = [
             'id' => $row->public_id,
             'masterOrderId' => $row->order?->public_id,
@@ -269,6 +267,7 @@ class SellerOperationsController extends Controller
         if (! $detailed) {
             return $base;
         }
+        $address = $row->order?->shippingAddress;
         $base['shippingAddress'] = $address ? [
             'recipientName' => $address->recipient_name, 'phone' => $address->phone, 'line1' => $address->line1, 'line2' => $address->line2,
             'city' => $address->city, 'state' => $address->state, 'postalCode' => $address->postal_code, 'countryCode' => $address->country_code,
