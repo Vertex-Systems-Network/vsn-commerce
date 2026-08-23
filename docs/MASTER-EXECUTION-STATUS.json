@@ -4,7 +4,7 @@
   "package": {
     "id": "P0",
     "name": "Truth baseline and release blockers",
-    "status": "GATES_FAILED",
+    "status": "IN_PROGRESS",
     "done": null,
     "required": 10,
     "percent": null
@@ -14,9 +14,9 @@
     "name": "Restore green exact-head CI baseline",
     "package": "P0",
     "sequence": 1,
-    "status": "GATES_FAILED"
+    "status": "GATES_GREEN_PENDING_MERGE"
   },
-  "status": "GATES_FAILED",
+  "status": "GATES_GREEN_PENDING_MERGE",
   "branch": "ai/audit-admin-untitled-master-plan",
   "base_branch": "main",
   "base_head": "058ef611761da92aa37d021f859c645f89fec6ea",
@@ -26,13 +26,13 @@
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
     "description": "The live PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file. Any other changed path requires state reconciliation before implementation."
   },
-  "last_observed_pr_head": "627399cfe7c6d8e3c5b3f1272a453f838f1c4542",
+  "last_observed_pr_head": "dff1695b1240d699e2d9e1ca6cec6e58176a7a5c",
   "pull_request": {
     "number": 1,
     "state": "open",
     "url": "https://github.com/Vertex-Systems-Network/vsn-commerce/pull/1",
     "head_branch": "ai/audit-admin-untitled-master-plan",
-    "last_observed_head_sha": "627399cfe7c6d8e3c5b3f1272a453f838f1c4542",
+    "last_observed_head_sha": "dff1695b1240d699e2d9e1ca6cec6e58176a7a5c",
     "base_branch": "main",
     "base_sha": "058ef611761da92aa37d021f859c645f89fec6ea"
   },
@@ -260,21 +260,83 @@
           "launch_verification_artifact": false
         }
       ]
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32662256030,
+      "workflow": "Governance Code Scanning",
+      "source_head": "dff1695b1240d699e2d9e1ca6cec6e58176a7a5c",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE"
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32662256070,
+      "workflow": "CodeQL",
+      "source_head": "dff1695b1240d699e2d9e1ca6cec6e58176a7a5c",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE"
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32662255994,
+      "workflow": "CI",
+      "source_head": "dff1695b1240d699e2d9e1ca6cec6e58176a7a5c",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE",
+      "passed_jobs": [
+        {
+          "name": "static-and-build",
+          "job_id": 97250138759
+        },
+        {
+          "name": "sqlite-tests",
+          "job_id": 97250138800
+        },
+        {
+          "name": "mysql-tests",
+          "job_id": 97250138730
+        },
+        {
+          "name": "postgres-tests",
+          "job_id": 97250138594
+        },
+        {
+          "name": "browser-e2e",
+          "job_id": 97250138723
+        },
+        {
+          "name": "runtime-integration",
+          "job_id": 97253188297
+        }
+      ],
+      "runtime_evidence": {
+        "artifact_id": 9499456412,
+        "artifact_name": "vsn-launch-verification",
+        "artifact_digest": "sha256:6ee4385bf44105a2bb5b8e20d12d0018ba7e3efcd652cd571d4b12d623388da8",
+        "manifest_generated_at": "2026-08-23T20:15:45Z",
+        "manifest_all_required_checks": true,
+        "launch_gate_ready": true,
+        "launch_gate_blockers": 0,
+        "launch_gate_warnings": 0,
+        "database_index_audit_ok": true,
+        "database_index_missing": []
+      }
     }
   ],
   "next_exact_action": {
-    "type": "OBSERVE_HOSTED_GATES",
-    "description": "Inspect fresh GitHub-hosted workflows for code task_head 627399cfe7c6d8e3c5b3f1272a453f838f1c4542 or its verified canonical-state-only descendant. Require static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e, runtime-integration, Governance Code Scanning and CodeQL all to succeed. For runtime, also require the launch-verification artifact. If runtime fails, extract its exact newly exposed failing command/error before any further implementation. If every required gate is green, record exact evidence and move P0-CI-BASELINE to GATES_GREEN_PENDING_MERGE rather than DONE.",
+    "type": "MERGE_ACCEPTED_PR",
+    "description": "P0-CI-BASELINE has green GitHub-hosted acceptance on state-only descendant dff1695b1240d699e2d9e1ca6cec6e58176a7a5c for code task_head 627399cfe7c6d8e3c5b3f1272a453f838f1c4542. Keep the task GATES_GREEN_PENDING_MERGE. Before merge, confirm PR #1 remains open and that every live-head delta from task_head is restricted to docs/MASTER-EXECUTION-STATUS.json. Merge only through the repository's normal approval process. After merge, inspect the resulting main HEAD and any required main-branch workflows before marking P0-CI-BASELINE DONE or selecting the next canonical task.",
     "preconditions": [
-      "Re-read this canonical state file before editing.",
-      "Confirm PR #1 remains open.",
-      "Confirm the live PR head equals task_head or is a verified state-only descendant under head_policy; otherwise reconcile state before implementation.",
-      "Do not begin later P1/P2/P3/P4/P5 work unless required as a prerequisite for this active gate."
+      "Re-read this canonical state file before any mutation.",
+      "Confirm PR #1 remains open and mergeable.",
+      "Confirm the live PR head is task_head or a verified state-only descendant under head_policy.",
+      "Do not start P1/P2/P3/P4/P5 work before P0-CI-BASELINE is merged and canonical state is advanced."
     ],
     "expected_evidence": [
-      "Current-head CI completes with static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e and runtime-integration all successful.",
-      "Runtime launch-verification artifact exists for the accepted head and reflects successful runtime checks.",
-      "Current-head Governance Code Scanning and CodeQL both succeed."
+      "PR #1 merge is recorded by GitHub.",
+      "Resulting main HEAD contains the accepted code task_head ancestry.",
+      "Any repository-required post-merge/main workflows complete with acceptable results before marking the task DONE."
     ]
   },
   "architecture_decisions": [
@@ -289,9 +351,8 @@
     "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and is not part of the current CI-baseline task unless it directly blocks the active gate."
   ],
   "unresolved_issues": [
-    "Focused runtime test-service environment override 627399cfe7c6d8e3c5b3f1272a453f838f1c4542 is awaiting fresh GitHub-hosted acceptance evidence.",
-    "Hosted runtime acceptance and launch-verification artifact are not yet green for task_head 627399cfe7c6d8e3c5b3f1272a453f838f1c4542, so P0-CI-BASELINE remains GATES_FAILED.",
+    "P0-CI-BASELINE is accepted on GitHub-hosted CI #300 plus Governance #131 and CodeQL #133 at state-only descendant dff1695b1240d699e2d9e1ca6cec6e58176a7a5c, but remains pending PR #1 merge and must not be marked DONE yet.",
     "P0/P1 documentation contains stale claims relative to the current branch and must be reconciled only when supported by verified code/test evidence."
   ],
-  "updated_at": "2026-08-23T19:38:00Z"
+  "updated_at": "2026-08-23T20:16:00Z"
 }
