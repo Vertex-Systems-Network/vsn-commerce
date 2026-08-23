@@ -89,12 +89,12 @@ export default function AdminShell() {
         <button type="button" onClick={signOut}><FaSignOutAlt/> Sign out</button>
       </div>
     </aside>
-    <section className="admin-workspace">
+    <div className="admin-workspace">
       <header className="admin-topbar">
         <div className="admin-topbar-title"><button className="shell-menu-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={/** Inline callback for this operation. */ ()=>setOpen(true)}><FaBars/></button><div><small>Administration</small><strong>{currentLabel}</strong></div></div>
         <div className="admin-user-chip"><span>{user?.name?.slice(0,1)?.toUpperCase()}</span><div><b>{user?.name}</b><small>{String(user?.role || "").replaceAll("_"," ")}</small></div></div>
       </header>
       <main className="admin-content" id="main-content" tabIndex="-1">{scopedRoot?<ScopedAdminOverview visibleGroups={visibleGroups}/>:<Outlet/>}</main>
-    </section>
+    </div>
   </div>;
 }
