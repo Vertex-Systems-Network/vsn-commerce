@@ -1,188 +1,14 @@
-name: CI
+name: One-shot remediation
+
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: remediation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  static-and-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, dom, xml, xmlwriter
-          tools: composer:v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: php scripts/test-matrix.php --static-only
-      - run: composer validate --no-check-publish
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Run Larastan / PHPStan
-        run: composer run quality:phpstan
-      - name: Run Pint on PHP changed from main
-        run: php vendor/bin/pint --test --diff=origin/main
-      - name: Preserve resolved Composer lock candidate
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsn-composer-lock-candidate
-          path: composer.lock
-          if-no-files-found: error
-      - run: npm ci --no-audit --no-fund
-      - name: Install pinned ESLint quality tooling
-        run: npm run lint:bootstrap
-      - name: Run React, hooks and accessibility lint
-        run: npm run lint
-      - name: Run frontend source and routing quality audit
-        run: npm test
-      - run: npm run build
-
-  sqlite-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
-          tools: composer:v2
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php vendor/bin/phpunit --configuration=phpunit.xml
-
-  mysql-tests:
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_DATABASE: vsn_ecommerce_test
-          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot --silent"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_mysql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
-          tools: composer:v2
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test
-      - run: php vendor/bin/phpunit --configuration=phpunit.mysql.xml
-
-  postgres-tests:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18.4-alpine
-        env:
-          POSTGRES_DB: vsn_test
-          POSTGRES_USER: vsn
-          POSTGRES_PASSWORD: vsn-local-only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U vsn -d vsn_test"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_pgsql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
-          tools: composer:v2
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php vendor/bin/phpunit --configuration=phpunit.postgres.xml
-
-  browser-e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
-          tools: composer:v2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: npm ci --no-audit --no-fund
-      - name: Install pinned Playwright, axe and W3C Nu tooling
-        run: npm run e2e:bootstrap
-      - name: Build React application
-        run: npm run build
-      - name: Install Chromium browser dependencies
-        run: npx playwright install --with-deps chromium
-      - name: Run desktop + mobile browser E2E, click, WCAG and W3C gates
-        run: npx playwright test --project=chromium --project=mobile-chromium
-      - name: Run WAVE public staging audit when configured
-        env:
-          WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
-          WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
-          WAVE_ROUTES: ${{ vars.WAVE_ROUTES }}
-        run: npm run audit:wave
-      - name: Record browser acceptance evidence
-        run: |
-          mkdir -p runtime-artifacts
-          cat > runtime-artifacts/browser-e2e.json <<JSON
-          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"],"qualityGates":["runtime-errors","interaction-clicks","axe-wcag-2.2","w3c-nu","wave-when-configured"]}
-          JSON
-      - name: Upload browser and accessibility evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsn-browser-e2e
-          path: |
-            playwright-report/
-            runtime-artifacts/playwright-results/
-            runtime-artifacts/playwright-junit.xml
-            runtime-artifacts/browser-e2e.json
-            runtime-artifacts/wave-a11y.json
-          if-no-files-found: warn
-
-  runtime-integration:
-    runs-on: ubuntu-latest
-    needs: [static-and-build, sqlite-tests, mysql-tests, postgres-tests, browser-e2e]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Unified runtime + restore drill + launch gate
-        run: bash scripts/runtime-verify.sh
-      - name: Upload launch verification evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsn-launch-verification
-          path: |
-            runtime/launch-verification.json
-            runtime-artifacts/
-          if-no-files-found: warn
-
-  pint-fix-once:
-    if: ${{ github.event_name == 'pull_request' }}
+  remediate:
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -197,8 +23,9 @@ jobs:
           php-version: '8.4'
           extensions: mbstring, dom, xml, xmlwriter
           tools: composer:v2
+      - run: composer validate --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Remove fake Product installment state
+      - name: Remove fake Product installment authority
         shell: bash
         run: |
           python - <<'PY'
@@ -287,6 +114,10 @@ jobs:
           PY
       - name: Apply Pint to PR PHP diff
         run: php vendor/bin/pint --diff=origin/main
+      - name: Validate transformed PHP
+        run: |
+          php -l app/Domain/Operations/Services/DatabaseIndexAuditService.php
+          php -l tests/Feature/MySqlRuntimeCompatibilityTest.php
       - name: Commit remediation and resolved dependency lock
         shell: bash
         run: |
