@@ -91,9 +91,9 @@ jobs:
       postgres:
         image: postgres:18.4-alpine
         env:
-          POSTGRES_DB: vsn_test
-          POSTGRES_USER: vsn
-          POSTGRES_PASSWORD: vsn-local-only
+          POSTGRES_DB=vsn_test
+          POSTGRES_USER=vsn
+          POSTGRES_PASSWORD=vsn-local-only
         ports:
           - 5432:5432
         options: >-
@@ -198,18 +198,62 @@ jobs:
           extensions: mbstring, dom, xml, xmlwriter
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Apply Pint to PR PHP diff
-        run: php vendor/bin/pint --diff=origin/main
-      - name: Commit formatting and remove one-shot job
+      - name: Remove fake Product installment state
         shell: bash
         run: |
-          git show HEAD^:.github/workflows/ci.yml > .github/workflows/ci.yml
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('resources/js/pages/Product.jsx')
+          source = path.read_text()
+
+          replacements = [
+              (
+                  "  const [emi, setEmi] = useState(12);\n",
+                  "",
+              ),
+              (
+                  "  const [installmentApplied, setInstallmentApplied] = useState(false);\n",
+                  "",
+              ),
+              (
+                  "  const product = apiBackend === 'laravel' ? (remoteProduct || {...fallbackProduct,id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[]}) : fallbackProduct;\n",
+                  "  const product = apiBackend === 'laravel' ? (remoteProduct || {id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[],vendor:'',category:'',stock:0,sold:0,game:false,installment:false}) : fallbackProduct;\n",
+              ),
+              (
+                  "  const emiDown = Math.round(product.price * 0.2);\n  const emiFinanced = product.price - emiDown;\n  const emiAmount = Math.ceil(emiFinanced / emi);\n",
+                  "",
+              ),
+              (
+                  "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Select plan</span><strong>{emi} months</strong></div>\n                <div className=\"pdp-chips\">{[3, 6, 12, 24].map(/** Inline callback for this operation. */ m => <button key={m} className={emi === m ? 'active success' : ''} onClick={/** Inline callback for this operation. */ () => setEmi(m)}>{m}M</button>)}</div>\n                <div className=\"pdp-payment-breakdown\"><div><span>Monthly payment</span><strong>Rs. {emiAmount.toLocaleString()}/mo</strong></div><div><span>Down payment (20%)</span><strong>Rs. {emiDown.toLocaleString()}</strong></div><div><span>Demo interest</span><strong>0% bank offer</strong></div><div><span>Identity requirement</span><strong>{store.profile.idVerified ? 'Verified' : 'Govt ID required'}</strong></div></div>\n                {!store.profile.idVerified && <p className=\"pdp-inline-warning\">Complete government ID verification in Profile before production financing approval.</p>}\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => { setInstallmentApplied(true); setNotice('Installment application created in demo state. Production flow will submit to the financing API.') }}><FaCreditCard /> {installmentApplied ? 'Application created' : 'Apply for installment plan'}</Button>\n              </div>}\n",
+                  "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Installment checkout</span><strong>Provider-authorized</strong></div>\n                <p>Installment availability, identity requirements, repayment term and final charges are confirmed by the enabled payment provider during secure checkout.</p>\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => addCart(true)}><FaCreditCard /> Continue to secure checkout</Button>\n              </div>}\n",
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in source:
+                  raise SystemExit(f'Expected Product source block was not found: {old[:80]!r}')
+              source = source.replace(old, new, 1)
+
+          if 'Installment application created in demo state' in source:
+              raise SystemExit('Demo installment success path still exists after remediation.')
+          if 'store.profile.idVerified' in source:
+              raise SystemExit('Local profile verification still controls installment UI after remediation.')
+
+          path.write_text(source)
+          PY
+      - name: Apply Pint to PR PHP diff
+        run: php vendor/bin/pint --diff=origin/main
+      - name: Commit remediation, formatting and remove one-shot job
+        shell: bash
+        run: |
+          git show 23ce5b7842070e4333be086f2a4463bc006348d7:.github/workflows/ci.yml > .github/workflows/ci.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "No formatting changes required."
+            echo "No remediation or formatting changes required."
             exit 0
           fi
-          git commit -m "style: apply Pint to PR PHP diff"
+          git commit -m "fix(product): remove fake installment authority"
           git push origin HEAD:ai/audit-admin-untitled-master-plan
