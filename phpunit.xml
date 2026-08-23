@@ -18,6 +18,9 @@
         <env name="BROADCAST_CONNECTION" value="null" />
         <env name="DB_CONNECTION" value="sqlite" />
         <env name="DB_DATABASE" value=":memory:" />
+        <env name="VSN_CARD_PAYMENTS_ENABLED" value="true" force="true" />
+        <env name="VSN_SANDBOX_PAYMENT_SIMULATOR_ENABLED" value="true" force="true" />
+        <env name="VSN_SANDBOX_PAYMENT_VAULT_SIMULATOR_ENABLED" value="true" force="true" />
         <env name="VSN_PAYOUT_REQUIRE_PHONE_VERIFICATION" value="false" />
         <env name="VSN_PAYOUT_REQUIRE_IDENTITY_KYC" value="false" />
         <env name="VSN_DEMO_SEED_ENABLED" value="false" force="true" />
