@@ -1,0 +1,52 @@
+name: Branch Format
+
+on:
+  push:
+    branches:
+      - ai/audit-admin-untitled-master-plan
+
+permissions:
+  contents: write
+
+concurrency:
+  group: branch-format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pint:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Apply Pint to branch diff
+        run: php vendor/bin/pint --diff=origin/main
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.php'
+          git commit -m "style: apply Pint to PR diff"
+          git push origin HEAD:${GITHUB_REF_NAME}
