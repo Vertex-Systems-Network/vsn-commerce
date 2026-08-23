@@ -43,13 +43,16 @@ async function assertInteractiveContract(page,label){
 
 /** Clicks every currently available workspace navigation link and verifies a live route renders. */
 async function clickWorkspaceNavigation(page,home,sidebarSelector,contentSelector='#main-content'){
+  const sidebar=page.locator(sidebarSelector);
   await page.goto(home);
-  const hrefs=await page.locator(`${sidebarSelector} a[href]`).evaluateAll(nodes=>[...new Set(nodes.map(node=>node.getAttribute('href')).filter(href=>href&&href.startsWith('/')))]);
+  await expect(sidebar,`${home} workspace navigation should finish loading`).toBeVisible();
+  const hrefs=await sidebar.locator('a[href]').evaluateAll(nodes=>[...new Set(nodes.map(node=>node.getAttribute('href')).filter(href=>href&&href.startsWith('/')))]);
   expect(hrefs.length,`${home} should expose workspace navigation`).toBeGreaterThan(0);
 
   for(const href of hrefs){
     await page.goto(home);
-    const link=page.locator(`${sidebarSelector} a[href="${href}"]`).first();
+    await expect(sidebar,`${home} workspace navigation should finish loading`).toBeVisible();
+    const link=sidebar.locator(`a[href="${href}"]`).first();
     await expect(link,`Navigation link ${href} should remain available`).toBeVisible();
     await link.click();
     await expect.poll(()=>new URL(page.url()).pathname,{message:`Clicking ${href} should navigate to the intended route`}).toBe(href);
