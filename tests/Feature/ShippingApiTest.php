@@ -252,8 +252,8 @@ class ShippingApiTest extends TestCase
             $this->postJson('/api/v1/cart/items', ['productId' => $product->id, 'quantity' => 1])->assertOk();
         }
         $session = $this->postJson('/api/v1/checkout/sessions', ['addressId' => $address->id, 'shippingMethod' => 'standard', 'paymentMethod' => 'cod', 'idempotencyKey' => 'shipping-checkout-'.Str::uuid()])->assertOk()->json('data');
-        $placed = $this->postJson("/api/v1/checkout/sessions/{$session['id']}/order",[])->assertOk()->json('data');
+        $placed = $this->postJson("/api/v1/checkout/sessions/{$session['id']}/order", [])->assertOk()->json('data');
 
-        return [$customer, $owners, Order::where('public_id',$placed['id'])->with('vendorOrders')->firstOrFail()];
+        return [$customer, $owners, Order::where('public_id', $placed['id'])->with('vendorOrders')->firstOrFail()];
     }
 }
