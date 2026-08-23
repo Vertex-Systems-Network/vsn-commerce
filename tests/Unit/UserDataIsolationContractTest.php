@@ -12,11 +12,11 @@ class UserDataIsolationContractTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $contracts = [
-            'app/Http/Controllers/Api/V1/OrderController.php' => ["where('user_id', $request->user()->id)"],
-            'app/Http/Controllers/Api/V1/WalletController.php' => ["where('user_id', $user->id)", "where('user_id', $request->user()->id)"],
-            'app/Http/Controllers/Api/V1/WishlistController.php' => ["where('user_id', $request->user()->id)"],
-            'app/Http/Controllers/Api/V1/NotificationController.php' => ["where('user_id', $request->user()->id)"],
-            'app/Http/Controllers/Api/V1/ReturnController.php' => ["where('user_id', $request->user()->id)"],
+            'app/Http/Controllers/Api/V1/OrderController.php' => ["where('user_id', \$request->user()->id)"],
+            'app/Http/Controllers/Api/V1/WalletController.php' => ["where('user_id', \$user->id)", "where('user_id', \$request->user()->id)"],
+            'app/Http/Controllers/Api/V1/WishlistController.php' => ["where('user_id', \$request->user()->id)"],
+            'app/Http/Controllers/Api/V1/NotificationController.php' => ["where('user_id', \$request->user()->id)"],
+            'app/Http/Controllers/Api/V1/ReturnController.php' => ["where('user_id', \$request->user()->id)"],
             'app/Http/Controllers/Api/V1/AddressController.php' => ['$request->user()->addresses()', '$address->user_id === $request->user()->id'],
         ];
 
