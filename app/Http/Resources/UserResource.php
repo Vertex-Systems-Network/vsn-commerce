@@ -3,11 +3,16 @@
 namespace App\Http\Resources;
 
 use App\Enums\UserRole;
+use App\Models\User;
 use App\Security\Rbac;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** Defines the UserResource class and its project responsibilities. */
+/**
+ * Defines the UserResource class and its project responsibilities.
+ *
+ * @mixin User
+ */
 class UserResource extends JsonResource
 {
     /** Handles to array for the user resource workflow. */
@@ -20,7 +25,7 @@ class UserResource extends JsonResource
             'role' => $this->role instanceof UserRole ? $this->role->value : $this->role,
             'permissions' => Rbac::permissionsForRole($this->role),
             'emailVerified' => $this->email_verified_at !== null,
-            'profile' => $this->whenLoaded('profile', /** Inline callback for this operation. */ fn () => [
+            'profile' => $this->whenLoaded('profile', fn () => [
                 'phone' => $this->profile?->phone,
                 'phoneVerified' => $this->profile?->phone_verified_at !== null,
                 'avatar' => $this->profile?->avatar_path,
@@ -30,8 +35,16 @@ class UserResource extends JsonResource
             ]),
             'verification' => [
                 'phoneVerified' => $this->profile?->phone_verified_at !== null,
-                'governmentIdVerified' => $this->kycVerifications()->where('type','government_id')->where('status','approved')->where(/** Inline callback for this operation. */ fn($q)=>$q->whereNull('expires_at')->orWhere('expires_at','>',now()))->exists(),
-                'addressProofVerified' => $this->kycVerifications()->where('type','address_proof')->where('status','approved')->where(/** Inline callback for this operation. */ fn($q)=>$q->whereNull('expires_at')->orWhere('expires_at','>',now()))->exists(),
+                'governmentIdVerified' => $this->kycVerifications()
+                    ->where('type', 'government_id')
+                    ->where('status', 'approved')
+                    ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                    ->exists(),
+                'addressProofVerified' => $this->kycVerifications()
+                    ->where('type', 'address_proof')
+                    ->where('status', 'approved')
+                    ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+                    ->exists(),
             ],
         ];
     }

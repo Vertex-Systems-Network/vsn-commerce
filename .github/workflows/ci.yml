@@ -1,13 +1,21 @@
 name: CI
 on:
   push:
+    branches:
+      - main
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   static-and-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -20,7 +28,23 @@ jobs:
       - run: php scripts/test-matrix.php --static-only
       - run: composer validate --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run Larastan / PHPStan
+        run: composer run quality:phpstan
+      - name: Run Pint on PHP changed from main
+        run: php vendor/bin/pint --test --diff=origin/main
+      - name: Preserve resolved Composer lock candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsn-composer-lock-candidate
+          path: composer.lock
+          if-no-files-found: error
       - run: npm ci --no-audit --no-fund
+      - name: Install pinned ESLint quality tooling
+        run: npm run lint:bootstrap
+      - name: Run React, hooks and accessibility lint on changed frontend files
+        run: npm run lint:changed
+      - name: Run frontend source and routing quality audit
+        run: npm test
       - run: npm run build
 
   sqlite-tests:
@@ -33,7 +57,7 @@ jobs:
           extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --configuration=phpunit.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.xml
 
   mysql-tests:
     runs-on: ubuntu-latest
@@ -59,7 +83,7 @@ jobs:
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: php scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test
-      - run: php artisan test --configuration=phpunit.mysql.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.mysql.xml
 
   postgres-tests:
     runs-on: ubuntu-latest
@@ -85,11 +109,11 @@ jobs:
           extensions: pdo_pgsql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --configuration=phpunit.postgres.xml
+      - run: php vendor/bin/phpunit --configuration=phpunit.postgres.xml
 
   browser-e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -101,23 +125,33 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: npm ci --no-audit --no-fund
-      - name: Install pinned Playwright runner
+      - name: Install pinned Playwright, axe and W3C Nu tooling
         run: npm run e2e:bootstrap
       - name: Build React application
         run: npm run build
       - name: Install Chromium browser dependencies
         run: npx playwright install --with-deps chromium
-      - name: Run desktop + mobile browser E2E
+      - name: Run desktop + mobile browser E2E, click, WCAG and W3C gates
         run: npx playwright test --project=chromium --project=mobile-chromium
+      - name: Run WAVE public staging audit when configured
+        env:
+          WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
+          WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
+          WAVE_ROUTES: ${{ vars.WAVE_ROUTES }}
+        run: npm run audit:wave
       - name: Record browser acceptance evidence
         run: |
           mkdir -p runtime-artifacts
           cat > runtime-artifacts/browser-e2e.json <<JSON
-          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"]}
+          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"],"qualityGates":["runtime-errors","interaction-clicks","axe-wcag-2.2","w3c-nu","wave-when-configured"]}
           JSON
-      - name: Upload browser evidence
+      - name: Upload browser and accessibility evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -127,6 +161,7 @@ jobs:
             runtime-artifacts/playwright-results/
             runtime-artifacts/playwright-junit.xml
             runtime-artifacts/browser-e2e.json
+            runtime-artifacts/wave-a11y.json
           if-no-files-found: warn
 
   runtime-integration:

@@ -51,6 +51,7 @@ class AuthController extends Controller
                 if (! empty($data['referral_code'])) {
                     $attachReferrer->execute($user, $data['referral_code']);
                 }
+
                 return $user;
             }, 3);
         } catch (AffiliateException $exception) {
@@ -60,8 +61,14 @@ class AuthController extends Controller
         }
 
         event(new Registered($user));
-        Auth::login($user);
-        $request->session()->regenerate();
+
+        // The registration endpoint is shared by first-party SPA and stateless API/mobile
+        // clients. Only establish a browser session when session middleware is present.
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
+
         $events->record($user, 'account_registered', SecuritySeverity::Low, $request);
         $devices->touch($user, $request);
 
@@ -78,7 +85,9 @@ class AuthController extends Controller
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $candidate = User::query()->where('email', Str::lower($credentials['email']))->first();
-            if ($candidate) $events->record($candidate, 'login_rate_limited', SecuritySeverity::High, $request);
+            if ($candidate) {
+                $events->record($candidate, 'login_rate_limited', SecuritySeverity::High, $request);
+            }
             throw ValidationException::withMessages([
                 'email' => ['Too many sign-in attempts. Try again shortly.'],
             ]);
@@ -87,7 +96,9 @@ class AuthController extends Controller
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             $candidate = User::query()->where('email', Str::lower($credentials['email']))->first();
             RateLimiter::hit($key, 60);
-            if ($candidate) $events->record($candidate, 'login_failed', SecuritySeverity::Medium, $request);
+            if ($candidate) {
+                $events->record($candidate, 'login_failed', SecuritySeverity::Medium, $request);
+            }
             throw ValidationException::withMessages(['email' => ['The provided credentials are invalid.']]);
         }
 
@@ -102,7 +113,9 @@ class AuthController extends Controller
     /** Handles logout for the auth controller workflow. */
     public function logout(Request $request, SecurityRecorder $events): JsonResponse
     {
-        if ($request->user()) $events->record($request->user(), 'logout', SecuritySeverity::Low, $request);
+        if ($request->user()) {
+            $events->record($request->user(), 'logout', SecuritySeverity::Low, $request);
+        }
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -123,41 +136,40 @@ class AuthController extends Controller
         ]);
     }
 
+    /** Handles reset password for the auth controller workflow. */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'confirmed', 'min:10'],
+        ]);
 
-/** Handles reset password for the auth controller workflow. */
-public function resetPassword(Request $request): JsonResponse
-{
-    $data = $request->validate([
-        'email' => ['required', 'email'],
-        'token' => ['required', 'string'],
-        'password' => ['required', 'confirmed', 'min:10'],
-    ]);
+        $status = Password::reset(
+            [
+                'email' => Str::lower($data['email']),
+                'password' => $data['password'],
+                'password_confirmation' => $data['password_confirmation'],
+                'token' => $data['token'],
+            ],
+            /** Inline callback for this operation. */ function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => $password,
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
 
-    $status = Password::reset(
-        [
-            'email' => Str::lower($data['email']),
-            'password' => $data['password'],
-            'password_confirmation' => $data['password_confirmation'],
-            'token' => $data['token'],
-        ],
-        /** Inline callback for this operation. */ function (User $user, string $password): void {
-            $user->forceFill([
-                'password' => $password,
-                'remember_token' => Str::random(60),
-            ])->save();
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => [__($status)],
+            ]);
         }
-    );
 
-    if ($status !== Password::PASSWORD_RESET) {
-        throw ValidationException::withMessages([
-            'email' => [__($status)],
+        return response()->json([
+            'data' => ['message' => 'Password reset successfully.'],
         ]);
     }
-
-    return response()->json([
-        'data' => ['message' => 'Password reset successfully.'],
-    ]);
-}
 
     /** Handles send otp for the auth controller workflow. */
     public function sendOtp(Request $request): JsonResponse

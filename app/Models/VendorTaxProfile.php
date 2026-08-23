@@ -1,2 +1,49 @@
 <?php
-namespace App\Models; use Illuminate\Database\Eloquent\Model; class VendorTaxProfile extends Model { protected $fillable=['public_id','vendor_id','status','registered_name','tax_identifier','tax_identifier_last4','registration_country_code','collection_mode','price_includes_tax','verified_at','verified_by_user_id','metadata']; protected function casts():array{return ['tax_identifier'=>'encrypted','price_includes_tax'=>'boolean','verified_at'=>'datetime','metadata'=>'array'];} public function getRouteKeyName():string{return 'public_id';} public function vendor(){return $this->belongsTo(Vendor::class);} public function verifier(){return $this->belongsTo(User::class,'verified_by_user_id');} }
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class VendorTaxProfile extends Model
+{
+    protected $fillable = [
+        'public_id',
+        'vendor_id',
+        'status',
+        'registered_name',
+        'tax_identifier',
+        'tax_identifier_last4',
+        'registration_country_code',
+        'collection_mode',
+        'price_includes_tax',
+        'verified_at',
+        'verified_by_user_id',
+        'metadata',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'tax_identifier' => 'encrypted',
+            'price_includes_tax' => 'boolean',
+            'verified_at' => 'datetime',
+            'metadata' => 'array',
+        ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by_user_id');
+    }
+}

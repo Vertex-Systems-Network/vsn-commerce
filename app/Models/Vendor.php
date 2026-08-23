@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** Defines the Vendor class and its project responsibilities. */
 class Vendor extends Model
@@ -64,7 +65,10 @@ class Vendor extends Model
     }
 
     /** Handles tax profile for the vendor workflow. */
-    public function taxProfile(): \Illuminate\Database\Eloquent\Relations\HasOne { return $this->hasOne(VendorTaxProfile::class); }
+    public function taxProfile(): HasOne
+    {
+        return $this->hasOne(VendorTaxProfile::class);
+    }
 
     /** Handles shipments for the vendor workflow. */
     public function shipments(): HasMany
@@ -73,11 +77,26 @@ class Vendor extends Model
     }
 
     /** Handles risk profile for the vendor workflow. */
-    public function riskProfile(): HasOne { return $this->hasOne(RiskProfile::class); }
+    public function riskProfile(): HasOne
+    {
+        return $this->hasOne(RiskProfile::class);
+    }
+
     /** Handles risk events for the vendor workflow. */
-    public function riskEvents(): HasMany { return $this->hasMany(RiskEvent::class); }
+    public function riskEvents(): HasMany
+    {
+        return $this->hasMany(RiskEvent::class);
+    }
+
     /** Handles risk cases for the vendor workflow. */
-    public function riskCases(): HasMany { return $this->hasMany(RiskCase::class); }
+    public function riskCases(): HasMany
+    {
+        return $this->hasMany(RiskCase::class);
+    }
+
     /** Handles risk holds for the vendor workflow. */
-    public function riskHolds(): HasMany { return $this->hasMany(RiskHold::class); }
+    public function riskHolds(): HasMany
+    {
+        return $this->hasMany(RiskHold::class);
+    }
 }

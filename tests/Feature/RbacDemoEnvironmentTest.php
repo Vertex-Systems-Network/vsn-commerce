@@ -3,14 +3,18 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Security\Rbac;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /** Defines the RbacDemoEnvironmentTest class and its project responsibilities. */
 class RbacDemoEnvironmentTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** Verifies role permission matrix matches operational boundaries. */
     public function test_role_permission_matrix_matches_operational_boundaries(): void
     {
@@ -29,6 +33,7 @@ class RbacDemoEnvironmentTest extends TestCase
         $source = file_get_contents(base_path('routes/api.php'));
         preg_match_all("/Route::(get|post|put|patch|delete)\\('\/(admin|vendor)\/([^']+)'/", $source, $matches, PREG_SET_ORDER);
         $this->assertNotEmpty($matches);
+
         foreach ($matches as $match) {
             $method = strtoupper($match[1]);
             $uri = '/api/v1/'.$match[2].'/'.preg_replace('/\\{[^}]+\\}/', 'demo', $match[3]);
@@ -40,9 +45,9 @@ class RbacDemoEnvironmentTest extends TestCase
     /** Verifies user resource permissions are effective not frontend role guesses. */
     public function test_user_resource_permissions_are_effective_not_frontend_role_guesses(): void
     {
-        $support = new User(['name'=>'Support','email'=>'support@example.test','role'=>UserRole::Support]);
+        $support = new User(['name' => 'Support', 'email' => 'support@example.test', 'role' => UserRole::Support]);
         $support->id = 101;
-        $resource = (new \App\Http\Resources\UserResource($support))->resolve(Request::create('/api/v1/auth/me'));
+        $resource = (new UserResource($support))->resolve(Request::create('/api/v1/auth/me'));
         $this->assertContains('orders.view', $resource['permissions']);
         $this->assertNotContains('orders.manage', $resource['permissions']);
     }
@@ -59,7 +64,7 @@ class RbacDemoEnvironmentTest extends TestCase
     /** Verifies demo accounts endpoint is disabled when demo mode is off. */
     public function test_demo_accounts_endpoint_is_disabled_when_demo_mode_is_off(): void
     {
-        config(['vsn.demo.enabled'=>false]);
+        config(['vsn.demo.enabled' => false]);
         $this->getJson('/api/v1/demo/accounts')->assertNotFound();
     }
 }

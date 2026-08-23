@@ -9,6 +9,7 @@ use App\Domain\Cart\Exceptions\CartValidationException;
 use App\Domain\Cart\Services\CartLoader;
 use App\Domain\Cart\Services\CartResolver;
 use App\Domain\Checkout\Actions\ReleaseCheckoutSession;
+use App\Enums\CheckoutStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\MergeCartRequest;
@@ -23,9 +24,9 @@ use Illuminate\Http\Request;
 class CartController extends Controller
 {
     /** Handles the show request for this resource. */
-    public function show(Request $request, CartResolver $resolver, CartLoader $loader): CartResource
+    public function show(Request $request, CartResolver $resolver, CartLoader $loader): JsonResponse
     {
-        return new CartResource($loader->load($resolver->resolve($request)));
+        return $this->cartResponse($request, $loader->load($resolver->resolve($request)));
     }
 
     /** Handles store item for the cart controller workflow. */
@@ -34,7 +35,7 @@ class CartController extends Controller
         CartResolver $resolver,
         AddCartItem $add,
         CartLoader $loader,
-    ): CartResource|JsonResponse {
+    ): JsonResponse {
         $data = $request->validated();
 
         $cart = $resolver->resolve($request);
@@ -54,7 +55,7 @@ class CartController extends Controller
             return $this->validationError($exception);
         }
 
-        return new CartResource($loader->load($cart));
+        return $this->cartResponse($request, $loader->load($cart));
     }
 
     /** Handles update item for the cart controller workflow. */
@@ -64,7 +65,7 @@ class CartController extends Controller
         CartResolver $resolver,
         UpdateCartItem $update,
         CartLoader $loader,
-    ): CartResource|JsonResponse {
+    ): JsonResponse {
         $cart = $resolver->resolve($request);
 
         abort_unless($item->cart_id === $cart->id, 404);
@@ -76,7 +77,7 @@ class CartController extends Controller
             return $this->validationError($exception);
         }
 
-        return new CartResource($loader->load($cart));
+        return $this->cartResponse($request, $loader->load($cart));
     }
 
     /** Handles destroy item for the cart controller workflow. */
@@ -85,24 +86,24 @@ class CartController extends Controller
         CartItem $item,
         CartResolver $resolver,
         CartLoader $loader,
-    ): CartResource {
+    ): JsonResponse {
         $cart = $resolver->resolve($request);
         abort_unless($item->cart_id === $cart->id, 404);
         $this->releaseReservedCheckout($cart, app(ReleaseCheckoutSession::class));
 
         $item->delete();
 
-        return new CartResource($loader->load($cart->fresh()));
+        return $this->cartResponse($request, $loader->load($cart->fresh()));
     }
 
     /** Handles clear for the cart controller workflow. */
-    public function clear(Request $request, CartResolver $resolver, CartLoader $loader): CartResource
+    public function clear(Request $request, CartResolver $resolver, CartLoader $loader): JsonResponse
     {
         $cart = $resolver->resolve($request);
         $this->releaseReservedCheckout($cart, app(ReleaseCheckoutSession::class));
         $cart->items()->delete();
 
-        return new CartResource($loader->load($cart->fresh()));
+        return $this->cartResponse($request, $loader->load($cart->fresh()));
     }
 
     /** Handles merge for the cart controller workflow. */
@@ -129,11 +130,19 @@ class CartController extends Controller
         ]);
     }
 
+    /** Returns a stable 200 cart representation without leaking model creation state into HTTP status. */
+    private function cartResponse(Request $request, Cart $cart): JsonResponse
+    {
+        return response()->json([
+            'data' => (new CartResource($cart))->resolve($request),
+        ]);
+    }
+
     /** Handles release reserved checkout for the cart controller workflow. */
     private function releaseReservedCheckout(Cart $cart, ReleaseCheckoutSession $release): void
     {
         $sessions = $cart->checkoutSessions()
-            ->where('status', \App\Enums\CheckoutStatus::Reserved->value)
+            ->where('status', CheckoutStatus::Reserved->value)
             ->orderBy('id')
             ->get();
 

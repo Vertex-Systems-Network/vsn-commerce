@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {FaBars,FaSearch,FaHeart,FaShoppingCart,FaUser,FaGamepad,FaHeadset,FaBell,FaEnvelope,FaBox,FaTimes} from "react-icons/fa";
 import { apiBackend, apiGet } from "../platform/api";
 import { defaultHomeFor, useAuth } from "../platform/auth";
+import SkipLink from "../components/SkipLink";
 /** Handles shell for the VSN Ecommerce interface. */
 export default function Shell({ children, cartCount = 0 }) {
  const nav = useNavigate();const location=useLocation();
@@ -13,6 +14,7 @@ export default function Shell({ children, cartCount = 0 }) {
  useEffect(/** Inline callback for this operation. */ ()=>{if(apiBackend!=="laravel"||!user){setActivity({notificationsUnread:0,messagesUnread:0});return undefined;}let live=true;const load=/** Handles load for the VSN Ecommerce interface. */ ()=>apiGet("/activity").then(/** Inline callback for this operation. */ data=>live&&setActivity(data||{})).catch(/** Inline callback for this operation. */ ()=>{});load();const id=setInterval(load,15000);return/** Inline callback for this operation. */ ()=>{live=false;clearInterval(id)}},[user?.id]);
  const submitSearch=/** Handles submit search for the VSN Ecommerce interface. */ ()=>{const value=search.trim();nav(value?`/search?q=${encodeURIComponent(value)}`:'/search')};
  return <>
+  <SkipLink/>
   <header className="site-header">
    <div className="top-strip"><span>Free nationwide delivery over Rs. 2,999</span><nav><Link to="/tracking">Track order</Link><Link to="/vendors">All stores</Link><Link to="/help">Customer care</Link><Link to="/vendor">Sell on VSN</Link></nav></div>
    <div className="header-main">
@@ -34,7 +36,7 @@ export default function Shell({ children, cartCount = 0 }) {
   </header>
   <button className={`storefront-overlay ${menuOpen?'show':''}`} aria-label="Close menu" onClick={/** Inline callback for this operation. */ ()=>setMenuOpen(false)}/>
   <aside className={`storefront-drawer ${menuOpen?'open':''}`} aria-label="Mobile navigation"><div className="mobile-drawer-head"><b>VSN Ecommerce</b><button type="button" aria-label="Close menu" onClick={/** Inline callback for this operation. */ ()=>setMenuOpen(false)}><FaTimes/></button></div><nav><Link to="/search">Browse all products</Link><Link to="/vendors">All stores</Link><Link to="/deals">Today's deals</Link><Link to="/games">Win for Rs.1</Link><Link to="/help">Help center</Link>{user?<><Link to={defaultHomeFor(user)}>My dashboard</Link><Link to="/account/orders">Orders</Link><Link to="/account/wishlist">Wishlist</Link><Link to="/account/notifications">Notifications</Link></>:<><Link to="/login">Sign in</Link><Link to="/register">Create account</Link></>}</nav></aside>
-  <main className="page-shell" id="main-content">{children}</main>
+  <main className="page-shell" id="main-content" tabIndex="-1">{children}</main>
   <footer className="site-footer"><div><b>VSN Ecommerce</b><p>Verified marketplace, rewards and transparent shopping.</p></div><div><Link to="/account/orders">Orders</Link><Link to="/account/wallet">Wallet</Link><Link to="/affiliate">Affiliate</Link><Link to="/gifts">Gifts</Link><Link to="/help"><FaHeadset/> Help Center</Link><Link to="/legal">Legal</Link></div></footer>
  </>;
 }

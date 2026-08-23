@@ -3,7 +3,7 @@ import { defaultHomeFor, useAuth } from "../platform/auth";
 
 /** Handles loading screen for the VSN Ecommerce interface. */
 function LoadingScreen() {
-  return <main className="route-state"><div className="route-state-card"><span className="route-spinner"/><h2>Loading your account…</h2></div></main>;
+  return <div className="route-state" role="status" aria-live="polite"><div className="route-state-card"><span className="route-spinner" aria-hidden="true"/><h2>Loading your account…</h2></div></div>;
 }
 
 /** Handles require auth for the VSN Ecommerce interface. */

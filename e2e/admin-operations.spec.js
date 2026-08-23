@@ -23,12 +23,14 @@ test('admin approves and inspects a return using VSN Coins resolution', /** Inli
   await login(page, ACCOUNTS.admin, '/admin');
   await page.goto('/admin/returns');
   await expect(page.getByRole('heading', { name: 'Returns & refunds' })).toBeVisible();
-  await page.getByRole('link', { name: 'Review' }).first().click();
+  await page.getByRole('link', { name: 'Review', exact: true }).first().click();
   await page.getByLabel('Resolution').selectOption('coins');
   await page.getByRole('button', { name: 'Approve selected quantities' }).click();
   await expect(page.getByText('Return approved.')).toBeVisible();
   await page.getByLabel(/Received/).first().fill('1');
   await page.getByLabel('Accepted').first().fill('1');
+  const restock=page.getByLabel('Return accepted qty to stock').first();
+  if(await restock.isChecked())await restock.uncheck();
   await page.getByRole('button', { name: 'Complete inspection' }).click();
   await expect(page.getByText('Inspection saved and refund workflow advanced.')).toBeVisible();
   await expect(page.getByText(/Refund/i).first()).toBeVisible();

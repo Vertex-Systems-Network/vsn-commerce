@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** Defines the MobileOAuthFlow class and its project responsibilities. */
 class MobileOAuthFlow extends Model
 {
+    /** Laravel would pluralize the OAuth acronym as mobile_o_auth_flows. */
+    protected $table = 'mobile_oauth_flows';
+
     protected $fillable = [
         'public_id', 'provider', 'state_hash', 'device_key_hash', 'user_id', 'exchange_code_hash',
         'expires_at', 'completed_at', 'consumed_at',

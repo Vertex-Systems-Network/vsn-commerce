@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Operations\Services\DatabaseBackupService;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /** Defines the MySqlRuntimeCompatibilityTest class and its project responsibilities. */
@@ -37,9 +39,11 @@ class MySqlRuntimeCompatibilityTest extends TestCase
             'tax_jurisdiction_region_mysql_uq',
             'tax_class_one_default_mysql_uq',
         ];
-        $rows = DB::select('select distinct index_name from information_schema.statistics where table_schema = database()');
-        $names = collect($rows)->pluck('index_name')->all();
-        foreach ($expected as $name) $this->assertContains($name, $names);
+        $rows = DB::select('select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()');
+        $names = collect($rows)->pluck('index_identifier')->all();
+        foreach ($expected as $name) {
+            $this->assertContains($name, $names);
+        }
     }
 
     /** Verifies mysql partial unique guards are virtual and foreign keys survive. */
@@ -56,16 +60,16 @@ class MySqlRuntimeCompatibilityTest extends TestCase
 
         foreach ($expectedColumns as $table => $column) {
             $row = DB::selectOne(
-                'select extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',
+                'select extra as generation_extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',
                 [$table, $column]
             );
             $this->assertNotNull($row, "Missing generated guard {$table}.{$column}");
-            $this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->extra));
+            $this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->generation_extra));
         }
 
         $foreignKeys = collect(DB::select(
-            "select table_name, column_name, referenced_table_name from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null"
-        ))->map(/** Inline callback for this operation. */ fn ($row) => "{$row->table_name}.{$row->column_name}->{$row->referenced_table_name}")->all();
+            'select table_name as child_table, column_name as child_column, referenced_table_name as parent_table from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null'
+        ))->map(/** Inline callback for this operation. */ fn ($row) => "{$row->child_table}.{$row->child_column}->{$row->parent_table}")->all();
 
         $this->assertContains('carts.user_id->users', $foreignKeys);
         $this->assertContains('checkout_sessions.cart_id->carts', $foreignKeys);
@@ -87,7 +91,7 @@ class MySqlRuntimeCompatibilityTest extends TestCase
             'vsn.operations.backups.mysql_no_tablespaces' => true,
         ]);
 
-        $service = app(\App\Domain\Operations\Services\DatabaseBackupService::class);
+        $service = app(DatabaseBackupService::class);
         $method = new \ReflectionMethod($service, 'dumpCommand');
         $method->setAccessible(true);
 
@@ -108,7 +112,7 @@ class MySqlRuntimeCompatibilityTest extends TestCase
         $user = User::factory()->create();
         $now = now();
         DB::table('carts')->insert([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'status' => 'active',
             'currency' => 'PKR',
@@ -118,7 +122,7 @@ class MySqlRuntimeCompatibilityTest extends TestCase
 
         $this->expectException(QueryException::class);
         DB::table('carts')->insert([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'public_id' => (string) Str::ulid(),
             'user_id' => $user->id,
             'status' => 'active',
             'currency' => 'PKR',
@@ -133,13 +137,13 @@ class MySqlRuntimeCompatibilityTest extends TestCase
         $this->requireMysql();
         $now = now();
         DB::table('tax_jurisdictions')->insert([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'public_id' => (string) Str::ulid(),
             'country_code' => 'PK', 'region_code' => null, 'name' => 'Pakistan',
             'status' => 'active', 'priority' => 100, 'created_at' => $now, 'updated_at' => $now,
         ]);
         try {
             DB::table('tax_jurisdictions')->insert([
-                'public_id' => (string) \Illuminate\Support\Str::ulid(),
+                'public_id' => (string) Str::ulid(),
                 'country_code' => 'PK', 'region_code' => null, 'name' => 'Pakistan duplicate',
                 'status' => 'active', 'priority' => 90, 'created_at' => $now, 'updated_at' => $now,
             ]);
@@ -149,12 +153,12 @@ class MySqlRuntimeCompatibilityTest extends TestCase
         }
 
         DB::table('tax_classes')->insert([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(), 'code' => 'STD', 'name' => 'Standard',
+            'public_id' => (string) Str::ulid(), 'code' => 'STD', 'name' => 'Standard',
             'is_default' => true, 'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
         ]);
         $this->expectException(QueryException::class);
         DB::table('tax_classes')->insert([
-            'public_id' => (string) \Illuminate\Support\Str::ulid(), 'code' => 'ALT', 'name' => 'Alternative',
+            'public_id' => (string) Str::ulid(), 'code' => 'ALT', 'name' => 'Alternative',
             'is_default' => true, 'status' => 'active', 'created_at' => $now, 'updated_at' => $now,
         ]);
     }

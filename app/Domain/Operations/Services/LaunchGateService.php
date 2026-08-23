@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Domain\Operations\Services;
 
 use App\Domain\Payments\Services\PaymentGatewayManager;
@@ -41,44 +42,49 @@ class LaunchGateService
 
         $configuration = $this->configurationAudit->audit();
         foreach (($configuration['checks'] ?? []) as $configCheck) {
-            $this->check($checks, 'configuration_'.($configCheck['name'] ?? 'unknown'), (bool)($configCheck['ok'] ?? false), $production ? 'block' : 'warning', (string)($configCheck['message'] ?? 'Production configuration check.'));
+            $this->check($checks, 'configuration_'.($configCheck['name'] ?? 'unknown'), (bool) ($configCheck['ok'] ?? false), $production ? 'block' : 'warning', (string) ($configCheck['message'] ?? 'Production configuration check.'));
         }
 
         $health = $this->health->snapshot(true);
-        foreach (['database','cache','redis','storage','migrations'] as $name) {
+        foreach (['database', 'cache', 'storage', 'migrations'] as $name) {
             $ok = (bool) ($health['checks'][$name]['ok'] ?? false);
             $this->check($checks, 'health_'.$name, $ok, 'block', "{$name} readiness check must pass.", $health['checks'][$name] ?? []);
         }
-        foreach (['scheduler','queue_worker'] as $name) {
+        $redisOk = (bool) ($health['checks']['redis']['ok'] ?? false);
+        $this->check($checks, 'health_redis', $redisOk, $production ? 'block' : 'warning', 'Redis readiness must pass in production.', $health['checks']['redis'] ?? []);
+        foreach (['scheduler', 'queue_worker'] as $name) {
             $ok = (bool) ($health['checks'][$name]['ok'] ?? false);
             $severity = $production ? 'block' : 'warning';
             $this->check($checks, 'health_'.$name, $ok, $severity, "{$name} heartbeat must be fresh for launch.", $health['checks'][$name] ?? []);
         }
         if (config('vsn.operations.require_queue_pressure', false)) {
-            $this->check($checks, 'health_queue_pressure', (bool)($health['checks']['queue_pressure']['ok'] ?? false), $production ? 'block' : 'warning', 'Monitored queue depth must remain below the configured launch threshold.', $health['checks']['queue_pressure'] ?? []);
+            $this->check($checks, 'health_queue_pressure', (bool) ($health['checks']['queue_pressure']['ok'] ?? false), $production ? 'block' : 'warning', 'Monitored queue depth must remain below the configured launch threshold.', $health['checks']['queue_pressure'] ?? []);
         }
         $failedJobs = (int) ($health['failedJobs'] ?? 0);
-        $this->check($checks, 'failed_jobs', $failedJobs <= (int) config('vsn.operations.launch.max_failed_jobs', 0), $production ? 'block' : 'warning', 'Failed queue jobs must be reviewed before launch.', ['count'=>$failedJobs]);
+        $this->check($checks, 'failed_jobs', $failedJobs <= (int) config('vsn.operations.launch.max_failed_jobs', 0), $production ? 'block' : 'warning', 'Failed queue jobs must be reviewed before launch.', ['count' => $failedJobs]);
 
         try {
             $indexAudit = $this->indexes->execute();
             $this->check($checks, 'database_indexes', ! ($indexAudit['supported'] ?? false) || (bool) ($indexAudit['ok'] ?? false), 'block', 'Required hot-path database indexes must exist.', $indexAudit);
         } catch (\Throwable $e) {
-            $this->check($checks, 'database_indexes', false, 'block', 'Database index audit could not run.', ['error'=>class_basename($e)]);
+            $this->check($checks, 'database_indexes', false, 'block', 'Database index audit could not run.', ['error' => class_basename($e)]);
         }
-
 
         $this->providerChecks($checks, $production);
         $this->providerReconciliationChecks($checks, $production);
-        try { $this->backupCheck($checks, $production); } catch (\Throwable $e) { $this->check($checks, 'verified_backup', false, 'block', 'Backup readiness could not be evaluated.', ['error'=>class_basename($e)]); }
+        try {
+            $this->backupCheck($checks, $production);
+        } catch (\Throwable $e) {
+            $this->check($checks, 'verified_backup', false, 'block', 'Backup readiness could not be evaluated.', ['error' => class_basename($e)]);
+        }
         $this->verificationManifestCheck($checks, $production);
         $this->activeIncidentCheck($checks, $production);
 
         $riskMode = (string) config('vsn.risk.mode', 'observe');
         if ($production && $riskMode === 'observe') {
-            $this->check($checks, 'risk_mode', true, 'warning', 'Risk engine is in observe mode; calibrate false positives before stricter enforcement.', ['mode'=>$riskMode]);
+            $this->check($checks, 'risk_mode', true, 'warning', 'Risk engine is in observe mode; calibrate false positives before stricter enforcement.', ['mode' => $riskMode]);
         } else {
-            $this->check($checks, 'risk_mode', true, 'pass', 'Risk mode is explicitly configured.', ['mode'=>$riskMode]);
+            $this->check($checks, 'risk_mode', true, 'pass', 'Risk mode is explicitly configured.', ['mode' => $riskMode]);
         }
 
         $blockers = collect($checks)->where('status', 'block')->count();
@@ -96,17 +102,19 @@ class LaunchGateService
 
         if ($persist) {
             try {
-                if (! Schema::hasTable('launch_gate_runs')) return $report;
+                if (! Schema::hasTable('launch_gate_runs')) {
+                    return $report;
+                }
                 $run = LaunchGateRun::query()->create([
-                'public_id' => (string) Str::ulid(),
-                'actor_user_id' => $actorUserId,
-                'environment' => $environment,
-                'release' => $report['release'],
-                'status' => $report['status'],
-                'blockers_count' => $blockers,
-                'warnings_count' => $warnings,
-                'checks' => $checks,
-                'ran_at' => now(),
+                    'public_id' => (string) Str::ulid(),
+                    'actor_user_id' => $actorUserId,
+                    'environment' => $environment,
+                    'release' => $report['release'],
+                    'status' => $report['status'],
+                    'blockers_count' => $blockers,
+                    'warnings_count' => $warnings,
+                    'checks' => $checks,
+                    'ran_at' => now(),
                 ]);
                 $report['id'] = $run->public_id;
             } catch (\Throwable) {
@@ -120,39 +128,81 @@ class LaunchGateService
     /** Handles provider checks for the launch gate service workflow. */
     private function providerChecks(array &$checks, bool $production): void
     {
-        $maxAge=(int)config('vsn.providers.health_max_age_minutes',15);
-        $fresh=/** Inline callback for this operation. */ function(string $type,string $code)use($production,$maxAge):bool{return ! $production || (Schema::hasTable('provider_runtime_statuses') && $this->providerRuntime->freshHealthy($type,$code,$maxAge));};
+        $maxAge = (int) config('vsn.providers.health_max_age_minutes', 15);
+        $fresh = /** Inline callback for this operation. */ function (string $type, string $code) use ($production, $maxAge): bool {
+            return ! $production || (Schema::hasTable('provider_runtime_statuses') && $this->providerRuntime->freshHealthy($type, $code, $maxAge));
+        };
 
         if ((bool) config('vsn.payments.methods.card.enabled', false)) {
-            $provider=(string)config('vsn.payments.methods.card.provider');$registered=true;try{$this->payments->gateway($provider);}catch(\Throwable){$registered=false;}
-            $ok=$registered&&!($production&&$provider==='sandbox')&&$fresh('payment',$provider);
-            $this->check($checks,'payment_provider',$ok,'block','Enabled card payments require a registered, recently probed production gateway.',['provider'=>$provider,'healthMaxAgeMinutes'=>$maxAge]);
-            $this->check($checks,'payment_vault_provider',$registered&&$fresh('payment_vault',$provider),'block','Saved-card vault must be healthy for the configured card provider.',['provider'=>$provider]);
-        } else $this->check($checks,'payment_provider',true,'warning','Card payments are disabled; COD/Coins can launch only if this matches the business plan.');
+            $provider = (string) config('vsn.payments.methods.card.provider');
+            $registered = true;
+            try {
+                $this->payments->gateway($provider);
+            } catch (\Throwable) {
+                $registered = false;
+            }
+            $ok = $registered && ! ($production && $provider === 'sandbox') && $fresh('payment', $provider);
+            $this->check($checks, 'payment_provider', $ok, 'block', 'Enabled card payments require a registered, recently probed production gateway.', ['provider' => $provider, 'healthMaxAgeMinutes' => $maxAge]);
+            $this->check($checks, 'payment_vault_provider', $registered && $fresh('payment_vault', $provider), 'block', 'Saved-card vault must be healthy for the configured card provider.', ['provider' => $provider]);
+        } else {
+            $this->check($checks, 'payment_provider', true, 'warning', 'Card payments are disabled; COD/Coins can launch only if this matches the business plan.');
+        }
 
-        foreach(['standard','express'] as $method){if(!(bool)config("vsn.shipping_methods.{$method}.enabled",false))continue;$provider=(string)config("vsn.shipping_methods.{$method}.provider");$registered=true;try{$this->shipping->driver($provider);}catch(\Throwable){$registered=false;}$ok=$registered&&!($production&&$provider==='sandbox')&&$fresh('shipping',$provider);$this->check($checks,'shipping_'.$method,$ok,'block',ucfirst($method).' shipping requires a registered, recently probed production provider.',['provider'=>$provider,'healthMaxAgeMinutes'=>$maxAge]);}
+        foreach (['standard', 'express'] as $method) {
+            if (! (bool) config("vsn.shipping_methods.{$method}.enabled", false)) {
+                continue;
+            }$provider = (string) config("vsn.shipping_methods.{$method}.provider");
+            $registered = true;
+            try {
+                $this->shipping->driver($provider);
+            } catch (\Throwable) {
+                $registered = false;
+            }$ok = $registered && ! ($production && $provider === 'sandbox') && $fresh('shipping', $provider);
+            $this->check($checks, 'shipping_'.$method, $ok, 'block', ucfirst($method).' shipping requires a registered, recently probed production provider.', ['provider' => $provider, 'healthMaxAgeMinutes' => $maxAge]);
+        }
 
-        $smsName='unknown';try{$smsName=$this->sms->provider()->name();}catch(\Throwable){}$requiresPhone=(bool)config('vsn.security.seller_payout_requires_phone',true);$smsOk=!$production||!$requiresPhone||($smsName!=='sandbox'&&$fresh('sms',$smsName));$this->check($checks,'sms_provider',$smsOk,$requiresPhone?'block':'warning','Phone verification requires a recently probed real SMS provider before production payouts.',['provider'=>$smsName]);
+        $smsName = 'unknown';
+        try {
+            $smsName = $this->sms->provider()->name();
+        } catch (\Throwable) {
+        }$requiresPhone = (bool) config('vsn.security.seller_payout_requires_phone', true);
+        $smsOk = ! $production || ! $requiresPhone || ($smsName !== 'sandbox' && $fresh('sms', $smsName));
+        $this->check($checks, 'sms_provider', $smsOk, $requiresPhone ? 'block' : 'warning', 'Phone verification requires a recently probed real SMS provider before production payouts.', ['provider' => $smsName]);
 
-        $emailProvider=(string)config('vsn.notifications.email_provider','laravel_mail');$mail=(string)config('mail.default','log');$frameworkMailOk=!$production||!in_array($mail,['log','array'],true);$emailProbeOk=!$production||($emailProvider==='laravel_mail'?$frameworkMailOk:$fresh('email',$emailProvider));$this->check($checks,'mail_provider',$frameworkMailOk&&$emailProbeOk,$production?'block':'warning','Production transactional email and framework auth mail must use configured delivery infrastructure.',['mailer'=>$mail,'provider'=>$emailProvider]);
+        $emailProvider = (string) config('vsn.notifications.email_provider', 'laravel_mail');
+        $mail = (string) config('mail.default', 'log');
+        $frameworkMailOk = ! $production || ! in_array($mail, ['log', 'array'], true);
+        $emailProbeOk = ! $production || ($emailProvider === 'laravel_mail' ? $frameworkMailOk : $fresh('email', $emailProvider));
+        $this->check($checks, 'mail_provider', $frameworkMailOk && $emailProbeOk, $production ? 'block' : 'warning', 'Production transactional email and framework auth mail must use configured delivery infrastructure.', ['mailer' => $mail, 'provider' => $emailProvider]);
 
-        $requiresIdentity=(bool)config('vsn.security.seller_payout_requires_identity',true);$kyc=(string)config('vsn.kyc.provider','manual');$kycOk=!$production||!$requiresIdentity||($kyc!=='manual'&&$fresh('kyc',$kyc));$this->check($checks,'kyc_provider',$kycOk,$requiresIdentity?'block':'warning','Production identity verification requires a recently probed external KYC provider when seller payout KYC is mandatory.',['provider'=>$kyc]);
+        $requiresIdentity = (bool) config('vsn.security.seller_payout_requires_identity', true);
+        $kyc = (string) config('vsn.kyc.provider', 'manual');
+        $kycOk = ! $production || ! $requiresIdentity || ($kyc !== 'manual' && $fresh('kyc', $kyc));
+        $this->check($checks, 'kyc_provider', $kycOk, $requiresIdentity ? 'block' : 'warning', 'Production identity verification requires a recently probed external KYC provider when seller payout KYC is mandatory.', ['provider' => $kyc]);
     }
 
     /** Handles provider reconciliation checks for the launch gate service workflow. */
     private function providerReconciliationChecks(array &$checks, bool $production): void
     {
-        if (! $production) return;
-        $maxAge=max(1,(int)config('vsn.providers.reconciliation_max_age_hours',24));
-        $targets=[];
-        if((bool)config('vsn.payments.methods.card.enabled',false))$targets[]=['payment',(string)config('vsn.payments.methods.card.provider')];
-        foreach(collect(config('vsn.shipping_methods',[]))->where('enabled',true)->pluck('provider')->filter()->unique() as $provider)$targets[]=['shipping',(string)$provider];
-        if((bool)config('vsn.security.seller_payout_requires_identity',true)&&($provider=(string)config('vsn.kyc.provider','manual'))!=='manual')$targets[]=['kyc',$provider];
-        foreach(collect($targets)->unique(/** Inline callback for this operation. */ fn($x)=>$x[0].'|'.$x[1])->values() as [$type,$code]){
-            $run=Schema::hasTable('provider_reconciliation_runs')?ProviderReconciliationRun::query()->where('provider_type',$type)->where('provider_code',$code)->whereNotNull('completed_at')->latest('completed_at')->first():null;
-            $fresh=$run?->completed_at?->gte(now()->subHours($maxAge))??false;
-            $clean=$run&&$run->status==='completed'&&$run->mismatch_count===0&&$run->error_count===0;
-            $this->check($checks,'provider_reconciliation_'.$type.'_'.$code,(bool)($fresh&&$clean),'block','A recent clean live-provider reconciliation is required before production launch.',['providerType'=>$type,'provider'=>$code,'maxAgeHours'=>$maxAge,'status'=>$run?->status,'completedAt'=>$run?->completed_at?->toIso8601String(),'checked'=>$run?->checked_count,'mismatches'=>$run?->mismatch_count,'errors'=>$run?->error_count]);
+        if (! $production) {
+            return;
+        }
+        $maxAge = max(1, (int) config('vsn.providers.reconciliation_max_age_hours', 24));
+        $targets = [];
+        if ((bool) config('vsn.payments.methods.card.enabled', false)) {
+            $targets[] = ['payment', (string) config('vsn.payments.methods.card.provider')];
+        }
+        foreach (collect(config('vsn.shipping_methods', []))->where('enabled', true)->pluck('provider')->filter()->unique() as $provider) {
+            $targets[] = ['shipping', (string) $provider];
+        }
+        if ((bool) config('vsn.security.seller_payout_requires_identity', true) && ($provider = (string) config('vsn.kyc.provider', 'manual')) !== 'manual') {
+            $targets[] = ['kyc', $provider];
+        }
+        foreach (collect($targets)->unique(/** Inline callback for this operation. */ fn ($x) => $x[0].'|'.$x[1])->values() as [$type,$code]) {
+            $run = Schema::hasTable('provider_reconciliation_runs') ? ProviderReconciliationRun::query()->where('provider_type', $type)->where('provider_code', $code)->whereNotNull('completed_at')->latest('completed_at')->first() : null;
+            $fresh = $run?->completed_at?->gte(now()->subHours($maxAge)) ?? false;
+            $clean = $run && $run->status === 'completed' && $run->mismatch_count === 0 && $run->error_count === 0;
+            $this->check($checks, 'provider_reconciliation_'.$type.'_'.$code, (bool) ($fresh && $clean), 'block', 'A recent clean live-provider reconciliation is required before production launch.', ['providerType' => $type, 'provider' => $code, 'maxAgeHours' => $maxAge, 'status' => $run?->status, 'completedAt' => $run?->completed_at?->toIso8601String(), 'checked' => $run?->checked_count, 'mismatches' => $run?->mismatch_count, 'errors' => $run?->error_count]);
         }
     }
 
@@ -162,18 +212,20 @@ class LaunchGateService
         $enabled = (bool) config('vsn.operations.backups.enabled', false);
         if (! $enabled) {
             $this->check($checks, 'verified_backup', ! $production, $production ? 'block' : 'warning', 'Production requires scheduled private PostgreSQL backups and a verified recent artifact.');
+
             return;
         }
         if (! Schema::hasTable('backup_runs')) {
             $this->check($checks, 'verified_backup', false, 'block', 'Backup audit table is unavailable.');
+
             return;
         }
-        $latest = BackupRun::query()->where('status','completed')->whereNotNull('verified_at')->latest('verified_at')->first();
+        $latest = BackupRun::query()->where('status', 'completed')->whereNotNull('verified_at')->latest('verified_at')->first();
         $maxAge = max(1, (int) config('vsn.operations.launch.max_verified_backup_age_hours', 30));
         $fresh = $latest?->verified_at && $latest->verified_at->gte(now()->subHours($maxAge));
         $this->check($checks, 'verified_backup', (bool) $fresh, $production ? 'block' : 'warning', 'A recent checksum-verified database backup is required.', [
-            'maxAgeHours'=>$maxAge,
-            'verifiedAt'=>$latest?->verified_at?->toIso8601String(),
+            'maxAgeHours' => $maxAge,
+            'verifiedAt' => $latest?->verified_at?->toIso8601String(),
         ]);
     }
 
@@ -183,34 +235,35 @@ class LaunchGateService
         $required = (bool) config('vsn.operations.launch.require_verification_manifest', false);
         $path = (string) config('vsn.operations.launch.verification_manifest');
         if (! File::exists($path)) {
-            $this->check($checks, 'runtime_verification', ! ($production && $required), $production && $required ? 'block' : 'warning', 'Runtime verification manifest is missing.', ['path'=>basename($path)]);
+            $this->check($checks, 'runtime_verification', ! $required, $production && $required ? 'block' : 'warning', 'Runtime verification manifest is missing.', ['path' => basename($path)]);
+
             return;
         }
         $json = json_decode((string) File::get($path), true);
-        $requiredFlags = ['composerLock','npmLock','dependencies','databaseMigrations','laravelTests','frontendBuild','appSmoke','authenticatedE2E','queueHeartbeat','schedulerHeartbeat','backupRestoreDrill','providerContracts'];
-        $missing = collect($requiredFlags)->filter(/** Inline callback for this operation. */ fn(string $key) => ($json[$key] ?? false) !== true)->values()->all();
-        $this->check($checks, 'runtime_verification', $missing === [], $production && $required ? 'block' : 'warning', 'Runtime integration suite must pass before launch.', ['missing'=>$missing,'generatedAt'=>$json['generatedAt'] ?? null]);
+        $requiredFlags = ['composerLock', 'npmLock', 'dependencies', 'databaseMigrations', 'laravelTests', 'frontendBuild', 'appSmoke', 'authenticatedE2E', 'queueHeartbeat', 'schedulerHeartbeat', 'backupRestoreDrill', 'providerContracts'];
+        $missing = collect($requiredFlags)->filter(/** Inline callback for this operation. */ fn (string $key) => ($json[$key] ?? false) !== true)->values()->all();
+        $this->check($checks, 'runtime_verification', $missing === [], $production && $required ? 'block' : 'warning', 'Runtime integration suite must pass before launch.', ['missing' => $missing, 'generatedAt' => $json['generatedAt'] ?? null]);
     }
-
 
     /** Handles active incident check for the launch gate service workflow. */
     private function activeIncidentCheck(array &$checks, bool $production): void
     {
         if (! Schema::hasTable('incident_records')) {
             $this->check($checks, 'active_incidents', ! $production, $production ? 'block' : 'warning', 'Incident registry is unavailable.');
+
             return;
         }
-        $active = IncidentRecord::query()->where('status', '!=', 'resolved')->whereIn('severity', ['sev1','sev2'])->latest('started_at')->limit(20)->get(['public_id','severity','status','title','started_at']);
+        $active = IncidentRecord::query()->where('status', '!=', 'resolved')->whereIn('severity', ['sev1', 'sev2'])->latest('started_at')->limit(20)->get(['public_id', 'severity', 'status', 'title', 'started_at']);
         $this->check($checks, 'active_incidents', $active->isEmpty(), $production ? 'block' : 'warning', 'No unresolved SEV1/SEV2 incident may exist during a production release.', [
-            'count'=>$active->count(),
-            'incidents'=>$active->map(/** Inline callback for this operation. */ fn($i)=>['id'=>$i->public_id,'severity'=>$i->severity,'status'=>$i->status,'title'=>$i->title,'startedAt'=>$i->started_at?->toIso8601String()])->all(),
+            'count' => $active->count(),
+            'incidents' => $active->map(/** Inline callback for this operation. */ fn ($i) => ['id' => $i->public_id, 'severity' => $i->severity, 'status' => $i->status, 'title' => $i->title, 'startedAt' => $i->started_at?->toIso8601String()])->all(),
         ]);
     }
 
     /** Handles check for the launch gate service workflow. */
     private function check(array &$checks, string $code, bool $ok, string $failureSeverity, string $message, array $details = []): void
     {
-        $checks[] = ['code'=>$code,'status'=>$ok?'pass':$failureSeverity,'message'=>$message,'details'=>$details];
+        $checks[] = ['code' => $code, 'status' => $ok ? 'pass' : $failureSeverity, 'message' => $message, 'details' => $details];
     }
 
     /** Handles is https for the launch gate service workflow. */

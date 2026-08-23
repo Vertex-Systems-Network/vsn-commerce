@@ -2,16 +2,22 @@
 
 namespace App\Http\Resources;
 
+use App\Models\CheckoutSession;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** Defines the CheckoutSessionResource class and its project responsibilities. */
+/**
+ * Defines the CheckoutSessionResource class and its project responsibilities.
+ *
+ * @mixin CheckoutSession
+ */
 class CheckoutSessionResource extends JsonResource
 {
     /** Handles to array for the checkout session resource workflow. */
     public function toArray(Request $request): array
     {
         $gift = $this->relationLoaded('gift') ? $this->gift : null;
+
         return [
             'id' => $this->public_id,
             'status' => $this->status->value,
@@ -21,11 +27,11 @@ class CheckoutSessionResource extends JsonResource
             'savedPaymentMethod' => $this->savedPaymentMethod ? (new SavedPaymentMethodResource($this->savedPaymentMethod))->resolve($request) : null,
             'couponCode' => $this->coupon_code,
             'addressId' => $this->address_id,
-            'address' => $gift ? ['private'=>true, 'recipient'=>'Gift recipient'] : $this->address_snapshot,
+            'address' => $gift ? ['private' => true, 'recipient' => 'Gift recipient'] : $this->address_snapshot,
             'expiresAt' => $this->expires_at?->toISOString(),
             'expired' => (bool) $this->expires_at?->isPast(),
             'canPlaceOrder' => $this->status->value === 'reserved' && ! $this->expires_at->isPast(),
-            'items' => $this->items->map(/** Inline callback for this operation. */ fn ($item) => [
+            'items' => $this->items->map(fn ($item) => [
                 'id' => $item->id,
                 'productName' => $item->product_name,
                 'variantName' => $item->variant_name,
@@ -33,7 +39,7 @@ class CheckoutSessionResource extends JsonResource
                 'quantity' => $item->quantity,
                 'unitPriceMinor' => $item->unit_price_minor,
                 'lineTotalMinor' => $item->line_total_minor,
-                'selectedOptions' => $item->selected_options ?? new \stdClass(),
+                'selectedOptions' => $item->selected_options ?? new \stdClass,
                 'vendor' => $item->vendor?->name,
                 'reservation' => $item->reservation ? [
                     'id' => $item->reservation->id,
@@ -57,9 +63,10 @@ class CheckoutSessionResource extends JsonResource
             'promotions' => $this->metadata['promotions'] ?? [],
             'tax' => $this->metadata['tax'] ?? null,
             'shippingQuote' => $this->metadata['shipping_quote'] ?? null,
-            'paymentIntents' => $this->whenLoaded('paymentIntents', /** Inline callback for this operation. */ fn () => $this->paymentIntents->sortByDesc('id')->map(/** Inline callback for this operation. */ fn ($intent) => (new PaymentIntentResource($intent))->resolve($request))->values()),
-            'activePaymentIntent' => $this->whenLoaded('paymentIntents', /** Inline callback for this operation. */ function () use ($request) {
+            'paymentIntents' => $this->whenLoaded('paymentIntents', fn () => $this->paymentIntents->sortByDesc('id')->map(fn ($intent) => (new PaymentIntentResource($intent))->resolve($request))->values()),
+            'activePaymentIntent' => $this->whenLoaded('paymentIntents', function () use ($request) {
                 $intent = $this->paymentIntents->sortByDesc('id')->first();
+
                 return $intent ? (new PaymentIntentResource($intent))->resolve($request) : null;
             }),
             'orderId' => $this->order?->public_id,

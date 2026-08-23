@@ -92,12 +92,16 @@ services:
       context: .
       dockerfile: Dockerfile.runtime
       target: runtime-test
-    environment: *app_env
+    environment:
+      <<: *app_env
+      APP_ENV: testing
+      DB_DATABASE: vsn_test
+      CACHE_LIMITER_STORE: array
+      VSN_SANDBOX_SMS_ENABLED: "false"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
     volumes:
-      - ./runtime:/var/www/html/runtime
       - vsn_app_storage:/var/www/html/storage
 
   worker:

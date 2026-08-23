@@ -2,18 +2,23 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** Defines the ProductResource class and its project responsibilities. */
+/**
+ * Defines the ProductResource class and its project responsibilities.
+ *
+ * @mixin Product
+ */
 class ProductResource extends JsonResource
 {
     /** Handles to array for the product resource workflow. */
     public function toArray(Request $request): array
     {
-        $variants = $this->whenLoaded('variants', /** Inline callback for this operation. */ fn () => $this->variants->map(/** Inline callback for this operation. */ function ($variant) {
+        $variants = $this->whenLoaded('variants', fn () => $this->variants->map(function ($variant) {
             $stock = $variant->relationLoaded('inventories')
-                ? $variant->inventories->sum(/** Inline callback for this operation. */ fn ($inventory) => $inventory->available())
+                ? $variant->inventories->sum(fn ($inventory) => $inventory->available())
                 : null;
 
             return [
@@ -46,27 +51,31 @@ class ProductResource extends JsonResource
             'gameEnabled' => $this->game_enabled,
             'priceIncludesTax' => $this->price_includes_tax,
             'taxClassCode' => $this->taxClass?->code,
-            'vendor' => $this->whenLoaded('vendor', /** Inline callback for this operation. */ fn () => [
+            'vendor' => $this->whenLoaded('vendor', fn () => [
                 'id' => $this->vendor?->id,
                 'name' => $this->vendor?->name,
                 'slug' => $this->vendor?->slug,
             ]),
-            'category' => $this->whenLoaded('category', /** Inline callback for this operation. */ fn () => [
+            'category' => $this->whenLoaded('category', fn () => [
                 'id' => $this->category?->id,
                 'name' => $this->category?->name,
                 'slug' => $this->category?->slug,
             ]),
-            'images' => $this->whenLoaded('images', /** Inline callback for this operation. */ fn () => $this->images->map(/** Inline callback for this operation. */ fn ($image) => [
+            'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->publicUrl(),
                 'alt' => $image->alt_text,
                 'managed' => $image->source === 'managed',
                 'mediaAssetId' => $image->relationLoaded('mediaAsset') ? $image->mediaAsset?->public_id : null,
             ])),
-            'stock' => $this->relationLoaded('variants') ? $this->variants->sum(/** Inline callback for this operation. */ fn ($variant) => $variant->relationLoaded('inventories') ? $variant->inventories->sum(/** Inline callback for this operation. */ fn ($inventory) => $inventory->available()) : 0) : null,
-            'inStock' => $this->relationLoaded('variants') ? $this->variants->contains(/** Inline callback for this operation. */ fn ($variant) => $variant->relationLoaded('inventories') && $variant->inventories->sum(/** Inline callback for this operation. */ fn ($inventory) => $inventory->available()) > 0) : null,
+            'stock' => $this->relationLoaded('variants')
+                ? $this->variants->sum(fn ($variant) => $variant->relationLoaded('inventories') ? $variant->inventories->sum(fn ($inventory) => $inventory->available()) : 0)
+                : null,
+            'inStock' => $this->relationLoaded('variants')
+                ? $this->variants->contains(fn ($variant) => $variant->relationLoaded('inventories') && $variant->inventories->sum(fn ($inventory) => $inventory->available()) > 0)
+                : null,
             'variants' => $variants,
-            'metadata' => $this->metadata ?? new \stdClass(),
+            'metadata' => $this->metadata ?? new \stdClass,
         ];
     }
 }

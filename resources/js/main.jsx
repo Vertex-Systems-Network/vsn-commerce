@@ -7,6 +7,7 @@ import {CartProvider} from './platform/cart';
 import {AuthProvider} from './platform/auth';
 import {UXProvider} from './components/UXProvider';
 import './styles.scss';
+import './accessibility.scss';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

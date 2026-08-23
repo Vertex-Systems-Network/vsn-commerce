@@ -2,10 +2,15 @@
 
 namespace App\Http\Resources;
 
+use App\Models\PaymentIntent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** Defines the PaymentIntentResource class and its project responsibilities. */
+/**
+ * Defines the PaymentIntentResource class and its project responsibilities.
+ *
+ * @mixin PaymentIntent
+ */
 class PaymentIntentResource extends JsonResource
 {
     /** Handles to array for the payment intent resource workflow. */

@@ -38,10 +38,20 @@ class DatabaseIndexAuditService
         $required = self::REQUIRED;
 
         if ($driver === 'pgsql') {
-            $names = collect(DB::select("select indexname from pg_indexes where schemaname=current_schema()"))->pluck('indexname');
+            $names = collect(DB::select('select indexname from pg_indexes where schemaname=current_schema()'))->pluck('indexname');
         } elseif ($driver === 'sqlite') {
             $names = collect();
-            foreach (['orders', 'vendor_orders', 'inventory_reservations', 'notification_deliveries', 'risk_holds'] as $table) {
+            foreach ([
+                'orders',
+                'vendor_orders',
+                'inventory_reservations',
+                'notification_deliveries',
+                'risk_holds',
+                'products',
+                'categories',
+                'product_variants',
+                'reviews',
+            ] as $table) {
                 foreach (DB::select("pragma index_list('$table')") as $row) {
                     $names->push($row->name);
                 }
@@ -49,13 +59,14 @@ class DatabaseIndexAuditService
         } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
             $required = array_merge($required, self::MYSQL_REQUIRED);
             $names = collect(DB::select(
-                'select distinct index_name from information_schema.statistics where table_schema = database()'
-            ))->pluck('index_name');
+                'select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()'
+            ))->pluck('index_identifier');
         } else {
             return ['driver' => $driver, 'supported' => false, 'missing' => $required];
         }
 
         $missing = collect($required)->reject(/** Inline callback for this operation. */ fn ($name) => $names->contains($name))->values()->all();
+
         return [
             'driver' => $driver,
             'supported' => true,

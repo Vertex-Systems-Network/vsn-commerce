@@ -3,6 +3,7 @@
 FROM node:22-alpine AS frontend
 WORKDIR /app
 COPY package.json package-lock.json vite.config.js ./
+COPY scripts/verify-built-assets.mjs ./scripts/verify-built-assets.mjs
 COPY resources ./resources
 COPY public ./public
 RUN npm ci --no-audit --no-fund && npm run build
