@@ -165,7 +165,7 @@ class PromotionDealsApiTest extends TestCase
             $payload['couponCode'] = $code;
         }
 
-return $this->postJson('/api/v1/checkout/sessions', $payload);
+        return $this->postJson('/api/v1/checkout/sessions', $payload);
     }
 
     /** Handles promotion for the promotion deals api test workflow. */
