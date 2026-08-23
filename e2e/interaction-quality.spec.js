@@ -65,8 +65,11 @@ async function clickWorkspaceNavigation(page,home,sidebarSelector,contentSelecto
 test.describe('interaction quality and click safety',()=>{
   test('keyboard user can skip repeated storefront navigation',async({page})=>{
     await page.goto('/');
-    await page.keyboard.press('Tab');
     const skip=page.getByRole('link',{name:'Skip to main content'});
+    await expect(skip).toHaveCount(1);
+    await expect(page.locator('#main-content')).toBeVisible();
+    await page.evaluate(()=>document.activeElement instanceof HTMLElement&&document.activeElement.blur());
+    await page.keyboard.press('Tab');
     await expect(skip).toBeFocused();
     await expect(skip).toBeVisible();
     await page.keyboard.press('Enter');
