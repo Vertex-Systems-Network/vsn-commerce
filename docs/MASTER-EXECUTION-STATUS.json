@@ -10,45 +10,36 @@
     "percent": null
   },
   "task": {
-    "id": "P0-CI-BASELINE",
-    "name": "Restore green exact-head CI baseline",
+    "id": "P0-02",
+    "name": "Resolve repository license metadata contradiction",
     "package": "P0",
-    "sequence": 1,
-    "status": "DONE"
+    "sequence": 3,
+    "status": "BLOCKED"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "c0c38a4942437ae3c234445ef5c67e4835e9164c",
-  "task_head": "627399cfe7c6d8e3c5b3f1272a453f838f1c4542",
+  "base_head": "11af0a2aa6649191f7c7b175194ab1174a66aaa8",
+  "task_head": "11af0a2aa6649191f7c7b175194ab1174a66aaa8",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
     "description": "For an active branch task, the live task/PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file. Completed merged tasks retain their accepted code task_head plus explicit merge evidence."
   },
-  "last_observed_pr_head": "dad4487edaf55a0483fca0f00e59343f07fdb190",
-  "pull_request": {
-    "number": 1,
-    "state": "closed",
-    "merged": true,
-    "url": "https://github.com/Vertex-Systems-Network/vsn-commerce/pull/1",
-    "head_branch": "ai/audit-admin-untitled-master-plan",
-    "last_observed_head_sha": "dad4487edaf55a0483fca0f00e59343f07fdb190",
-    "base_branch": "main",
-    "base_sha": "058ef611761da92aa37d021f859c645f89fec6ea",
-    "merge_commit_sha": "c0c38a4942437ae3c234445ef5c67e4835e9164c",
-    "merged_at": "2026-08-23T20:32:29Z"
-  },
+  "last_observed_pr_head": null,
+  "pull_request": null,
   "acceptance_criteria": [
-    "Use GitHub-hosted evidence from the live task head or a verified state-only descendant under head_policy.",
-    "CI static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e and runtime-integration jobs must all succeed.",
-    "Governance Code Scanning and CodeQL must succeed for the accepted head.",
-    "Do not mark P0-CI-BASELINE complete while any required current-head gate is failed, cancelled or unverified."
+    "Obtain an explicit repository-owner/legal decision identifying the intended project license; do not infer the answer from the currently contradictory files.",
+    "Root LICENSE and composer.json license metadata must be made intentionally consistent with that explicit decision.",
+    "Do not treat the contradiction as cosmetic or mark P0-02 complete while the intended license remains undecided."
   ],
   "completed_tasks": [
-    "P0-CI-BASELINE"
+    "P0-CI-BASELINE",
+    "P0-01"
   ],
-  "blocked_tasks": [],
+  "blocked_tasks": [
+    "P0-02"
+  ],
   "failed_gates": [
     "CI run 32643922913 (#291) on state-only descendant accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2: runtime-integration job 97206098504 failed at step 'Unified runtime + restore drill + launch gate'.",
     "CI run 32653398285 (#292) on state-only descendant 440b3e94782fd766db3efe09cd4d5af93a8bfbd2: runtime-integration job 97229622817 failed at step 'Unified runtime + restore drill + launch gate' and produced no launch-verification artifact. Source inspection found scripts/runtime-verify.sh still used php artisan test despite the repository's direct-PHPUnit P0 contract and dependency set; commit 45fd74fce42f45b51e71ed553772098b3007ab0e replaced only those two stale runner invocations.",
@@ -76,25 +67,36 @@
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256030,"workflow":"Governance Code Scanning","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256070,"workflow":"CodeQL","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662255994,"workflow":"CI","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE","passed_jobs":[{"name":"static-and-build","job_id":97250138759},{"name":"sqlite-tests","job_id":97250138800},{"name":"mysql-tests","job_id":97250138730},{"name":"postgres-tests","job_id":97250138594},{"name":"browser-e2e","job_id":97250138723},{"name":"runtime-integration","job_id":97253188297}],"runtime_evidence":{"artifact_id":9499456412,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:6ee4385bf44105a2bb5b8e20d12d0018ba7e3efcd652cd571d4b12d623388da8","manifest_generated_at":"2026-08-23T20:15:45Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_audit_ok":true,"database_index_missing":[]}},
-    {"task_id":"P0-CI-BASELINE","role":"MERGE_CLOSURE","status":"SUCCESS","source_head":"dad4487edaf55a0483fca0f00e59343f07fdb190","merge_commit_sha":"c0c38a4942437ae3c234445ef5c67e4835e9164c","merged_at":"2026-08-23T20:32:29Z","main_head_verified":true,"main_required_status_checks":[],"note":"GitHub merged PR #1 successfully with expected head dad4487edaf55a0483fca0f00e59343f07fdb190. main points to merge commit c0c38a4942437ae3c234445ef5c67e4835e9164c. Branch metadata reports no enforced required status-check contexts; therefore no additional repository-required post-merge check blocks task closure."}
+    {"task_id":"P0-CI-BASELINE","role":"MERGE_CLOSURE","status":"SUCCESS","source_head":"dad4487edaf55a0483fca0f00e59343f07fdb190","merge_commit_sha":"c0c38a4942437ae3c234445ef5c67e4835e9164c","merged_at":"2026-08-23T20:32:29Z","main_head_verified":true,"main_required_status_checks":[],"note":"GitHub merged PR #1 successfully with expected head dad4487edaf55a0483fca0f00e59343f07fdb190. main points to merge commit c0c38a4942437ae3c234445ef5c67e4835e9164c. Branch metadata reports no enforced required status-check contexts; therefore no additional repository-required post-merge check blocks task closure."},
+    {"task_id":"P0-01","role":"RECONCILIATION_ACCEPTANCE","status":"SUCCESS","observed_main_head":"11af0a2aa6649191f7c7b175194ab1174a66aaa8","composer_json_blob_sha":"23c1bb38b2b97e9847d3fed2df34263b10f3987d","composer_lock_blob_sha":"4262480bf873f14682707b7f77174edb2ed21dc0","provenance":{"known_absent_at":"e316ed1ece3c7a647e94639c32f6ae5f6e3f05c1","comparison_base":"058ef611761da92aa37d021f859c645f89fec6ea","accepted_code_head":"627399cfe7c6d8e3c5b3f1272a453f838f1c4542","comparison_result":"composer.lock added with 8525 lines before accepted P0-CI code head"},"hosted_ci":{"workflow_run_id":32662255994,"job_id":97250138759,"source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","php_version":"8.4.24","composer_version":"2.10.2","composer_validate":"SUCCESS","composer_install":{"source":"lock file","installs":113,"updates":0,"removals":0},"lock_artifact_id":9499257411,"lock_artifact_digest":"sha256:17b1177b91c17d5993688d2993cc8b68fde3e21072dd62e12006f7aafe02d50d"},"runtime_install":{"docker_composer_image":"composer:2.8","lock_copy_contract":"COPY composer.* ./","accepted_runtime_job_id":97253188297},"note":"Live evidence proves the stale missing-lock claim is no longer true. The reviewed lockfile is tracked, composer validation succeeds, deterministic install uses the lock with zero updates/removals, and the accepted runtime path is green. No lock regeneration or dependency-version change is required for P0-01."}
   ],
   "next_exact_action": {
-    "type": "RECONCILE_NEXT_P0_TASK",
-    "candidate_task": "P0-01",
-    "description": "Re-read the canonical state and current main HEAD c0c38a4942437ae3c234445ef5c67e4835e9164c, then reconcile master-plan item P0-01 against live repository state before activating it. AGENTS.md says composer.lock is missing, but composer.lock is present on current main. Verify the lockfile provenance, deterministic install behavior, current CI evidence, and any stale documentation. Define current acceptance criteria from evidence; do not delete/regenerate the lockfile or change dependency versions unless that reconciliation proves it is required.",
-    "preconditions": ["Confirm main HEAD has not moved unexpectedly.","Re-read docs/MASTER-EXECUTION-STATUS.json and AGENTS.md.","Inspect composer.json and composer.lock from current main plus relevant CI/install evidence.","Do not start P1/P2/P3/P4/P5 work while unresolved P0 release-blocker tasks remain."],
-    "expected_evidence": ["A reconciled current-state determination for P0-01 that does not rely on the stale claim that composer.lock is absent.","Exact acceptance criteria and blockers for P0-01 if it remains active, or evidence sufficient to classify it already satisfied and select the next canonical P0 item."]
+    "type": "RESOLVE_BLOCKED_P0_TASK",
+    "candidate_task": "P0-02",
+    "description": "Obtain an explicit repository-owner/legal decision for the intended VSN Commerce project license. Current main has a GNU GPL v3 LICENSE while composer.json declares proprietary. Do not edit either file or infer which license is intended until that decision is provided. After the decision, make only the scoped metadata/license changes, validate Composer metadata, capture evidence, and update canonical state.",
+    "preconditions": [
+      "Confirm main HEAD has not moved unexpectedly before implementation.",
+      "Do not infer the intended license from the existing GPL-3.0 LICENSE or proprietary Composer metadata.",
+      "Do not merge Dependabot PR #6 or other dependency updates as a prerequisite for P0-02.",
+      "Do not start P1/P2/P3/P4/P5 work while unresolved P0 release-blocker tasks remain."
+    ],
+    "expected_evidence": [
+      "An explicit owner/legal decision identifying the intended project license.",
+      "A focused diff making LICENSE and composer.json license metadata intentionally consistent with that decision.",
+      "Successful composer validate --no-check-publish after the metadata change."
+    ]
   },
   "architecture_decisions": [
     {"id":"STATE-HEAD-001","decision":"Treat canonical-state-only descendant commits as code-equivalent to task_head for head reconciliation and hosted acceptance evidence.","reason":"A commit cannot embed its own final SHA inside the state file it contains; without this rule every canonical-state update would invalidate itself."}
   ],
   "known_risks": [
-    "AGENTS.md and PR #1 describe composer.lock as missing/blocked, while composer.lock is present on current main; P0-01 must be reconciled from live evidence before any lockfile work.",
-    "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and remains a later P0 release/legal metadata item unless the reconciled canonical sequence says otherwise."
+    "AGENTS.md still contains stale P0-01 composer.lock blocker/progress-ledger text; canonical state now records P0-01 satisfied from live repository and GitHub-hosted install evidence.",
+    "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and is the active blocked P0-02 item.",
+    "Open Dependabot PR #6 upgrades the Composer Docker image from 2.8 to 2.10, but accepted hosted/runtime evidence proves this upgrade is not a prerequisite for P0-01 closure."
   ],
   "unresolved_issues": [
-    "P0-CI-BASELINE is complete and merged. The next P0 item has not been activated because AGENTS.md P0-01 contains stale composer.lock state and must first be reconciled against current main.",
+    "P0-02 is blocked because the intended project license is not specified by canonical state and the repository explicitly forbids guessing it.",
     "P0/P1 documentation contains stale claims relative to current main and must be reconciled only when supported by verified code/test evidence."
   ],
-  "updated_at": "2026-08-23T20:32:29Z"
+  "updated_at": "2026-08-23T20:53:50Z"
 }
