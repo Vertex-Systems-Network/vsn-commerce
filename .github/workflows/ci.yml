@@ -91,9 +91,9 @@ jobs:
       postgres:
         image: postgres:18.4-alpine
         env:
-          POSTGRES_DB=vsn_test
-          POSTGRES_USER=vsn
-          POSTGRES_PASSWORD=vsn-local-only
+          POSTGRES_DB: vsn_test
+          POSTGRES_USER: vsn
+          POSTGRES_PASSWORD: vsn-local-only
         ports:
           - 5432:5432
         options: >-
