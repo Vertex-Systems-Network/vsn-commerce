@@ -15,6 +15,6 @@ class ProductApiTest extends TestCase
     {
         $this->getJson('/api/v1/products')
             ->assertOk()
-            ->assertJsonStructure(['data', 'links', 'meta']);
+            ->assertJsonStructure(['data' => ['items', 'meta', 'facets']]);
     }
 }
