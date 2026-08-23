@@ -11,6 +11,8 @@ const {vnu}=require('vnu-jar');
 async function validateRenderedHtml(page,route,label){
   await page.goto(route);
   await page.locator('body').waitFor({state:'visible'});
+  const routeState=page.locator('.route-state');
+  if(await routeState.count())await expect(routeState).toHaveCount(0);
   const html=await page.content();
   const tempDir=fs.mkdtempSync(path.join(os.tmpdir(),'vsn-w3c-'));
   const file=path.join(tempDir,`${label.replace(/[^a-z0-9]+/gi,'-')||'page'}.html`);
