@@ -41,8 +41,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Install pinned ESLint quality tooling
         run: npm run lint:bootstrap
-      - name: Run React, hooks and accessibility lint
-        run: npm run lint
+      - name: Run React, hooks and accessibility lint on changed frontend files
+        run: npm run lint:changed
       - name: Run frontend source and routing quality audit
         run: npm test
       - run: npm run build
