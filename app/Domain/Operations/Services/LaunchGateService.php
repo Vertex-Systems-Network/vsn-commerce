@@ -45,10 +45,12 @@ class LaunchGateService
         }
 
         $health = $this->health->snapshot(true);
-        foreach (['database','cache','redis','storage','migrations'] as $name) {
+        foreach (['database','cache','storage','migrations'] as $name) {
             $ok = (bool) ($health['checks'][$name]['ok'] ?? false);
             $this->check($checks, 'health_'.$name, $ok, 'block', "{$name} readiness check must pass.", $health['checks'][$name] ?? []);
         }
+        $redisOk = (bool) ($health['checks']['redis']['ok'] ?? false);
+        $this->check($checks, 'health_redis', $redisOk, $production ? 'block' : 'warning', 'Redis readiness must pass in production.', $health['checks']['redis'] ?? []);
         foreach (['scheduler','queue_worker'] as $name) {
             $ok = (bool) ($health['checks'][$name]['ok'] ?? false);
             $severity = $production ? 'block' : 'warning';
@@ -183,7 +185,7 @@ class LaunchGateService
         $required = (bool) config('vsn.operations.launch.require_verification_manifest', false);
         $path = (string) config('vsn.operations.launch.verification_manifest');
         if (! File::exists($path)) {
-            $this->check($checks, 'runtime_verification', ! ($production && $required), $production && $required ? 'block' : 'warning', 'Runtime verification manifest is missing.', ['path'=>basename($path)]);
+            $this->check($checks, 'runtime_verification', ! $required, $production && $required ? 'block' : 'warning', 'Runtime verification manifest is missing.', ['path'=>basename($path)]);
             return;
         }
         $json = json_decode((string) File::get($path), true);
