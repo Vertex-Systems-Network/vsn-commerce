@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "repository": "Vertex-Systems-Network/vsn-commerce",
   "package": {
     "id": "P0",
@@ -21,64 +21,107 @@
   "base_branch": "main",
   "base_head": "058ef611761da92aa37d021f859c645f89fec6ea",
   "task_head": "400d34be783a47414b8f32ff6836b9b6e0515f1c",
+  "head_policy": {
+    "type": "STATE_ONLY_DESCENDANT_ALLOWED",
+    "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
+    "description": "The live PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file. Any other changed path requires state reconciliation before implementation."
+  },
+  "last_observed_pr_head": "accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2",
   "pull_request": {
     "number": 1,
     "state": "open",
     "url": "https://github.com/Vertex-Systems-Network/vsn-commerce/pull/1",
     "head_branch": "ai/audit-admin-untitled-master-plan",
-    "head_sha": "400d34be783a47414b8f32ff6836b9b6e0515f1c",
+    "last_observed_head_sha": "accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2",
     "base_branch": "main",
     "base_sha": "058ef611761da92aa37d021f859c645f89fec6ea"
   },
+  "acceptance_criteria": [
+    "Use GitHub-hosted evidence from the live task head or a verified state-only descendant under head_policy.",
+    "CI static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e and runtime-integration jobs must all succeed.",
+    "Governance Code Scanning and CodeQL must succeed for the accepted head.",
+    "Do not mark P0-CI-BASELINE complete while any required current-head gate is failed, cancelled or unverified."
+  ],
   "completed_tasks": [],
   "blocked_tasks": [],
   "failed_gates": [
-    "CI run 32641374464 (#290): Runtime job 97199904914 failed at step 'Unified runtime + restore drill + launch gate'."
+    "CI run 32643922913 (#291) on state-only descendant accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2: runtime-integration job 97206098504 failed at step 'Unified runtime + restore drill + launch gate'."
   ],
   "acceptance_evidence": [
     {
       "task_id": "P0-CI-BASELINE",
-      "workflow_run_id": 32641374476,
-      "source_head": "400d34be783a47414b8f32ff6836b9b6e0515f1c",
+      "workflow_run_id": 32643922899,
+      "workflow": "Governance Code Scanning",
+      "source_head": "accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2",
       "status": "SUCCESS"
     },
     {
       "task_id": "P0-CI-BASELINE",
-      "workflow_run_id": 32641374484,
-      "source_head": "400d34be783a47414b8f32ff6836b9b6e0515f1c",
+      "workflow_run_id": 32643922916,
+      "workflow": "CodeQL",
+      "source_head": "accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2",
       "status": "SUCCESS"
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32643922913,
+      "workflow": "CI",
+      "source_head": "accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2",
+      "status": "FAILURE",
+      "passed_jobs": [
+        "static-and-build",
+        "sqlite-tests",
+        "mysql-tests",
+        "postgres-tests",
+        "browser-e2e"
+      ],
+      "failed_jobs": [
+        {
+          "name": "runtime-integration",
+          "job_id": 97206098504,
+          "failed_step": "Unified runtime + restore drill + launch gate"
+        }
+      ]
     },
     {
       "task_id": "P0-CI-BASELINE",
       "workflow_run_id": 32641374464,
       "job_id": 97199904914,
       "source_head": "400d34be783a47414b8f32ff6836b9b6e0515f1c",
-      "status": "FAILURE"
+      "status": "FAILURE",
+      "role": "HISTORICAL_DIAGNOSTIC_ONLY"
     }
   ],
   "next_exact_action": {
     "type": "DIAGNOSE_FAILED_GATE",
-    "description": "Inspect the exact-head CI #290 Runtime failure, identify the root cause of the 'Unified runtime + restore drill + launch gate' step, then make only the smallest change required to restore the current CI baseline.",
+    "description": "Extract the exact failure from runtime-integration job 97206098504 in CI run 32643922913, inspect its launch verification evidence, and make only the smallest change required to restore the runtime gate.",
     "preconditions": [
       "Re-read this canonical state file before editing.",
-      "Confirm PR #1 remains open and its live head matches the recorded task head or reconcile the state first.",
+      "Confirm PR #1 remains open.",
+      "Confirm the live PR head equals task_head or is a verified state-only descendant under head_policy; otherwise reconcile state before implementation.",
       "Do not begin later P1/P2/P3/P4/P5 work unless required as a prerequisite for this failing gate."
     ],
     "expected_evidence": [
-      "Exact failing command/error from the GitHub-hosted workflow.",
-      "Focused fix tied to that failure.",
-      "Relevant narrow test evidence followed by a green exact-head CI run."
+      "Exact failing command/error from runtime-integration job 97206098504 or its uploaded launch-verification artifact.",
+      "Focused fix tied directly to that failure.",
+      "Relevant narrow test evidence followed by all required GitHub-hosted gates green on the resulting code head or a verified state-only descendant."
     ]
   },
-  "architecture_decisions": [],
+  "architecture_decisions": [
+    {
+      "id": "STATE-HEAD-001",
+      "decision": "Treat canonical-state-only descendant commits as code-equivalent to task_head for head reconciliation and hosted acceptance evidence.",
+      "reason": "A commit cannot embed its own final SHA inside the state file it contains; without this rule every canonical-state update would invalidate itself."
+    }
+  ],
   "known_risks": [
     "AGENTS.md and PR #1 still describe composer.lock as missing/blocked, while composer.lock is present at the current PR head; this documentation must not be treated as current acceptance evidence.",
     "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and is not part of the current CI-baseline task unless it directly blocks the active gate."
   ],
   "unresolved_issues": [
-    "Current CI baseline is red on exact head 400d34be783a47414b8f32ff6836b9b6e0515f1c.",
-    "Runtime gate root cause has not yet been extracted from job logs.",
+    "Current CI baseline is red because runtime-integration fails while static/build, database and browser jobs pass.",
+    "Runtime gate root cause has not yet been extracted from job logs/artifacts.",
     "P0/P1 documentation contains stale claims relative to the current branch and must be reconciled only when supported by verified code/test evidence."
   ],
-  "updated_at": "2026-08-23T13:53:00Z"
+  "updated_at": "2026-08-23T16:53:00Z"
 }
