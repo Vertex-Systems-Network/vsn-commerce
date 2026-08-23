@@ -10,12 +10,13 @@ export function UXProvider({children}){
   const [toasts,setToasts]=useState([]);
   const [confirmState,setConfirmState]=useState(null);
   const resolver=useRef(null);
-  const initialRoute=useRef(true);
   const location=useLocation();
+  const previousPath=useRef(location.pathname);
 
   useEffect(/** Moves route-change focus to the active workspace rather than repeated global chrome. */ ()=>{
     window.scrollTo({top:0,behavior:'auto'});
-    if(initialRoute.current){initialRoute.current=false;return;}
+    if(previousPath.current===location.pathname)return;
+    previousPath.current=location.pathname;
     const main=document.querySelector('#account-content')||document.querySelector('main');
     if(main){main.setAttribute('tabindex','-1');requestAnimationFrame(/** Focuses the new route without introducing an additional scroll jump. */ ()=>main.focus({preventScroll:true}));}
   },[location.pathname]);
