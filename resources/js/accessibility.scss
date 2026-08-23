@@ -148,6 +148,11 @@ input[type="radio"] {
   color: var(--a11y-action-orange);
 }
 
+.account-nav .header-register,
+.account-nav .header-register:hover {
+  color: #fff !important;
+}
+
 .coin-value,
 .reward-balance,
 .reward-balance small,
