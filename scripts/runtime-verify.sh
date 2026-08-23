@@ -25,10 +25,10 @@ docker compose run --rm app php artisan db:seed --force
 databaseMigrations=true
 
 echo '[runtime] run Laravel feature suite against PostgreSQL'
-docker compose run --rm test php vendor/bin/phpunit --configuration=phpunit.postgres.xml
+docker compose run --rm test php vendor/bin/phpunit --configuration=phpunit.runtime-postgres.xml
 laravelTests=true
 echo '[runtime] run live-provider contract tests with faked HTTP'
-docker compose run --rm test php vendor/bin/phpunit --filter=ProviderIntegrationTest --configuration=phpunit.postgres.xml
+docker compose run --rm test php vendor/bin/phpunit --filter=ProviderIntegrationTest --configuration=phpunit.runtime-postgres.xml
 providerContracts=true
 
 echo '[runtime] start unified app, workers and scheduler'

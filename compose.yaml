@@ -92,7 +92,10 @@ services:
       context: .
       dockerfile: Dockerfile.runtime
       target: runtime-test
-    environment: *app_env
+    environment:
+      <<: *app_env
+      APP_ENV: testing
+      DB_DATABASE: vsn_test
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
