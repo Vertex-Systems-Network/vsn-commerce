@@ -124,7 +124,7 @@ class ShippingApiTest extends TestCase
     {
         [, $owners,$order]=$this->order();$shipment=$this->createShipment($owners[0],$order);
         $payload=json_encode(['id'=>'bad-signature','shipment_id'=>$shipment->provider_shipment_id,'status'=>'delivered','occurred_at'=>now()->toIso8601String()]);
-        $this->withHeader('X-VSN-Signature','sha256=bad')->call('POST','/api/v1/shipping/webhooks/sandbox',[],[],[],['CONTENT_TYPE'=>'application/json'],$payload)->assertStatus(422);
+        $this->call('POST','/api/v1/shipping/webhooks/sandbox',[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_X_VSN_SIGNATURE'=>'sha256=bad'],$payload)->assertStatus(422);
         $this->assertNull($shipment->fresh()->delivered_at);
     }
 
@@ -189,7 +189,7 @@ class ShippingApiTest extends TestCase
     private function shippingWebhook(array $payload)
     {
         $raw=json_encode($payload,JSON_UNESCAPED_SLASHES);$signature='sha256='.hash_hmac('sha256',$raw,'shipping-test-secret');
-        return $this->withHeader('X-VSN-Signature',$signature)->call('POST','/api/v1/shipping/webhooks/sandbox',[],[],[],['CONTENT_TYPE'=>'application/json'],$raw);
+        return $this->call('POST','/api/v1/shipping/webhooks/sandbox',[],[],[],['CONTENT_TYPE'=>'application/json','HTTP_X_VSN_SIGNATURE'=>$signature],$raw);
     }
 
     /** Handles order for the shipping api test workflow. */
