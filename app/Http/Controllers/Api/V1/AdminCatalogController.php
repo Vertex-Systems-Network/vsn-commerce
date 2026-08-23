@@ -137,7 +137,7 @@ class AdminCatalogController extends Controller
             $s = $base.'-'.$n++;
         }
 
-return $s;
+        return $s;
     }
 
     /** Validates admin catalog fields; product images are managed only through media endpoints. */

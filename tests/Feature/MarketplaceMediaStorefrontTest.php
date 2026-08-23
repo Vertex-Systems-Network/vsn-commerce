@@ -193,6 +193,6 @@ class MarketplaceMediaStorefrontTest extends TestCase
     /** Creates a media-library row for an isolated seller/global scope test. */
     private function media(?Vendor $vendor, User $uploader, string $name, string $scope): MediaLibraryAsset
     {
-        return MediaLibraryAsset::create(['public_id' => (string) Str::ulid(), 'vendor_id' => $vendor?->id, 'uploaded_by_user_id' => $uploader->id, 'scope_key' => $scope, 'disk' => 'public', 'path' => 'test/'.$name, 'original_name' => $name, 'alt_text' => $name, 'mime_type' => 'image/jpeg', 'byte_size' => 10, 'sha256' => hash('sha256',$scope.$name), 'width' => 100, 'height' => 100, 'visibility' => 'public', 'status' => 'active']);
+        return MediaLibraryAsset::create(['public_id' => (string) Str::ulid(), 'vendor_id' => $vendor?->id, 'uploaded_by_user_id' => $uploader->id, 'scope_key' => $scope, 'disk' => 'public', 'path' => 'test/'.$name, 'original_name' => $name, 'alt_text' => $name, 'mime_type' => 'image/jpeg', 'byte_size' => 10, 'sha256' => hash('sha256', $scope.$name), 'width' => 100, 'height' => 100, 'visibility' => 'public', 'status' => 'active']);
     }
 }

@@ -127,15 +127,15 @@ marketplaceCheck($checks, $failures, 'home loads live public categories/vendors/
 marketplaceCheck($checks, $failures, 'Laravel product page blocks demo fallback on API failure', str_contains($productPage, "if (apiBackend==='laravel' && remoteLoading)") && str_contains($productPage, "if (apiBackend==='laravel' && remoteError && !remoteProduct)"));
 marketplaceCheck($checks, $failures, 'personal mock orders removed', str_contains($store, 'const initialOrders=[];'));
 marketplaceCheck($checks, $failures, 'personal mock notifications removed', str_contains($store, 'const initialNotifications=[];'));
-marketplaceCheck($checks, $failures, 'personal mock messages removed', str_contains($store,'const initialMessages=[];'));
-marketplaceCheck($checks,$failures,'personal mock identity removed',! str_contains($store,'Muhammad Ahmed Khan') && ! str_contains($store,'ahmed@example.com'));
-marketplaceCheck($checks,$failures,'dummy seller score rows removed',str_contains($store,'const sellerScores=[];'));
+marketplaceCheck($checks, $failures, 'personal mock messages removed', str_contains($store, 'const initialMessages=[];'));
+marketplaceCheck($checks, $failures, 'personal mock identity removed', ! str_contains($store, 'Muhammad Ahmed Khan') && ! str_contains($store, 'ahmed@example.com'));
+marketplaceCheck($checks, $failures, 'dummy seller score rows removed', str_contains($store, 'const sellerScores=[];'));
 
-marketplaceCheck($checks,$failures,'customer data isolation regression test present',str_contains($featureTests,'test_customer_address_data_is_scoped_to_authenticated_user'));
-marketplaceCheck($checks,$failures,'seller logo stable-id regression test present',str_contains($featureTests,'test_seller_logo_persists_media_asset_reference_not_delivery_url'));
-marketplaceCheck($checks,$failures,'cross-vendor seller logo regression test present',str_contains($featureTests,'test_seller_cannot_select_cross_vendor_logo_media'));
-marketplaceCheck($checks,$failures,'public seller logo resolution regression test present',str_contains($featureTests,'test_public_vendor_logo_is_resolved_from_media_library_reference'));
-marketplaceCheck($checks,$failures,'media RBAC regression test present',str_contains(marketplaceRead($root,'tests/Unit/MarketplaceFeatureContractTest.php'),'test_media_library_routes_have_rbac_mappings'));
+marketplaceCheck($checks, $failures, 'customer data isolation regression test present', str_contains($featureTests, 'test_customer_address_data_is_scoped_to_authenticated_user'));
+marketplaceCheck($checks, $failures, 'seller logo stable-id regression test present', str_contains($featureTests, 'test_seller_logo_persists_media_asset_reference_not_delivery_url'));
+marketplaceCheck($checks, $failures, 'cross-vendor seller logo regression test present', str_contains($featureTests, 'test_seller_cannot_select_cross_vendor_logo_media'));
+marketplaceCheck($checks, $failures, 'public seller logo resolution regression test present', str_contains($featureTests, 'test_public_vendor_logo_is_resolved_from_media_library_reference'));
+marketplaceCheck($checks, $failures, 'media RBAC regression test present', str_contains(marketplaceRead($root, 'tests/Unit/MarketplaceFeatureContractTest.php'), 'test_media_library_routes_have_rbac_mappings'));
 
 printf("Marketplace media/storefront audit: %d/%d PASS\n", count($checks) - count($failures), count($checks));
 if ($failures) {

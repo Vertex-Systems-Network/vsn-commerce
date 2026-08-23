@@ -31,26 +31,26 @@ class PersonalizationMediaTest extends TestCase
     private function product(?User $owner = null): Product
     {
         $owner ??= User::factory()->create();
-        $owner->update(['role'=>UserRole::Seller]);
+        $owner->update(['role' => UserRole::Seller]);
         $vendor = Vendor::create([
-            'owner_user_id'=>$owner->id,
-            'name'=>'Store',
-            'slug'=>'store-'.Str::lower(Str::random(5)),
-            'status'=>'active',
-            'commission_bps'=>1000,
+            'owner_user_id' => $owner->id,
+            'name' => 'Store',
+            'slug' => 'store-'.Str::lower(Str::random(5)),
+            'status' => 'active',
+            'commission_bps' => 1000,
         ]);
 
         return Product::create([
-            'public_id'=>(string) Str::ulid(),
-            'vendor_id'=>$vendor->id,
-            'slug'=>'p-'.Str::lower(Str::random(5)),
-            'name'=>'Product',
-            'status'=>ProductStatus::Published,
-            'currency'=>'PKR',
-            'base_price_minor'=>100000,
-            'rating'=>4.5,
-            'reviews_count'=>1,
-            'sold_count'=>3,
+            'public_id' => (string) Str::ulid(),
+            'vendor_id' => $vendor->id,
+            'slug' => 'p-'.Str::lower(Str::random(5)),
+            'name' => 'Product',
+            'status' => ProductStatus::Published,
+            'currency' => 'PKR',
+            'base_price_minor' => 100000,
+            'rating' => 4.5,
+            'reviews_count' => 1,
+            'sold_count' => 3,
         ]);
     }
 
@@ -115,8 +115,8 @@ class PersonalizationMediaTest extends TestCase
         $this->actingAs($a)->postJson("/api/v1/products/{$p->slug}/views");
         $this->actingAs($b)->postJson("/api/v1/products/{$p->slug}/views");
         $this->actingAs($a)->deleteJson('/api/v1/recently-viewed')->assertOk();
-        $this->assertDatabaseMissing('product_views', ['user_id'=>$a->id]);
-        $this->assertDatabaseHas('product_views', ['user_id'=>$b->id]);
+        $this->assertDatabaseMissing('product_views', ['user_id' => $a->id]);
+        $this->assertDatabaseHas('product_views', ['user_id' => $b->id]);
     }
 
     /** Verifies buy again uses real paid order items. */
@@ -125,94 +125,94 @@ class PersonalizationMediaTest extends TestCase
         $u = User::factory()->create();
         $p = $this->product();
         $v = ProductVariant::create([
-            'product_id'=>$p->id,
-            'sku'=>'SKU1',
-            'name'=>'Default',
-            'price_minor'=>100000,
-            'option_values'=>[],
-            'is_default'=>true,
-            'is_active'=>true,
+            'product_id' => $p->id,
+            'sku' => 'SKU1',
+            'name' => 'Default',
+            'price_minor' => 100000,
+            'option_values' => [],
+            'is_default' => true,
+            'is_active' => true,
         ]);
         $cart = Cart::create([
-            'public_id'=>(string) Str::ulid(),
-            'user_id'=>$u->id,
-            'status'=>CartStatus::Converted,
-            'currency'=>'PKR',
+            'public_id' => (string) Str::ulid(),
+            'user_id' => $u->id,
+            'status' => CartStatus::Converted,
+            'currency' => 'PKR',
         ]);
         $session = CheckoutSession::create([
-            'public_id'=>(string) Str::ulid(),
-            'user_id'=>$u->id,
-            'cart_id'=>$cart->id,
-            'idempotency_key'=>'personalization-buy-again-001',
-            'status'=>CheckoutStatus::Converted,
-            'currency'=>'PKR',
-            'address_snapshot'=>[
-                'recipient_name'=>$u->name,
-                'phone'=>'0300',
-                'line1'=>'Test',
-                'city'=>'Lahore',
-                'country_code'=>'PK',
+            'public_id' => (string) Str::ulid(),
+            'user_id' => $u->id,
+            'cart_id' => $cart->id,
+            'idempotency_key' => 'personalization-buy-again-001',
+            'status' => CheckoutStatus::Converted,
+            'currency' => 'PKR',
+            'address_snapshot' => [
+                'recipient_name' => $u->name,
+                'phone' => '0300',
+                'line1' => 'Test',
+                'city' => 'Lahore',
+                'country_code' => 'PK',
             ],
-            'shipping_method'=>'standard',
-            'payment_method'=>'cod',
-            'subtotal_minor'=>100000,
-            'shipping_minor'=>0,
-            'discount_minor'=>0,
-            'coin_redemption_minor'=>0,
-            'total_minor'=>100000,
-            'expires_at'=>now()->addMinute(),
-            'converted_at'=>now(),
+            'shipping_method' => 'standard',
+            'payment_method' => 'cod',
+            'subtotal_minor' => 100000,
+            'shipping_minor' => 0,
+            'discount_minor' => 0,
+            'coin_redemption_minor' => 0,
+            'total_minor' => 100000,
+            'expires_at' => now()->addMinute(),
+            'converted_at' => now(),
         ]);
         $o = Order::create([
-            'public_id'=>(string) Str::ulid(),
-            'user_id'=>$u->id,
-            'checkout_session_id'=>$session->id,
-            'status'=>OrderStatus::Delivered,
-            'payment_status'=>PaymentStatus::Paid,
-            'payment_method'=>'cod',
-            'currency'=>'PKR',
-            'subtotal_minor'=>100000,
-            'shipping_minor'=>0,
-            'discount_minor'=>0,
-            'coin_redemption_coins'=>0,
-            'coin_redemption_minor'=>0,
-            'total_minor'=>100000,
-            'refunded_minor'=>0,
-            'cash_refunded_minor'=>0,
-            'coin_refunded_coins'=>0,
-            'placed_at'=>now(),
-            'delivered_at'=>now(),
+            'public_id' => (string) Str::ulid(),
+            'user_id' => $u->id,
+            'checkout_session_id' => $session->id,
+            'status' => OrderStatus::Delivered,
+            'payment_status' => PaymentStatus::Paid,
+            'payment_method' => 'cod',
+            'currency' => 'PKR',
+            'subtotal_minor' => 100000,
+            'shipping_minor' => 0,
+            'discount_minor' => 0,
+            'coin_redemption_coins' => 0,
+            'coin_redemption_minor' => 0,
+            'total_minor' => 100000,
+            'refunded_minor' => 0,
+            'cash_refunded_minor' => 0,
+            'coin_refunded_coins' => 0,
+            'placed_at' => now(),
+            'delivered_at' => now(),
         ]);
         $vo = $o->vendorOrders()->create([
-            'public_id'=>(string) Str::ulid(),
-            'vendor_id'=>$p->vendor_id,
-            'status'=>OrderStatus::Delivered,
-            'currency'=>'PKR',
-            'subtotal_minor'=>100000,
-            'shipping_minor'=>0,
-            'discount_minor'=>0,
-            'total_minor'=>100000,
-            'commission_bps'=>1000,
-            'platform_commission_minor'=>10000,
-            'seller_payable_minor'=>90000,
-            'delivered_at'=>now(),
+            'public_id' => (string) Str::ulid(),
+            'vendor_id' => $p->vendor_id,
+            'status' => OrderStatus::Delivered,
+            'currency' => 'PKR',
+            'subtotal_minor' => 100000,
+            'shipping_minor' => 0,
+            'discount_minor' => 0,
+            'total_minor' => 100000,
+            'commission_bps' => 1000,
+            'platform_commission_minor' => 10000,
+            'seller_payable_minor' => 90000,
+            'delivered_at' => now(),
         ]);
         OrderItem::create([
-            'order_id'=>$o->id,
-            'vendor_order_id'=>$vo->id,
-            'product_id'=>$p->id,
-            'product_variant_id'=>$v->id,
-            'product_name'=>$p->name,
-            'variant_name'=>'Default',
-            'sku'=>'SKU1',
-            'quantity'=>1,
-            'returned_quantity'=>0,
-            'refunded_quantity'=>0,
-            'currency'=>'PKR',
-            'unit_price_minor'=>100000,
-            'line_total_minor'=>100000,
-            'selected_options'=>[],
-            'metadata'=>[],
+            'order_id' => $o->id,
+            'vendor_order_id' => $vo->id,
+            'product_id' => $p->id,
+            'product_variant_id' => $v->id,
+            'product_name' => $p->name,
+            'variant_name' => 'Default',
+            'sku' => 'SKU1',
+            'quantity' => 1,
+            'returned_quantity' => 0,
+            'refunded_quantity' => 0,
+            'currency' => 'PKR',
+            'unit_price_minor' => 100000,
+            'line_total_minor' => 100000,
+            'selected_options' => [],
+            'metadata' => [],
         ]);
 
         $this->actingAs($u)->getJson('/api/v1/buy-again')->assertOk()->assertJsonPath('data.items.0.product.slug', $p->slug);
@@ -238,8 +238,8 @@ class PersonalizationMediaTest extends TestCase
         $p = $this->product($other);
         $this->actingAs($seller)->post(
             "/api/v1/vendor/products/{$p->slug}/media",
-            ['file'=>UploadedFile::fake()->image('a.jpg')],
-            ['Accept'=>'application/json'],
+            ['file' => UploadedFile::fake()->image('a.jpg')],
+            ['Accept' => 'application/json'],
         )->assertNotFound();
     }
 
@@ -251,8 +251,8 @@ class PersonalizationMediaTest extends TestCase
         $p = $this->product($seller);
         $this->actingAs($seller)->post(
             "/api/v1/vendor/products/{$p->slug}/media",
-            ['file'=>UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')],
-            ['Accept'=>'application/json'],
+            ['file' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf')],
+            ['Accept' => 'application/json'],
         )->assertUnprocessable();
     }
 
@@ -264,8 +264,8 @@ class PersonalizationMediaTest extends TestCase
         $p = $this->product($seller);
         $this->actingAs($seller)->post(
             "/api/v1/vendor/products/{$p->slug}/media",
-            ['file'=>UploadedFile::fake()->image('a.jpg')],
-            ['Accept'=>'application/json'],
+            ['file' => UploadedFile::fake()->image('a.jpg')],
+            ['Accept' => 'application/json'],
         )->assertCreated();
         $this->assertDatabaseCount('product_media_assets', 1);
         $asset = $p->mediaAssets()->first();

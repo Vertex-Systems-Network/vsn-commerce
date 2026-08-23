@@ -134,68 +134,68 @@ class CreateCheckoutSession
                 $quote = $this->shippingQuotes->resolve($cart, $address, $shippingMethod);
                 $subtotal = (int) $cart->items->sum(/** Inline callback for this operation. */ fn ($item) => $item->currentUnitPriceMinor() * $item->quantity);
                 $session = CheckoutSession::create([
-                    'public_id'=>(string) Str::ulid(),
-                    'user_id'=>$user->id,
-                    'cart_id'=>$cart->id,
-                    'idempotency_key'=>$idempotencyKey,
-                    'status'=>CheckoutStatus::Reserved,
-                    'currency'=>$cart->currency,
-                    'address_id'=>$address->id,
-                    'address_snapshot'=>$address->only(['label','recipient_name','phone','line1','line2','city','state','postal_code','country_code']),
-                    'shipping_method'=>$shippingMethod,
-                    'payment_method'=>$paymentMethod,
-                    'saved_payment_method_id'=>$savedPaymentMethod?->id,
-                    'coupon_code'=>$couponCode ?: null,
-                    'subtotal_minor'=>$subtotal,
-                    'shipping_minor'=>$quote['amountMinor'],
-                    'discount_minor'=>0,
-                    'platform_discount_minor'=>0,
-                    'seller_discount_minor'=>0,
-                    'tax_minor'=>0,
-                    'tax_included_minor'=>0,
-                    'tax_added_minor'=>0,
-                    'coin_redemption_coins'=>0,
-                    'coin_redemption_minor'=>0,
-                    'total_minor'=>$subtotal+(int) $quote['amountMinor'],
-                    'expires_at'=>now()->addMinutes(config('vsn.inventory_reservation_minutes',15)),
-                    'metadata'=>['shipping_quote'=>$quote,'pricing_version'=>2],
+                    'public_id' => (string) Str::ulid(),
+                    'user_id' => $user->id,
+                    'cart_id' => $cart->id,
+                    'idempotency_key' => $idempotencyKey,
+                    'status' => CheckoutStatus::Reserved,
+                    'currency' => $cart->currency,
+                    'address_id' => $address->id,
+                    'address_snapshot' => $address->only(['label', 'recipient_name', 'phone', 'line1', 'line2', 'city', 'state', 'postal_code', 'country_code']),
+                    'shipping_method' => $shippingMethod,
+                    'payment_method' => $paymentMethod,
+                    'saved_payment_method_id' => $savedPaymentMethod?->id,
+                    'coupon_code' => $couponCode ?: null,
+                    'subtotal_minor' => $subtotal,
+                    'shipping_minor' => $quote['amountMinor'],
+                    'discount_minor' => 0,
+                    'platform_discount_minor' => 0,
+                    'seller_discount_minor' => 0,
+                    'tax_minor' => 0,
+                    'tax_included_minor' => 0,
+                    'tax_added_minor' => 0,
+                    'coin_redemption_coins' => 0,
+                    'coin_redemption_minor' => 0,
+                    'total_minor' => $subtotal + (int) $quote['amountMinor'],
+                    'expires_at' => now()->addMinutes(config('vsn.inventory_reservation_minutes', 15)),
+                    'metadata' => ['shipping_quote' => $quote, 'pricing_version' => 2],
                 ]);
 
                 foreach ($cart->items as $cartItem) {
                     $unitPrice = $cartItem->currentUnitPriceMinor();
                     $sessionItem = $session->items()->create([
-                        'cart_item_id'=>$cartItem->id,
-                        'product_id'=>$cartItem->product_id,
-                        'product_variant_id'=>$cartItem->product_variant_id,
-                        'vendor_id'=>$cartItem->product?->vendor_id,
-                        'product_name'=>$cartItem->product?->name ?? 'Product',
-                        'variant_name'=>$cartItem->variant?->name ?? 'Default',
-                        'sku'=>$cartItem->variant?->sku,
-                        'quantity'=>$cartItem->quantity,
-                        'currency'=>$cartItem->currency,
-                        'unit_price_minor'=>$unitPrice,
-                        'line_total_minor'=>$unitPrice*$cartItem->quantity,
-                        'selected_options'=>$cartItem->selected_options,
+                        'cart_item_id' => $cartItem->id,
+                        'product_id' => $cartItem->product_id,
+                        'product_variant_id' => $cartItem->product_variant_id,
+                        'vendor_id' => $cartItem->product?->vendor_id,
+                        'product_name' => $cartItem->product?->name ?? 'Product',
+                        'variant_name' => $cartItem->variant?->name ?? 'Default',
+                        'sku' => $cartItem->variant?->sku,
+                        'quantity' => $cartItem->quantity,
+                        'currency' => $cartItem->currency,
+                        'unit_price_minor' => $unitPrice,
+                        'line_total_minor' => $unitPrice * $cartItem->quantity,
+                        'selected_options' => $cartItem->selected_options,
                     ]);
                     $reservation = $this->reserveInventory->execute(
-                        user:$user,
-                        variantId:$cartItem->product_variant_id,
-                        quantity:$cartItem->quantity,
-                        idempotencyKey:"checkout:{$session->public_id}:item:{$cartItem->id}",
-                        reference:"checkout:{$session->public_id}",
+                        user: $user,
+                        variantId: $cartItem->product_variant_id,
+                        quantity: $cartItem->quantity,
+                        idempotencyKey: "checkout:{$session->public_id}:item:{$cartItem->id}",
+                        reference: "checkout:{$session->public_id}",
                     );
-                    $sessionItem->update(['inventory_reservation_id'=>$reservation->id]);
+                    $sessionItem->update(['inventory_reservation_id' => $reservation->id]);
                 }
 
-                $session->load(['items.product.category','items.vendor']);
+                $session->load(['items.product.category', 'items.vendor']);
                 $promotionResult = $this->promotions->execute($user, $session, $couponCode);
                 $discount = (int) $promotionResult['discountMinor'];
-                $taxResult = $this->taxes->execute($session->fresh(['items.product','items.vendor','promotionAllocations']));
-                $beforeCoins = max(0, $subtotal+(int) $quote['amountMinor']-$discount+(int) $taxResult['taxAddedMinor']);
+                $taxResult = $this->taxes->execute($session->fresh(['items.product', 'items.vendor', 'promotionAllocations']));
+                $beforeCoins = max(0, $subtotal + (int) $quote['amountMinor'] - $discount + (int) $taxResult['taxAddedMinor']);
                 $redemption = $this->coinResolver->resolve($user, $coinRedemptionCoins, $beforeCoins);
                 $coins = (int) $redemption['coins'];
                 $coinValueMinor = (int) $redemption['amountMinor'];
-                $total = max(0, $beforeCoins-$coinValueMinor);
+                $total = max(0, $beforeCoins - $coinValueMinor);
                 if ($paymentMethod === 'coins' && ($coins <= 0 || $total !== 0)) {
                     throw new CheckoutValidationException('VSN Coins payment must cover the full payable total. Use COD/card for split payment.', 'paymentMethod');
                 }
@@ -207,32 +207,32 @@ class CreateCheckoutSession
                 $metadata['coupon_type'] = $promotionResult['reviewCoupon'] ? 'review_reward' : ($couponCode ? 'promotion_code' : null);
                 $metadata['promotions'] = $promotionResult['sources'];
                 $session->update([
-                    'discount_minor'=>$discount,
-                    'platform_discount_minor'=>$promotionResult['platformMinor'],
-                    'seller_discount_minor'=>$promotionResult['sellerMinor'],
-                    'tax_minor'=>$taxResult['taxMinor'],
-                    'tax_included_minor'=>$taxResult['taxIncludedMinor'],
-                    'tax_added_minor'=>$taxResult['taxAddedMinor'],
-                    'coin_redemption_coins'=>$coins,
-                    'coin_redemption_minor'=>$coinValueMinor,
-                    'total_minor'=>$total,
-                    'metadata'=>$metadata,
+                    'discount_minor' => $discount,
+                    'platform_discount_minor' => $promotionResult['platformMinor'],
+                    'seller_discount_minor' => $promotionResult['sellerMinor'],
+                    'tax_minor' => $taxResult['taxMinor'],
+                    'tax_included_minor' => $taxResult['taxIncludedMinor'],
+                    'tax_added_minor' => $taxResult['taxAddedMinor'],
+                    'coin_redemption_coins' => $coins,
+                    'coin_redemption_minor' => $coinValueMinor,
+                    'total_minor' => $total,
+                    'metadata' => $metadata,
                 ]);
 
                 if ($coins > 0) {
                     try {
                         $hold = $this->createWalletHold->execute(
-                            user:$user,
-                            coins:$coins,
-                            idempotencyKey:"checkout-coins:{$session->public_id}",
-                            referenceType:'checkout_session',
-                            referenceId:$session->public_id,
-                            expiresAt:$session->expires_at,
+                            user: $user,
+                            coins: $coins,
+                            idempotencyKey: "checkout-coins:{$session->public_id}",
+                            referenceType: 'checkout_session',
+                            referenceId: $session->public_id,
+                            expiresAt: $session->expires_at,
                         );
                     } catch (WalletException $exception) {
                         throw new CheckoutValidationException($exception->getMessage(), 'coinRedemptionCoins');
                     }
-                    $session->update(['wallet_hold_id'=>$hold->id]);
+                    $session->update(['wallet_hold_id' => $hold->id]);
                 }
 
                 return $this->load($session->fresh());
@@ -250,6 +250,6 @@ class CreateCheckoutSession
     /** Handles load for the create checkout session workflow. */
     private function load(CheckoutSession $session): CheckoutSession
     {
-        return $session->load(['items.reservation.inventory','items.vendor','address','order','savedPaymentMethod','promotionAllocations.promotion','promotionUsages.promotion']);
+        return $session->load(['items.reservation.inventory', 'items.vendor', 'address', 'order', 'savedPaymentMethod', 'promotionAllocations.promotion', 'promotionUsages.promotion']);
     }
 }

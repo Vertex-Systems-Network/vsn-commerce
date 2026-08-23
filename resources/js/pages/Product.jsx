@@ -42,7 +42,7 @@ export default function Product({ onAdd }) {
   const [remoteLoading,setRemoteLoading]=useState(apiBackend==='laravel');
   const [remoteError,setRemoteError]=useState('');
   const [wishlist,setWishlist]=useState({saved:false,itemId:null,busy:false});
-  const product = apiBackend === 'laravel' ? (remoteProduct || {...fallbackProduct,id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[]}) : fallbackProduct;
+  const product = apiBackend === 'laravel' ? (remoteProduct || {id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[],vendor:'',category:'',stock:0,sold:0,game:false,installment:false}) : fallbackProduct;
   const alerts = useLaravelProductAlerts();
   const images = useMemo(/** Uses only server media in Laravel mode and demo media only in legacy mode. */ () => apiBackend==='laravel' ? (remoteProduct?.images||[]) : (demoImages[fallbackProduct.id] || [product.image]), [remoteProduct, fallbackProduct, product.image]);
   const [activeImage, setActiveImage] = useState(0);
@@ -50,7 +50,6 @@ export default function Product({ onAdd }) {
   const [storage, setStorage] = useState((product.variants || ['256GB', '512GB', '1TB'])[0]);
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState('full');
-  const [emi, setEmi] = useState(12);
   const [recipient, setRecipient] = useState('');
   const [giftMessage, setGiftMessage] = useState('');
   const [giftWrap, setGiftWrap] = useState(true);
@@ -59,7 +58,6 @@ export default function Product({ onAdd }) {
   const [giftSavedMethods, setGiftSavedMethods] = useState([]);
   const [giftSavedMethodId, setGiftSavedMethodId] = useState('');
   const [notice, setNotice] = useState('');
-  const [installmentApplied, setInstallmentApplied] = useState(false);
   const priceAlertActive = apiBackend==='laravel' ? alerts.isActive(product,'price_drop') : store.productAlerts?.some(/** Inline callback for this operation. */ a => a.productId === product.id && a.type === 'price');
   const stockAlertActive = apiBackend==='laravel' ? alerts.isActive(product,'back_in_stock') : store.productAlerts?.some(/** Inline callback for this operation. */ a => a.productId === product.id && a.type === 'stock');
   const [reviewRating, setReviewRating] = useState(0);
@@ -89,9 +87,6 @@ export default function Product({ onAdd }) {
 
   const discount = Math.max(0, product.old - product.price);
   const gameCost = product.gameEntryCoins || 70;
-  const emiDown = Math.round(product.price * 0.2);
-  const emiFinanced = product.price - emiDown;
-  const emiAmount = Math.ceil(emiFinanced / emi);
   const freeGiftWrapReward = apiBackend === 'laravel' && laravelGifts.rewards.some(/** Inline callback for this operation. */ r => r.code === 'free_gift_wrap' && r.status === 'available');
   const giftCoins = Math.ceil((product.price + (giftWrap ? 299 : 0)) * COINS_PER_RUPEE);
 
@@ -285,11 +280,9 @@ export default function Product({ onAdd }) {
               </div>}
 
               {tab === 'install' && product.installment && <div className="pdp-installment">
-                <div className="pdp-option-head"><span>Select plan</span><strong>{emi} months</strong></div>
-                <div className="pdp-chips">{[3, 6, 12, 24].map(/** Inline callback for this operation. */ m => <button key={m} className={emi === m ? 'active success' : ''} onClick={/** Inline callback for this operation. */ () => setEmi(m)}>{m}M</button>)}</div>
-                <div className="pdp-payment-breakdown"><div><span>Monthly payment</span><strong>Rs. {emiAmount.toLocaleString()}/mo</strong></div><div><span>Down payment (20%)</span><strong>Rs. {emiDown.toLocaleString()}</strong></div><div><span>Demo interest</span><strong>0% bank offer</strong></div><div><span>Identity requirement</span><strong>{store.profile.idVerified ? 'Verified' : 'Govt ID required'}</strong></div></div>
-                {!store.profile.idVerified && <p className="pdp-inline-warning">Complete government ID verification in Profile before production financing approval.</p>}
-                <Button variant="success" onClick={/** Inline callback for this operation. */ () => { setInstallmentApplied(true); setNotice('Installment application created in demo state. Production flow will submit to the financing API.') }}><FaCreditCard /> {installmentApplied ? 'Application created' : 'Apply for installment plan'}</Button>
+                <div className="pdp-option-head"><span>Installment checkout</span><strong>Provider-authorized</strong></div>
+                <p>Installment availability, identity requirements, repayment term and final charges are confirmed by the enabled payment provider during secure checkout.</p>
+                <Button variant="success" onClick={/** Inline callback for this operation. */ () => addCart(true)}><FaCreditCard /> Continue to secure checkout</Button>
               </div>}
 
               {tab === 'game' && product.game && <div className="pdp-game-tab">

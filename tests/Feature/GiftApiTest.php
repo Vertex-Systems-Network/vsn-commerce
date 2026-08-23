@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use App\Domain\Gifts\Actions\DispatchGiftNotifications;
 use App\Domain\Gifts\Actions\ReconcileGiftStatuses;
-use App\Enums\ProductStatus;
 use App\Enums\GiftRewardStatus;
 use App\Enums\OrderStatus;
+use App\Enums\ProductStatus;
 use App\Models\Address;
-use App\Models\GiftSenderProfile;
+use App\Models\Gift;
 use App\Models\GiftSenderReward;
 use App\Models\Inventory;
 use App\Models\Order;
@@ -47,7 +47,7 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [$product, $variant] = $this->productWithStock(100_000, 3);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
 
         $response = $this->postJson('/api/v1/gifts/checkouts', $this->giftPayload($recipient, $variant, 'gift-private-001'))
@@ -106,12 +106,12 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant, $inventory] = $this->productWithStock(100_000, 3);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
 
         $gift = $this->postJson('/api/v1/gifts/checkouts', $this->giftPayload($recipient, $variant, 'gift-coins-001'))
             ->assertCreated()->json('data');
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>87_500]);
+        $this->assertDatabaseHas('wallets', ['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 87_500]);
 
         $firstOrder = $this->postJson("/api/v1/checkout/sessions/{$gift['checkout']['id']}/order", [])
             ->assertOk()->assertJsonPath('data.paymentStatus', 'paid')->json('data.id');
@@ -119,12 +119,12 @@ class GiftApiTest extends TestCase
             ->assertOk()->json('data.id');
 
         $this->assertSame($firstOrder, $secondOrder);
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>13_000,'reserved_coins'=>0]);
+        $this->assertDatabaseHas('wallets', ['user_id' => $sender->id, 'balance_coins' => 13_000, 'reserved_coins' => 0]);
         $this->assertSame(2, $inventory->fresh()->on_hand);
         $this->assertSame(0, $inventory->fresh()->reserved);
         $this->assertDatabaseCount('gift_sender_events', 1);
-        $this->assertDatabaseHas('gift_sender_profiles', ['user_id'=>$sender->id,'lifetime_gift_coins'=>70_000]);
-        $this->assertDatabaseHas('gifts', ['sender_user_id'=>$sender->id,'recipient_user_id'=>$recipient->id,'status'=>'processing']);
+        $this->assertDatabaseHas('gift_sender_profiles', ['user_id' => $sender->id, 'lifetime_gift_coins' => 70_000]);
+        $this->assertDatabaseHas('gifts', ['sender_user_id' => $sender->id, 'recipient_user_id' => $recipient->id, 'status' => 'processing']);
     }
 
     /** Verifies cancelling unpaid coin gift releases wallet hold and inventory. */
@@ -132,19 +132,19 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant, $inventory] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
 
         $data = $this->postJson('/api/v1/gifts/checkouts', $this->giftPayload($recipient, $variant, 'gift-cancel-001'))
             ->assertCreated()->json('data');
         $this->assertSame(1, $inventory->fresh()->reserved);
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'reserved_coins'=>87_500]);
+        $this->assertDatabaseHas('wallets', ['user_id' => $sender->id, 'reserved_coins' => 87_500]);
 
         $this->postJson("/api/v1/gifts/{$data['gift']['id']}/cancel", [])
             ->assertOk()->assertJsonPath('data.status', 'cancelled');
 
         $this->assertSame(0, $inventory->fresh()->reserved);
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        $this->assertDatabaseHas('wallets', ['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('gift_sender_events', 0);
     }
@@ -155,7 +155,7 @@ class GiftApiTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-08-08 10:00:00'));
         [$sender, $recipient] = $this->people();
         [, $variant] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
         $payload = $this->giftPayload($recipient, $variant, 'gift-scheduled-001');
         $payload['scheduledFor'] = '2026-08-10T10:00:00+00:00';
@@ -169,7 +169,7 @@ class GiftApiTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-08-10 10:01:00'));
         app(DispatchGiftNotifications::class)->execute();
         $this->getJson('/api/v1/gifts')->assertOk()->assertJsonPath('data.received.0.message', 'Open this on your special day.');
-        $this->assertDatabaseHas('gift_notifications', ['gift_id'=>$this->giftId($data['gift']['id']),'status'=>'delivered']);
+        $this->assertDatabaseHas('gift_notifications', ['gift_id' => $this->giftId($data['gift']['id']), 'status' => 'delivered']);
         Carbon::setTestNow();
     }
 
@@ -178,7 +178,7 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
         $payload = $this->giftPayload($recipient, $variant, 'gift-anon-001');
         $payload['anonymous'] = true;
@@ -194,20 +194,20 @@ class GiftApiTest extends TestCase
     public function test_coin_gift_updates_progress_and_gold_threshold_bonus_is_idempotent(): void
     {
         [$sender, $recipient] = $this->people();
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>50_000,'reserved_coins'=>0]);
-        Wallet::create(['user_id'=>$recipient->id,'balance_coins'=>0,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 50_000, 'reserved_coins' => 0]);
+        Wallet::create(['user_id' => $recipient->id, 'balance_coins' => 0, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
-        $payload = ['recipient'=>$recipient->email,'coins'=>35_000,'idempotencyKey'=>'coin-gift-progress-001'];
+        $payload = ['recipient' => $recipient->email, 'coins' => 35_000, 'idempotencyKey' => 'coin-gift-progress-001'];
 
         $this->postJson('/api/v1/wallet/transfers', $payload)->assertOk();
         $this->postJson('/api/v1/wallet/transfers', $payload)->assertOk();
 
-        $this->assertDatabaseHas('gift_sender_profiles', ['user_id'=>$sender->id,'lifetime_gift_coins'=>35_000,'current_level'=>'gold']);
+        $this->assertDatabaseHas('gift_sender_profiles', ['user_id' => $sender->id, 'lifetime_gift_coins' => 35_000, 'current_level' => 'gold']);
         $this->assertDatabaseCount('gift_sender_events', 1);
-        $this->assertDatabaseHas('gift_sender_rewards', ['user_id'=>$sender->id,'reward_code'=>'free_gift_wrap']);
-        $this->assertDatabaseHas('gift_sender_rewards', ['user_id'=>$sender->id,'reward_code'=>'gift_bonus_500']);
-        $this->assertDatabaseHas('wallets', ['user_id'=>$sender->id,'balance_coins'=>15_500,'reserved_coins'=>0]);
-        $this->assertDatabaseHas('wallet_transactions', ['type'=>'gift_level_reward']);
+        $this->assertDatabaseHas('gift_sender_rewards', ['user_id' => $sender->id, 'reward_code' => 'free_gift_wrap']);
+        $this->assertDatabaseHas('gift_sender_rewards', ['user_id' => $sender->id, 'reward_code' => 'gift_bonus_500']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $sender->id, 'balance_coins' => 15_500, 'reserved_coins' => 0]);
+        $this->assertDatabaseHas('wallet_transactions', ['type' => 'gift_level_reward']);
     }
 
     /** Verifies gift tracking reconciles to fulfilled when underlying order is delivered. */
@@ -215,11 +215,11 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>100_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 100_000, 'reserved_coins' => 0]);
         Sanctum::actingAs($sender);
         $data = $this->postJson('/api/v1/gifts/checkouts', $this->giftPayload($recipient, $variant, 'gift-track-001'))->assertCreated()->json('data');
         $orderId = $this->postJson("/api/v1/checkout/sessions/{$data['checkout']['id']}/order", [])->assertOk()->json('data.id');
-        Order::query()->where('public_id',$orderId)->firstOrFail()->update(['status'=>OrderStatus::Delivered]);
+        Order::query()->where('public_id', $orderId)->firstOrFail()->update(['status' => OrderStatus::Delivered]);
 
         app(ReconcileGiftStatuses::class)->execute();
 
@@ -234,10 +234,10 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>120_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 120_000, 'reserved_coins' => 0]);
         $reward = GiftSenderReward::create([
-            'public_id'=>(string)Str::ulid(),'user_id'=>$sender->id,'reward_code'=>'free_gift_wrap','level'=>'silver',
-            'status'=>GiftRewardStatus::Available,'metadata'=>['label'=>'Free gift wrap'],'awarded_at'=>now(),
+            'public_id' => (string) Str::ulid(), 'user_id' => $sender->id, 'reward_code' => 'free_gift_wrap', 'level' => 'silver',
+            'status' => GiftRewardStatus::Available, 'metadata' => ['label' => 'Free gift wrap'], 'awarded_at' => now(),
         ]);
         Sanctum::actingAs($sender);
         $payload = $this->giftPayload($recipient, $variant, 'gift-free-wrap-001');
@@ -261,10 +261,10 @@ class GiftApiTest extends TestCase
     {
         [$sender, $recipient] = $this->people();
         [, $variant] = $this->productWithStock(100_000, 2);
-        Wallet::create(['user_id'=>$sender->id,'balance_coins'=>120_000,'reserved_coins'=>0]);
+        Wallet::create(['user_id' => $sender->id, 'balance_coins' => 120_000, 'reserved_coins' => 0]);
         $reward = GiftSenderReward::create([
-            'public_id'=>(string)Str::ulid(),'user_id'=>$sender->id,'reward_code'=>'free_gift_wrap','level'=>'silver',
-            'status'=>GiftRewardStatus::Available,'metadata'=>['label'=>'Free gift wrap'],'awarded_at'=>now(),
+            'public_id' => (string) Str::ulid(), 'user_id' => $sender->id, 'reward_code' => 'free_gift_wrap', 'level' => 'silver',
+            'status' => GiftRewardStatus::Available, 'metadata' => ['label' => 'Free gift wrap'], 'awarded_at' => now(),
         ]);
         Sanctum::actingAs($sender);
         $payload = $this->giftPayload($recipient, $variant, 'gift-free-wrap-cancel-001');
@@ -280,55 +280,57 @@ class GiftApiTest extends TestCase
     /** Handles people for the gift api test workflow. */
     private function people(): array
     {
-        $sender = User::factory()->create(['name'=>'Gift Sender']);
-        $recipient = User::factory()->create(['name'=>'Gift Recipient']);
+        $sender = User::factory()->create(['name' => 'Gift Sender']);
+        $recipient = User::factory()->create(['name' => 'Gift Recipient']);
         Address::create([
-            'user_id'=>$sender->id,'label'=>'Home','recipient_name'=>$sender->name,'phone'=>'03001112222','line1'=>'11 Sender Street',
-            'city'=>'Lahore','state'=>'Punjab','postal_code'=>'54000','country_code'=>'PK','is_default'=>true,
+            'user_id' => $sender->id, 'label' => 'Home', 'recipient_name' => $sender->name, 'phone' => '03001112222', 'line1' => '11 Sender Street',
+            'city' => 'Lahore', 'state' => 'Punjab', 'postal_code' => '54000', 'country_code' => 'PK', 'is_default' => true,
         ]);
         Address::create([
-            'user_id'=>$recipient->id,'label'=>'Home','recipient_name'=>$recipient->name,'phone'=>'03009998888','line1'=>'99 Recipient Lane',
-            'city'=>'Karachi','state'=>'Sindh','postal_code'=>'74000','country_code'=>'PK','is_default'=>true,
+            'user_id' => $recipient->id, 'label' => 'Home', 'recipient_name' => $recipient->name, 'phone' => '03009998888', 'line1' => '99 Recipient Lane',
+            'city' => 'Karachi', 'state' => 'Sindh', 'postal_code' => '74000', 'country_code' => 'PK', 'is_default' => true,
         ]);
-        return [$sender,$recipient];
+
+        return [$sender, $recipient];
     }
 
     /** Handles product with stock for the gift api test workflow. */
     private function productWithStock(int $priceMinor, int $stock): array
     {
-        $vendor = Vendor::create(['name'=>'Gift Seller','slug'=>'gift-seller-'.Str::lower(Str::random(6)),'status'=>'active','commission_bps'=>1000]);
+        $vendor = Vendor::create(['name' => 'Gift Seller', 'slug' => 'gift-seller-'.Str::lower(Str::random(6)), 'status' => 'active', 'commission_bps' => 1000]);
         $product = Product::create([
-            'public_id'=>(string)Str::ulid(),'vendor_id'=>$vendor->id,'sku'=>'GIFT-'.Str::upper(Str::random(8)),
-            'slug'=>'gift-product-'.Str::lower(Str::random(8)),'name'=>'Gift Product','status'=>ProductStatus::Published,
-            'currency'=>'PKR','base_price_minor'=>$priceMinor,
+            'public_id' => (string) Str::ulid(), 'vendor_id' => $vendor->id, 'sku' => 'GIFT-'.Str::upper(Str::random(8)),
+            'slug' => 'gift-product-'.Str::lower(Str::random(8)), 'name' => 'Gift Product', 'status' => ProductStatus::Published,
+            'currency' => 'PKR', 'base_price_minor' => $priceMinor,
         ]);
         $variant = ProductVariant::create([
-            'product_id'=>$product->id,'sku'=>$product->sku.'-DEFAULT','name'=>'Default','price_minor'=>$priceMinor,
-            'is_default'=>true,'is_active'=>true,'option_values'=>[],
+            'product_id' => $product->id, 'sku' => $product->sku.'-DEFAULT', 'name' => 'Default', 'price_minor' => $priceMinor,
+            'is_default' => true, 'is_active' => true, 'option_values' => [],
         ]);
-        $warehouse = Warehouse::create(['code'=>'WH-'.Str::upper(Str::random(6)),'name'=>'Gift Warehouse']);
-        $inventory = Inventory::create(['warehouse_id'=>$warehouse->id,'product_variant_id'=>$variant->id,'on_hand'=>$stock,'reserved'=>0,'safety_stock'=>0]);
-        return [$product,$variant,$inventory,$vendor];
+        $warehouse = Warehouse::create(['code' => 'WH-'.Str::upper(Str::random(6)), 'name' => 'Gift Warehouse']);
+        $inventory = Inventory::create(['warehouse_id' => $warehouse->id, 'product_variant_id' => $variant->id, 'on_hand' => $stock, 'reserved' => 0, 'safety_stock' => 0]);
+
+        return [$product, $variant, $inventory, $vendor];
     }
 
     /** Handles gift payload for the gift api test workflow. */
     private function giftPayload(User $recipient, ProductVariant $variant, string $key): array
     {
         return [
-            'recipient'=>$recipient->email,
-            'variantId'=>$variant->id,
-            'message'=>'A gift for you',
-            'giftWrap'=>false,
-            'anonymous'=>false,
-            'shippingMethod'=>'standard',
-            'paymentMethod'=>'coins',
-            'idempotencyKey'=>$key,
+            'recipient' => $recipient->email,
+            'variantId' => $variant->id,
+            'message' => 'A gift for you',
+            'giftWrap' => false,
+            'anonymous' => false,
+            'shippingMethod' => 'standard',
+            'paymentMethod' => 'coins',
+            'idempotencyKey' => $key,
         ];
     }
 
     /** Handles gift id for the gift api test workflow. */
     private function giftId(string $publicId): int
     {
-        return (int) \App\Models\Gift::query()->where('public_id',$publicId)->value('id');
+        return (int) Gift::query()->where('public_id', $publicId)->value('id');
     }
 }

@@ -38,7 +38,7 @@ class CouponDiscountResolver
     {
         $couponCode = trim((string) $couponCode);
         if ($couponCode === '') {
-            return ['discountMinor'=>0,'coupon'=>null];
+            return ['discountMinor' => 0, 'coupon' => null];
         }
 
         $coupon = ReviewRewardCoupon::query()
@@ -59,7 +59,7 @@ class CouponDiscountResolver
 
         $discount = min($subtotalMinor, intdiv($subtotalMinor * (int) $coupon->percent_bps, 10_000));
 
-        return ['discountMinor'=>$discount,'coupon'=>$coupon];
+        return ['discountMinor' => $discount, 'coupon' => $coupon];
     }
 
     /** Persists terminal expiry/refund state before rejecting the coupon. */
@@ -67,7 +67,7 @@ class CouponDiscountResolver
     {
         if ($coupon->expires_at?->isPast()) {
             if ($coupon->status !== ReviewCouponStatus::Redeemed) {
-                $coupon->update(['status'=>ReviewCouponStatus::Expired]);
+                $coupon->update(['status' => ReviewCouponStatus::Expired]);
             }
             throw new CheckoutValidationException('This review coupon has expired.', 'couponCode');
         }
@@ -76,9 +76,9 @@ class CouponDiscountResolver
         if (! $sourceItem || (int) $sourceItem->refunded_quantity >= (int) $sourceItem->quantity) {
             if ($coupon->status !== ReviewCouponStatus::Redeemed) {
                 $coupon->update([
-                    'status'=>ReviewCouponStatus::Revoked,
-                    'revoked_at'=>now(),
-                    'metadata'=>array_merge($coupon->metadata ?? [], ['revoked_reason'=>'source_purchase_fully_refunded']),
+                    'status' => ReviewCouponStatus::Revoked,
+                    'revoked_at' => now(),
+                    'metadata' => array_merge($coupon->metadata ?? [], ['revoked_reason' => 'source_purchase_fully_refunded']),
                 ]);
             }
             throw new CheckoutValidationException('This review coupon is no longer valid because its source purchase was fully refunded.', 'couponCode');

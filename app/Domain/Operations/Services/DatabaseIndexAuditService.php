@@ -59,8 +59,8 @@ class DatabaseIndexAuditService
         } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
             $required = array_merge($required, self::MYSQL_REQUIRED);
             $names = collect(DB::select(
-                'select distinct index_name from information_schema.statistics where table_schema = database()'
-            ))->pluck('index_name');
+                'select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()'
+            ))->pluck('index_identifier');
         } else {
             return ['driver' => $driver, 'supported' => false, 'missing' => $required];
         }

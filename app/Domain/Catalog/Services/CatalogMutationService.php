@@ -108,7 +108,7 @@ class CatalogMutationService
                 InventoryMovement::create(['inventory_id' => $row->id, 'type' => InventoryMovementType::Adjustment, 'on_hand_delta' => $delta, 'reserved_delta' => 0, 'reference_type' => 'catalog_adjustment', 'reference_id' => (string) $actor->id, 'metadata' => ['reason' => $reason, 'actor_user_id' => $actor->id]]);
             }
 
-return $row->fresh();
+            return $row->fresh();
         }, 3);
         $this->alerts->execute($variant->product);
         $this->cache->bump();
@@ -173,10 +173,10 @@ return $row->fresh();
         $base = Str::slug($value) ?: 'product';
         $slug = $base;
         $n = 2;
-        while (Product::query()->withTrashed()->where('slug',$slug)->when($exceptId,/** Inline callback for this operation. */ fn ($q) => $q->where('id','!=',$exceptId))->exists()) {
+        while (Product::query()->withTrashed()->where('slug', $slug)->when($exceptId, /** Inline callback for this operation. */ fn ($q) => $q->where('id', '!=', $exceptId))->exists()) {
             $slug = $base.'-'.$n++;
         }
 
-return $slug;
+        return $slug;
     }
 }

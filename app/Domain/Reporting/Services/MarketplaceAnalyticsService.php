@@ -271,12 +271,12 @@ class MarketplaceAnalyticsService
     }
 
     /** Handles repeat customer count for the marketplace analytics service workflow. */
-    private function repeatCustomerCount(array $userIds,CarbonImmutable $to): int
+    private function repeatCustomerCount(array $userIds, CarbonImmutable $to): int
     {
         if (! $userIds) {
             return 0;
         }
 
-        return DB::query()->fromSub(Order::query()->selectRaw('user_id, COUNT(*) cnt')->whereIn('user_id',$userIds)->whereIn('payment_status',[PaymentStatus::Paid->value, PaymentStatus::PartiallyRefunded->value, PaymentStatus::Refunded->value])->where('placed_at','<=',$to)->groupBy('user_id'),'buyers')->where('cnt','>',1)->count();
+        return DB::query()->fromSub(Order::query()->selectRaw('user_id, COUNT(*) cnt')->whereIn('user_id', $userIds)->whereIn('payment_status', [PaymentStatus::Paid->value, PaymentStatus::PartiallyRefunded->value, PaymentStatus::Refunded->value])->where('placed_at', '<=', $to)->groupBy('user_id'), 'buyers')->where('cnt', '>', 1)->count();
     }
 }
