@@ -6,7 +6,7 @@ const placeholder='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg x
 /** Handles safe image for the VSN Ecommerce interface. */
 export function SafeImage({src,alt='',className='',...props}){const [bad,setBad]=useState(false);useEffect(/** Inline callback for this operation. */ ()=>setBad(false),[src]);return <img className={className} src={bad||!src?placeholder:src} alt={alt} loading="lazy" decoding="async" onError={/** Inline callback for this operation. */ ()=>setBad(true)} {...props}/>}
 /** Handles button for the VSN Ecommerce interface. */
-export function Button({children,variant='primary',className='',loading=false,loadingLabel='Working…',icon:Icon,type='button',disabled,...p}){return <button type={type} className={`ui-btn ui-btn--${variant} ${className}`} disabled={disabled||loading} aria-busy={loading||undefined} {...p}>{loading?<FaSpinner className="ui-spin"/>:Icon?<Icon/>:null}<span>{loading?loadingLabel:children}</span></button>}
+export function Button({children,variant='primary',className='',loading=false,loadingLabel='Working…',icon:Icon,type,disabled,...p}){const resolvedType=type??(p.onClick?'button':'submit');return <button type={resolvedType} className={`ui-btn ui-btn--${variant} ${className}`} disabled={disabled||loading} aria-busy={loading||undefined} {...p}>{loading?<FaSpinner className="ui-spin"/>:Icon?<Icon/>:null}<span>{loading?loadingLabel:children}</span></button>}
 /** Handles card for the VSN Ecommerce interface. */
 export function Card({children,className='',...p}){return <section className={`ui-card ${className}`} {...p}>{children}</section>}
 /** Handles field for the VSN Ecommerce interface. */
