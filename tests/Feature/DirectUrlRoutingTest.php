@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /** Verifies clean browser URLs and core same-origin API routes resolve through Laravel. */
 class DirectUrlRoutingTest extends TestCase
 {
+    use RefreshDatabase;
+
     /** Ensure every public SPA entry URL typed directly into the browser returns the React shell. */
     public function test_all_direct_spa_entry_urls_return_the_react_shell(): void
     {
