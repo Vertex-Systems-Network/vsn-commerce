@@ -28,7 +28,7 @@ test('customer completes COD checkout from product to order confirmation', /** I
   await expect(page.getByRole('heading', { name: 'Review marketplace order' })).toBeVisible();
   await page.getByRole('button', { name: 'Place order' }).click();
   await expect(page.getByRole('heading', { name: 'Thank you for your order' })).toBeVisible();
-  await expect(page.getByText(/seller order/i).first()).toBeVisible();
+  await expect(page.getByText(/split by seller/i)).toBeVisible();
 });
 
 test('@crossbrowser public storefront and login render without runtime errors', /** Inline callback for this operation. */ async ({ page }) => {
