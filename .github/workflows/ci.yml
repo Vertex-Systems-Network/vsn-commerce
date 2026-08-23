@@ -206,54 +206,97 @@ jobs:
 
           path = Path('resources/js/pages/Product.jsx')
           source = path.read_text()
+          marker = 'Installment application created in demo state'
 
+          if marker in source:
+              replacements = [
+                  ("  const [emi, setEmi] = useState(12);\n", ""),
+                  ("  const [installmentApplied, setInstallmentApplied] = useState(false);\n", ""),
+                  (
+                      "  const product = apiBackend === 'laravel' ? (remoteProduct || {...fallbackProduct,id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[]}) : fallbackProduct;\n",
+                      "  const product = apiBackend === 'laravel' ? (remoteProduct || {id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[],vendor:'',category:'',stock:0,sold:0,game:false,installment:false}) : fallbackProduct;\n",
+                  ),
+                  (
+                      "  const emiDown = Math.round(product.price * 0.2);\n  const emiFinanced = product.price - emiDown;\n  const emiAmount = Math.ceil(emiFinanced / emi);\n",
+                      "",
+                  ),
+                  (
+                      "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Select plan</span><strong>{emi} months</strong></div>\n                <div className=\"pdp-chips\">{[3, 6, 12, 24].map(/** Inline callback for this operation. */ m => <button key={m} className={emi === m ? 'active success' : ''} onClick={/** Inline callback for this operation. */ () => setEmi(m)}>{m}M</button>)}</div>\n                <div className=\"pdp-payment-breakdown\"><div><span>Monthly payment</span><strong>Rs. {emiAmount.toLocaleString()}/mo</strong></div><div><span>Down payment (20%)</span><strong>Rs. {emiDown.toLocaleString()}</strong></div><div><span>Demo interest</span><strong>0% bank offer</strong></div><div><span>Identity requirement</span><strong>{store.profile.idVerified ? 'Verified' : 'Govt ID required'}</strong></div></div>\n                {!store.profile.idVerified && <p className=\"pdp-inline-warning\">Complete government ID verification in Profile before production financing approval.</p>}\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => { setInstallmentApplied(true); setNotice('Installment application created in demo state. Production flow will submit to the financing API.') }}><FaCreditCard /> {installmentApplied ? 'Application created' : 'Apply for installment plan'}</Button>\n              </div>}\n",
+                      "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Installment checkout</span><strong>Provider-authorized</strong></div>\n                <p>Installment availability, identity requirements, repayment term and final charges are confirmed by the enabled payment provider during secure checkout.</p>\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => addCart(true)}><FaCreditCard /> Continue to secure checkout</Button>\n              </div>}\n",
+                  ),
+              ]
+              for old, new in replacements:
+                  if old not in source:
+                      raise SystemExit(f'Expected Product source block was not found: {old[:80]!r}')
+                  source = source.replace(old, new, 1)
+              path.write_text(source)
+
+          source = path.read_text()
+          if marker in source or 'store.profile.idVerified' in source:
+              raise SystemExit('Product demo installment authority remains after remediation.')
+          PY
+      - name: Normalize MySQL metadata introspection
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('app/Domain/Operations/Services/DatabaseIndexAuditService.php')
+          source = service.read_text()
+          old = """            $names = collect(DB::select(\n                'select distinct index_name from information_schema.statistics where table_schema = database()'\n            ))->pluck('index_name');\n"""
+          new = """            $names = collect(DB::select(\n                'select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()'\n            ))->pluck('index_identifier');\n"""
+          if old in source:
+              source = source.replace(old, new, 1)
+              service.write_text(source)
+          elif "pluck('index_identifier')" not in source:
+              raise SystemExit('DatabaseIndexAuditService MySQL metadata block drifted unexpectedly.')
+
+          test = Path('tests/Feature/MySqlRuntimeCompatibilityTest.php')
+          source = test.read_text()
           replacements = [
               (
-                  "  const [emi, setEmi] = useState(12);\n",
-                  "",
+                  "$rows = DB::select('select distinct index_name from information_schema.statistics where table_schema = database()');\n        $names = collect($rows)->pluck('index_name')->all();",
+                  "$rows = DB::select('select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()');\n        $names = collect($rows)->pluck('index_identifier')->all();",
               ),
               (
-                  "  const [installmentApplied, setInstallmentApplied] = useState(false);\n",
-                  "",
+                  "'select extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',",
+                  "'select extra as generation_extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',",
               ),
               (
-                  "  const product = apiBackend === 'laravel' ? (remoteProduct || {...fallbackProduct,id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[]}) : fallbackProduct;\n",
-                  "  const product = apiBackend === 'laravel' ? (remoteProduct || {id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[],vendor:'',category:'',stock:0,sold:0,game:false,installment:false}) : fallbackProduct;\n",
+                  "$this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->extra));",
+                  "$this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->generation_extra));",
               ),
               (
-                  "  const emiDown = Math.round(product.price * 0.2);\n  const emiFinanced = product.price - emiDown;\n  const emiAmount = Math.ceil(emiFinanced / emi);\n",
-                  "",
+                  '"select table_name, column_name, referenced_table_name from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null"',
+                  '"select table_name as child_table, column_name as child_column, referenced_table_name as parent_table from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null"',
               ),
               (
-                  "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Select plan</span><strong>{emi} months</strong></div>\n                <div className=\"pdp-chips\">{[3, 6, 12, 24].map(/** Inline callback for this operation. */ m => <button key={m} className={emi === m ? 'active success' : ''} onClick={/** Inline callback for this operation. */ () => setEmi(m)}>{m}M</button>)}</div>\n                <div className=\"pdp-payment-breakdown\"><div><span>Monthly payment</span><strong>Rs. {emiAmount.toLocaleString()}/mo</strong></div><div><span>Down payment (20%)</span><strong>Rs. {emiDown.toLocaleString()}</strong></div><div><span>Demo interest</span><strong>0% bank offer</strong></div><div><span>Identity requirement</span><strong>{store.profile.idVerified ? 'Verified' : 'Govt ID required'}</strong></div></div>\n                {!store.profile.idVerified && <p className=\"pdp-inline-warning\">Complete government ID verification in Profile before production financing approval.</p>}\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => { setInstallmentApplied(true); setNotice('Installment application created in demo state. Production flow will submit to the financing API.') }}><FaCreditCard /> {installmentApplied ? 'Application created' : 'Apply for installment plan'}</Button>\n              </div>}\n",
-                  "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Installment checkout</span><strong>Provider-authorized</strong></div>\n                <p>Installment availability, identity requirements, repayment term and final charges are confirmed by the enabled payment provider during secure checkout.</p>\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => addCart(true)}><FaCreditCard /> Continue to secure checkout</Button>\n              </div>}\n",
+                  'fn ($row) => "{$row->table_name}.{$row->column_name}->{$row->referenced_table_name}"',
+                  'fn ($row) => "{$row->child_table}.{$row->child_column}->{$row->parent_table}"',
               ),
           ]
-
+          changed = False
           for old, new in replacements:
-              if old not in source:
-                  raise SystemExit(f'Expected Product source block was not found: {old[:80]!r}')
-              source = source.replace(old, new, 1)
-
-          if 'Installment application created in demo state' in source:
-              raise SystemExit('Demo installment success path still exists after remediation.')
-          if 'store.profile.idVerified' in source:
-              raise SystemExit('Local profile verification still controls installment UI after remediation.')
-
-          path.write_text(source)
+              if old in source:
+                  source = source.replace(old, new, 1)
+                  changed = True
+              elif new not in source:
+                  raise SystemExit(f'MySQL compatibility test block drifted unexpectedly: {old[:80]!r}')
+          if changed:
+              test.write_text(source)
           PY
       - name: Apply Pint to PR PHP diff
         run: php vendor/bin/pint --diff=origin/main
-      - name: Commit remediation, formatting and remove one-shot job
+      - name: Commit remediation and resolved dependency lock
         shell: bash
         run: |
-          git show 23ce5b7842070e4333be086f2a4463bc006348d7:.github/workflows/ci.yml > .github/workflows/ci.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -u
+          git add composer.lock
           if git diff --cached --quiet; then
             echo "No remediation or formatting changes required."
             exit 0
           fi
-          git commit -m "fix(product): remove fake installment authority"
+          git commit -m "fix(runtime): stabilize MySQL metadata and product authority"
           git push origin HEAD:ai/audit-admin-untitled-master-plan
