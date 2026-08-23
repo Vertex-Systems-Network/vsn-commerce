@@ -1,133 +1,182 @@
-name: One-shot remediation
-
+name: CI
 on:
+  push:
+    branches:
+      - main
   pull_request:
 
 concurrency:
-  group: remediation-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  remediate:
-    permissions:
-      contents: write
+  static-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ai/audit-admin-untitled-master-plan
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: mbstring, dom, xml, xmlwriter
           tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: php scripts/test-matrix.php --static-only
       - run: composer validate --no-check-publish
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Remove fake Product installment authority
-        shell: bash
+      - name: Run Larastan / PHPStan
+        run: composer run quality:phpstan
+      - name: Run Pint on PHP changed from main
+        run: php vendor/bin/pint --test --diff=origin/main
+      - name: Preserve resolved Composer lock candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsn-composer-lock-candidate
+          path: composer.lock
+          if-no-files-found: error
+      - run: npm ci --no-audit --no-fund
+      - name: Install pinned ESLint quality tooling
+        run: npm run lint:bootstrap
+      - name: Run React, hooks and accessibility lint
+        run: npm run lint
+      - name: Run frontend source and routing quality audit
+        run: npm test
+      - run: npm run build
+
+  sqlite-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php vendor/bin/phpunit --configuration=phpunit.xml
+
+  mysql-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: vsn_ecommerce_test
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php scripts/mysql-runtime-preflight.php --database=vsn_ecommerce_test
+      - run: php vendor/bin/phpunit --configuration=phpunit.mysql.xml
+
+  postgres-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_DB: vsn_test
+          POSTGRES_USER: vsn
+          POSTGRES_PASSWORD: vsn-local-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U vsn -d vsn_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: php vendor/bin/phpunit --configuration=phpunit.postgres.xml
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, sqlite3, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
+          tools: composer:v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: npm ci --no-audit --no-fund
+      - name: Install pinned Playwright, axe and W3C Nu tooling
+        run: npm run e2e:bootstrap
+      - name: Build React application
+        run: npm run build
+      - name: Install Chromium browser dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop + mobile browser E2E, click, WCAG and W3C gates
+        run: npx playwright test --project=chromium --project=mobile-chromium
+      - name: Run WAVE public staging audit when configured
+        env:
+          WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
+          WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
+          WAVE_ROUTES: ${{ vars.WAVE_ROUTES }}
+        run: npm run audit:wave
+      - name: Record browser acceptance evidence
         run: |
-          python - <<'PY'
-          from pathlib import Path
+          mkdir -p runtime-artifacts
+          cat > runtime-artifacts/browser-e2e.json <<JSON
+          {"passed":true,"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","commitSha":"$GITHUB_SHA","projects":["chromium","mobile-chromium"],"qualityGates":["runtime-errors","interaction-clicks","axe-wcag-2.2","w3c-nu","wave-when-configured"]}
+          JSON
+      - name: Upload browser and accessibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsn-browser-e2e
+          path: |
+            playwright-report/
+            runtime-artifacts/playwright-results/
+            runtime-artifacts/playwright-junit.xml
+            runtime-artifacts/browser-e2e.json
+            runtime-artifacts/wave-a11y.json
+          if-no-files-found: warn
 
-          path = Path('resources/js/pages/Product.jsx')
-          source = path.read_text()
-          marker = 'Installment application created in demo state'
-
-          if marker in source:
-              replacements = [
-                  ("  const [emi, setEmi] = useState(12);\n", ""),
-                  ("  const [installmentApplied, setInstallmentApplied] = useState(false);\n", ""),
-                  (
-                      "  const product = apiBackend === 'laravel' ? (remoteProduct || {...fallbackProduct,id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[]}) : fallbackProduct;\n",
-                      "  const product = apiBackend === 'laravel' ? (remoteProduct || {id:null,publicId:null,slug:id,name:'Loading product',image:'',images:[],price:0,old:0,rating:0,reviews:0,colors:[],variants:[],vendor:'',category:'',stock:0,sold:0,game:false,installment:false}) : fallbackProduct;\n",
-                  ),
-                  (
-                      "  const emiDown = Math.round(product.price * 0.2);\n  const emiFinanced = product.price - emiDown;\n  const emiAmount = Math.ceil(emiFinanced / emi);\n",
-                      "",
-                  ),
-                  (
-                      "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Select plan</span><strong>{emi} months</strong></div>\n                <div className=\"pdp-chips\">{[3, 6, 12, 24].map(/** Inline callback for this operation. */ m => <button key={m} className={emi === m ? 'active success' : ''} onClick={/** Inline callback for this operation. */ () => setEmi(m)}>{m}M</button>)}</div>\n                <div className=\"pdp-payment-breakdown\"><div><span>Monthly payment</span><strong>Rs. {emiAmount.toLocaleString()}/mo</strong></div><div><span>Down payment (20%)</span><strong>Rs. {emiDown.toLocaleString()}</strong></div><div><span>Demo interest</span><strong>0% bank offer</strong></div><div><span>Identity requirement</span><strong>{store.profile.idVerified ? 'Verified' : 'Govt ID required'}</strong></div></div>\n                {!store.profile.idVerified && <p className=\"pdp-inline-warning\">Complete government ID verification in Profile before production financing approval.</p>}\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => { setInstallmentApplied(true); setNotice('Installment application created in demo state. Production flow will submit to the financing API.') }}><FaCreditCard /> {installmentApplied ? 'Application created' : 'Apply for installment plan'}</Button>\n              </div>}\n",
-                      "              {tab === 'install' && product.installment && <div className=\"pdp-installment\">\n                <div className=\"pdp-option-head\"><span>Installment checkout</span><strong>Provider-authorized</strong></div>\n                <p>Installment availability, identity requirements, repayment term and final charges are confirmed by the enabled payment provider during secure checkout.</p>\n                <Button variant=\"success\" onClick={/** Inline callback for this operation. */ () => addCart(true)}><FaCreditCard /> Continue to secure checkout</Button>\n              </div>}\n",
-                  ),
-              ]
-              for old, new in replacements:
-                  if old not in source:
-                      raise SystemExit(f'Expected Product source block was not found: {old[:80]!r}')
-                  source = source.replace(old, new, 1)
-              path.write_text(source)
-
-          source = path.read_text()
-          if marker in source or 'store.profile.idVerified' in source:
-              raise SystemExit('Product demo installment authority remains after remediation.')
-          PY
-      - name: Normalize MySQL metadata introspection
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          service = Path('app/Domain/Operations/Services/DatabaseIndexAuditService.php')
-          source = service.read_text()
-          old = """            $names = collect(DB::select(\n                'select distinct index_name from information_schema.statistics where table_schema = database()'\n            ))->pluck('index_name');\n"""
-          new = """            $names = collect(DB::select(\n                'select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()'\n            ))->pluck('index_identifier');\n"""
-          if old in source:
-              source = source.replace(old, new, 1)
-              service.write_text(source)
-          elif "pluck('index_identifier')" not in source:
-              raise SystemExit('DatabaseIndexAuditService MySQL metadata block drifted unexpectedly.')
-
-          test = Path('tests/Feature/MySqlRuntimeCompatibilityTest.php')
-          source = test.read_text()
-          replacements = [
-              (
-                  "$rows = DB::select('select distinct index_name from information_schema.statistics where table_schema = database()');\n        $names = collect($rows)->pluck('index_name')->all();",
-                  "$rows = DB::select('select distinct index_name as index_identifier from information_schema.statistics where table_schema = database()');\n        $names = collect($rows)->pluck('index_identifier')->all();",
-              ),
-              (
-                  "'select extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',",
-                  "'select extra as generation_extra from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?',",
-              ),
-              (
-                  "$this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->extra));",
-                  "$this->assertStringContainsString('VIRTUAL GENERATED', strtoupper((string) $row->generation_extra));",
-              ),
-              (
-                  '"select table_name, column_name, referenced_table_name from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null"',
-                  '"select table_name as child_table, column_name as child_column, referenced_table_name as parent_table from information_schema.key_column_usage where table_schema = database() and referenced_table_name is not null"',
-              ),
-              (
-                  'fn ($row) => "{$row->table_name}.{$row->column_name}->{$row->referenced_table_name}"',
-                  'fn ($row) => "{$row->child_table}.{$row->child_column}->{$row->parent_table}"',
-              ),
-          ]
-          changed = False
-          for old, new in replacements:
-              if old in source:
-                  source = source.replace(old, new, 1)
-                  changed = True
-              elif new not in source:
-                  raise SystemExit(f'MySQL compatibility test block drifted unexpectedly: {old[:80]!r}')
-          if changed:
-              test.write_text(source)
-          PY
-      - name: Apply Pint to PR PHP diff
-        run: php vendor/bin/pint --diff=origin/main
-      - name: Validate transformed PHP
-        run: |
-          php -l app/Domain/Operations/Services/DatabaseIndexAuditService.php
-          php -l tests/Feature/MySqlRuntimeCompatibilityTest.php
-      - name: Commit remediation and resolved dependency lock
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -u
-          git add composer.lock
-          if git diff --cached --quiet; then
-            echo "No remediation or formatting changes required."
-            exit 0
-          fi
-          git commit -m "fix(runtime): stabilize MySQL metadata and product authority"
-          git push origin HEAD:ai/audit-admin-untitled-master-plan
+  runtime-integration:
+    runs-on: ubuntu-latest
+    needs: [static-and-build, sqlite-tests, mysql-tests, postgres-tests, browser-e2e]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unified runtime + restore drill + launch gate
+        run: bash scripts/runtime-verify.sh
+      - name: Upload launch verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsn-launch-verification
+          path: |
+            runtime/launch-verification.json
+            runtime-artifacts/
+          if-no-files-found: warn
