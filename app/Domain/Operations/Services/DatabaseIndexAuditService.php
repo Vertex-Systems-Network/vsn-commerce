@@ -41,7 +41,17 @@ class DatabaseIndexAuditService
             $names = collect(DB::select("select indexname from pg_indexes where schemaname=current_schema()"))->pluck('indexname');
         } elseif ($driver === 'sqlite') {
             $names = collect();
-            foreach (['orders', 'vendor_orders', 'inventory_reservations', 'notification_deliveries', 'risk_holds'] as $table) {
+            foreach ([
+                'orders',
+                'vendor_orders',
+                'inventory_reservations',
+                'notification_deliveries',
+                'risk_holds',
+                'products',
+                'categories',
+                'product_variants',
+                'reviews',
+            ] as $table) {
                 foreach (DB::select("pragma index_list('$table')") as $row) {
                     $names->push($row->name);
                 }
@@ -56,6 +66,7 @@ class DatabaseIndexAuditService
         }
 
         $missing = collect($required)->reject(/** Inline callback for this operation. */ fn ($name) => $names->contains($name))->values()->all();
+
         return [
             'driver' => $driver,
             'supported' => true,
