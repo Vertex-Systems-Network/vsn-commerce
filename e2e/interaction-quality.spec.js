@@ -24,9 +24,15 @@ async function assertInteractiveContract(page,label){
       const name=(node.getAttribute('aria-label')||labelledByText(node)||node.getAttribute('title')||labels).trim();
       return !name;
     }).map(node=>node.outerHTML.slice(0,220));
+    const safeProtocols=new Set(['http:','https:','mailto:','tel:']);
     const deadLinks=[...document.querySelectorAll('a[href]')].filter(visible).filter(node=>{
       const href=(node.getAttribute('href')||'').trim();
-      return href===''||href==='#'||href.toLowerCase().startsWith('javascript:');
+      if(href===''||href==='#') return true;
+      try {
+        return !safeProtocols.has(new URL(href,document.baseURI).protocol.toLowerCase());
+      } catch {
+        return true;
+      }
     }).map(node=>node.outerHTML.slice(0,220));
     return {unnamed,unlabeledFields,deadLinks};
   });
