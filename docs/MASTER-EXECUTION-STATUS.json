@@ -20,19 +20,19 @@
   "branch": "ai/audit-admin-untitled-master-plan",
   "base_branch": "main",
   "base_head": "058ef611761da92aa37d021f859c645f89fec6ea",
-  "task_head": "45fd74fce42f45b51e71ed553772098b3007ab0e",
+  "task_head": "cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
     "description": "The live PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file. Any other changed path requires state reconciliation before implementation."
   },
-  "last_observed_pr_head": "45fd74fce42f45b51e71ed553772098b3007ab0e",
+  "last_observed_pr_head": "cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554",
   "pull_request": {
     "number": 1,
     "state": "open",
     "url": "https://github.com/Vertex-Systems-Network/vsn-commerce/pull/1",
     "head_branch": "ai/audit-admin-untitled-master-plan",
-    "last_observed_head_sha": "45fd74fce42f45b51e71ed553772098b3007ab0e",
+    "last_observed_head_sha": "cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554",
     "base_branch": "main",
     "base_sha": "058ef611761da92aa37d021f859c645f89fec6ea"
   },
@@ -46,7 +46,8 @@
   "blocked_tasks": [],
   "failed_gates": [
     "CI run 32643922913 (#291) on state-only descendant accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2: runtime-integration job 97206098504 failed at step 'Unified runtime + restore drill + launch gate'.",
-    "CI run 32653398285 (#292) on state-only descendant 440b3e94782fd766db3efe09cd4d5af93a8bfbd2: runtime-integration job 97229622817 failed at step 'Unified runtime + restore drill + launch gate' and produced no launch-verification artifact. Source inspection found scripts/runtime-verify.sh still used php artisan test despite the repository's direct-PHPUnit P0 contract and dependency set; commit 45fd74fce42f45b51e71ed553772098b3007ab0e replaced only those two stale runner invocations."
+    "CI run 32653398285 (#292) on state-only descendant 440b3e94782fd766db3efe09cd4d5af93a8bfbd2: runtime-integration job 97229622817 failed at step 'Unified runtime + restore drill + launch gate' and produced no launch-verification artifact. Source inspection found scripts/runtime-verify.sh still used php artisan test despite the repository's direct-PHPUnit P0 contract and dependency set; commit 45fd74fce42f45b51e71ed553772098b3007ab0e replaced only those two stale runner invocations.",
+    "CI run 32656271096 (#294) on state-only descendant 3299fb47ec07ff1e28328f47183a215889df365e: static-and-build, SQLite, MySQL, PostgreSQL and browser-e2e succeeded, but runtime-integration job 97236359531 failed during the first containerized PostgreSQL PHPUnit suite. GitHub-hosted log evidence showed 411 errors because Tests\\TestCase refused DB_DATABASE=vsn_ecommerce as a non-test database. Runtime PostgreSQL already creates vsn_test; focused commit cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554 isolates Docker tests onto postgres/vsn_test without weakening the database safety guard."
   ],
   "acceptance_evidence": [
     {
@@ -111,24 +112,64 @@
       "workflow_run_id": 32655857091,
       "workflow": "CI",
       "source_head": "45fd74fce42f45b51e71ed553772098b3007ab0e",
-      "status": "IN_PROGRESS",
+      "status": "CANCELLED",
       "passed_jobs": [
         "static-and-build",
         "sqlite-tests",
         "mysql-tests",
-        "postgres-tests"
-      ],
-      "in_progress_jobs": [
+        "postgres-tests",
         "browser-e2e"
       ],
-      "pending_jobs": [
-        "runtime-integration"
+      "cancelled_jobs": [
+        {
+          "name": "runtime-integration",
+          "job_id": 97235358041,
+          "cancelled_step": "Unified runtime + restore drill + launch gate",
+          "reason": "Superseded by canonical state-only descendant commit under CI concurrency."
+        }
+      ]
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32656271031,
+      "workflow": "Governance Code Scanning",
+      "source_head": "3299fb47ec07ff1e28328f47183a215889df365e",
+      "status": "SUCCESS"
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32656271018,
+      "workflow": "CodeQL",
+      "source_head": "3299fb47ec07ff1e28328f47183a215889df365e",
+      "status": "SUCCESS"
+    },
+    {
+      "task_id": "P0-CI-BASELINE",
+      "workflow_run_id": 32656271096,
+      "workflow": "CI",
+      "source_head": "3299fb47ec07ff1e28328f47183a215889df365e",
+      "status": "FAILURE",
+      "passed_jobs": [
+        "static-and-build",
+        "sqlite-tests",
+        "mysql-tests",
+        "postgres-tests",
+        "browser-e2e"
+      ],
+      "failed_jobs": [
+        {
+          "name": "runtime-integration",
+          "job_id": 97236359531,
+          "failed_step": "Unified runtime + restore drill + launch gate",
+          "exact_failure": "RuntimeException: Refusing to run automated tests against non-test database [vsn_ecommerce] on [pgsql]. Use a database name containing test.",
+          "failing_stage": "First containerized PHPUnit suite against PostgreSQL"
+        }
       ]
     }
   ],
   "next_exact_action": {
     "type": "OBSERVE_HOSTED_GATES",
-    "description": "Inspect exact-head CI run 32655857091 for task_head 45fd74fce42f45b51e71ed553772098b3007ab0e until browser-e2e and runtime-integration complete. Verify runtime-integration succeeds and a launch-verification artifact is uploaded. If runtime fails, extract the exact newly exposed failing command/error and make only the smallest required P0 fix. If all required gates are green, record the hosted evidence and move P0-CI-BASELINE to GATES_GREEN_PENDING_MERGE rather than DONE.",
+    "description": "Inspect fresh GitHub-hosted workflows for code task_head cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554 or its verified canonical-state-only descendant. Require static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e, runtime-integration, Governance Code Scanning and CodeQL all to succeed. For runtime, also require the launch-verification artifact. If runtime fails, extract its exact new failing command/error before any further implementation. If every required gate is green, record exact evidence and move P0-CI-BASELINE to GATES_GREEN_PENDING_MERGE rather than DONE.",
     "preconditions": [
       "Re-read this canonical state file before editing.",
       "Confirm PR #1 remains open.",
@@ -136,9 +177,9 @@
       "Do not begin later P1/P2/P3/P4/P5 work unless required as a prerequisite for this active gate."
     ],
     "expected_evidence": [
-      "CI run 32655857091 completes with static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e and runtime-integration all successful.",
+      "Current-head CI completes with static-and-build, SQLite, MySQL, PostgreSQL, browser-e2e and runtime-integration all successful.",
       "Runtime launch-verification artifact exists for the accepted head and reflects successful runtime checks.",
-      "Governance Code Scanning run 32655857092 and CodeQL run 32655857121 remain successful for task_head 45fd74fce42f45b51e71ed553772098b3007ab0e."
+      "Current-head Governance Code Scanning and CodeQL both succeed."
     ]
   },
   "architecture_decisions": [
@@ -153,9 +194,9 @@
     "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and is not part of the current CI-baseline task unless it directly blocks the active gate."
   ],
   "unresolved_issues": [
-    "Fresh CI run 32655857091 is still in progress at task_head 45fd74fce42f45b51e71ed553772098b3007ab0e: static/build and all three database jobs are green; browser-e2e is still running and runtime-integration is pending behind it.",
-    "Hosted runtime acceptance and launch-verification artifact are not yet available for task_head 45fd74fce42f45b51e71ed553772098b3007ab0e, so P0-CI-BASELINE remains GATES_FAILED.",
+    "Focused runtime database-topology fix cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554 is awaiting fresh GitHub-hosted acceptance evidence.",
+    "Hosted runtime acceptance and launch-verification artifact are not yet green for task_head cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554, so P0-CI-BASELINE remains GATES_FAILED.",
     "P0/P1 documentation contains stale claims relative to the current branch and must be reconciled only when supported by verified code/test evidence."
   ],
-  "updated_at": "2026-08-23T17:46:00Z"
+  "updated_at": "2026-08-23T18:12:00Z"
 }
