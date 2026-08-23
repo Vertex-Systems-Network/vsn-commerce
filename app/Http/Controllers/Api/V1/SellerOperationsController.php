@@ -154,34 +154,41 @@ class SellerOperationsController extends Controller
     {
         $vendor = $this->vendors->forUser($request->user());
         $data = $request->validate([
-            'name' => 'required|string|max:160',
-            'shopSlug' => ['required','string','min:3','max:190','regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',Rule::unique('vendors','slug')->ignore($vendor->id)],
-            'storefrontEnabled' => 'required|boolean',
-            'storefrontHeadline' => 'nullable|string|max:190',
-            'storefrontDescription' => 'nullable|string|max:2000',
-            'supportEmail' => 'nullable|email|max:190',
-            'publicSupportEmail' => 'nullable|email|max:190',
-            'supportPhone' => 'nullable|string|max:40',
-            'logoMediaAssetId' => 'nullable|string|max:26',
-            'logoUrl' => 'nullable|string|max:2048',
-            'returnAddress' => 'nullable|string|max:1000',
-            'dispatchNote' => 'nullable|string|max:1000',
+            'name' => 'sometimes|required|string|max:160',
+            'shopSlug' => ['sometimes','required','string','min:3','max:190','regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',Rule::unique('vendors','slug')->ignore($vendor->id)],
+            'storefrontEnabled' => 'sometimes|required|boolean',
+            'storefrontHeadline' => 'sometimes|nullable|string|max:190',
+            'storefrontDescription' => 'sometimes|nullable|string|max:2000',
+            'supportEmail' => 'sometimes|nullable|email|max:190',
+            'publicSupportEmail' => 'sometimes|nullable|email|max:190',
+            'supportPhone' => 'sometimes|nullable|string|max:40',
+            'logoMediaAssetId' => 'sometimes|nullable|string|max:26',
+            'logoUrl' => 'sometimes|nullable|string|max:2048',
+            'returnAddress' => 'sometimes|nullable|string|max:1000',
+            'dispatchNote' => 'sometimes|nullable|string|max:1000',
         ]);
-
-        $logo = $this->storefrontMedia->resolveSelection(
-            $vendor,
-            $data['logoMediaAssetId'] ?? null,
-            $data['logoUrl'] ?? null,
-        );
 
         $metadata = array_merge($vendor->metadata ?? [], Arr::only($data, [
             'storefrontEnabled','storefrontHeadline','storefrontDescription','supportEmail','publicSupportEmail','supportPhone','returnAddress','dispatchNote',
         ]));
         unset($metadata['logoUrl']);
-        if ($logo) $metadata['logoMediaAssetId'] = $logo->public_id;
-        else unset($metadata['logoMediaAssetId']);
 
-        $vendor->forceFill(['name' => $data['name'], 'slug'=>$data['shopSlug'], 'metadata' => $metadata])->save();
+        $logoSelectionProvided = $request->exists('logoMediaAssetId') || $request->exists('logoUrl');
+        if ($logoSelectionProvided) {
+            $logo = $this->storefrontMedia->resolveSelection(
+                $vendor,
+                $data['logoMediaAssetId'] ?? null,
+                $data['logoUrl'] ?? null,
+            );
+            if ($logo) $metadata['logoMediaAssetId'] = $logo->public_id;
+            else unset($metadata['logoMediaAssetId']);
+        }
+
+        $vendor->forceFill([
+            'name' => $data['name'] ?? $vendor->name,
+            'slug' => $data['shopSlug'] ?? $vendor->slug,
+            'metadata' => $metadata,
+        ])->save();
         return response()->json(['data' => ['vendor' => $this->vendorRow($vendor->fresh())]]);
     }
 
