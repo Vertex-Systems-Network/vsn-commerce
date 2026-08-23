@@ -47,6 +47,20 @@ const groups = [
   ]},
 ];
 
+/** Renders a permission-safe landing page for scoped admin-area roles. */
+function ScopedAdminOverview({ visibleGroups }) {
+  const destinations=visibleGroups.flatMap(group=>group.items).filter(([to])=>to!=="/admin");
+  return <div className="simple-page admin-page">
+    <div className="page-title"><h1>Admin Control Center</h1><p>Open the operational workspaces available to your role.</p></div>
+    <section className="ui-card">
+      <div className="section-head"><div><h2>Available workspaces</h2><p>Access remains enforced by backend permissions.</p></div></div>
+      <div className="admin-action-grid">
+        {destinations.map(([to,label,Icon])=><Link key={to} to={to}><Icon/>{label}</Link>)}
+      </div>
+    </section>
+  </div>;
+}
+
 /** Handles admin shell for the VSN Ecommerce interface. */
 export default function AdminShell() {
   const { user, logout, hasPermission } = useAuth();
@@ -60,6 +74,7 @@ export default function AdminShell() {
     return candidates.sort((a,b)=>b[0].length-a[0].length)[0]?.[1]||"Admin Panel";
   },[location.pathname]);
   const signOut = /** Handles sign out for the VSN Ecommerce interface. */ async () => { await logout(); navigate("/login", { replace: true }); };
+  const scopedRoot=location.pathname==="/admin"&&!hasPermission("analytics.view");
   return <div className={`admin-app-shell ${open?'nav-open':''}`}>
     <SkipLink/>
     <button className="shell-overlay" aria-label="Close navigation" onClick={/** Inline callback for this operation. */ ()=>setOpen(false)}/>
@@ -79,7 +94,7 @@ export default function AdminShell() {
         <div className="admin-topbar-title"><button className="shell-menu-button" type="button" aria-label="Open navigation" aria-expanded={open} onClick={/** Inline callback for this operation. */ ()=>setOpen(true)}><FaBars/></button><div><small>Administration</small><strong>{currentLabel}</strong></div></div>
         <div className="admin-user-chip"><span>{user?.name?.slice(0,1)?.toUpperCase()}</span><div><b>{user?.name}</b><small>{String(user?.role || "").replaceAll("_"," ")}</small></div></div>
       </header>
-      <main className="admin-content" id="main-content" tabIndex="-1"><Outlet/></main>
+      <main className="admin-content" id="main-content" tabIndex="-1">{scopedRoot?<ScopedAdminOverview visibleGroups={visibleGroups}/>:<Outlet/>}</main>
     </section>
   </div>;
 }
