@@ -205,7 +205,7 @@ class GameApiTest extends TestCase
             'productSlug'=>$product->slug,'entryCoins'=>70,'maxEntries'=>100,
             'opensAt'=>now()->subMinute()->toISOString(),'closesAt'=>now()->addHour()->toISOString(),
             'announcementAt'=>now()->addHours(2)->toISOString(),'rulesVersion'=>'admin-rules-v1',
-        ])->assertOk()->json('data');
+        ])->assertCreated()->json('data');
 
         Sanctum::actingAs($winner);
         $this->postJson("/api/v1/games/{$gameData['id']}/entries",['entries'=>1,'idempotencyKey'=>'admin-flow-entry','acceptRules'=>true])->assertCreated();
