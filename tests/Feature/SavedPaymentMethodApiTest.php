@@ -87,7 +87,7 @@ class SavedPaymentMethodApiTest extends TestCase
 
         $response = $this->withHeaders(['X-Device-Id'=>'device-a','X-Step-Up-Token'=>$step])->postJson('/api/v1/payment-methods', [
             'provider'=>'sandbox','providerToken'=>$providerToken,'makeDefault'=>true,
-        ])->assertOk()->assertJsonPath('data.last4','4242');
+        ])->assertCreated()->assertJsonPath('data.last4','4242');
 
         $this->assertNull($response->json('data.providerToken'));
         $raw = DB::table('saved_payment_methods')->value('provider_token_cipher');
