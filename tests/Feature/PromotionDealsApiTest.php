@@ -37,7 +37,7 @@ class PromotionDealsApiTest extends TestCase
     /** Verifies active reserved usage counts against redemption limit. */
     public function test_active_reserved_usage_counts_against_redemption_limit():void
     {
-        [$buyer,$address,,$vendor,$product]=$this->market();$p=$this->promotion(null,'Limited','coupon','platform',1000);PromotionCode::create(['public_id'=>(string)Str::ulid(),'promotion_id'=>$p->id,'code'=>'ONCE','status'=>'active','max_redemptions'=>1]);Sanctum::actingAs($buyer);$this->postJson('/api/v1/cart/items',['productId'=>$product->id,'quantity'=>1]);$this->checkout($address,'limit-1','ONCE')->assertOk();$second=User::factory()->create();$address2=$this->address($second);Sanctum::actingAs($second);$this->postJson('/api/v1/cart/items',['productId'=>$product->id,'quantity'=>1]);$this->checkout($address2,'limit-2','ONCE')->assertUnprocessable();
+        [$buyer,$address,,$vendor,$product]=$this->market();$p=$this->promotion(null,'Limited','coupon','platform',1000);PromotionCode::create(['public_id'=>(string)Str::ulid(),'promotion_id'=>$p->id,'code'=>'ONCE','status'=>'active','max_redemptions'=>1]);Sanctum::actingAs($buyer);$this->postJson('/api/v1/cart/items',['productId'=>$product->id,'quantity'=>1]);$this->checkout($address,'limit-001','ONCE')->assertOk();$second=User::factory()->create();$address2=$this->address($second);Sanctum::actingAs($second);$this->postJson('/api/v1/cart/items',['productId'=>$product->id,'quantity'=>1]);$this->checkout($address2,'limit-002','ONCE')->assertUnprocessable();
     }
     /** Verifies exclusive automatic promotion blocks lower priority stackable offer. */
     public function test_exclusive_automatic_promotion_blocks_lower_priority_stackable_offer():void
