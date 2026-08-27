@@ -8,7 +8,7 @@ Baseline branch: `main`
 
 Baseline head: `a9e6919ba03a6ab4e9dcc44f3c7fe3278e3fe60e`
 
-Audit mode: read-only inspection followed by this additive documentation-only reconciliation. No application code, schema, dependency, license, branch protection, deployment or production setting was changed by this audit.
+Audit mode: read-only inspection followed by additive documentation and focused P0-02 metadata reconciliation. No application business code, schema, dependencies, branch protection, deployment or production setting is changed by this audit package.
 
 ## 1. Project classification
 
@@ -35,398 +35,199 @@ For actual state, use this order:
 
 README milestone prose is not proof of runtime correctness.
 
-## 3. Current canonical milestone
+## 3. Current P0 reconciliation
 
-`docs/MASTER-EXECUTION-STATUS.json` identifies:
+### P0-01 — dependency lock
 
-- Package: `P0 — Truth baseline and release blockers`
-- Package status: `IN_PROGRESS`
-- Current task: `P0-02 — Resolve repository license metadata contradiction`
-- Current task status: `BLOCKED`
+Status: `VERIFIED RESOLVED`
 
-This blocker is valid. Root `LICENSE` is GPL v3 while `composer.json` declares `proprietary`.
+The original `AGENTS.md` audit claim that root `composer.lock` is missing is stale. Current repository reality contains a committed Composer lock and canonical P0 acceptance evidence.
 
-Do not infer the intended license. An explicit repository-owner/legal decision is required before changing either license representation.
+Do not regenerate dependencies during unrelated work.
 
-Until that decision exists, P0-02 remains the critical-path blocker.
+### P0-02 — project license contradiction
 
-## 4. Plan-vs-repository reconciliation
+Status: `IMPLEMENTED / VERIFYING`
 
-### ADOPT-001 — P0-01 dependency lock blocker is stale in `AGENTS.md`
+The repository owner explicitly confirmed on 2026-08-28 that VSN Commerce is **not GPLv3**. Project-level intent is proprietary / closed-source.
 
-Status: `CORRECTION / VERIFIED RESOLVED`
+Repository reconciliation:
 
-Current repository reality:
+- `composer.json` already declares `"license": "proprietary"` and does not require a change;
+- root GPLv3 license text is replaced by a narrow proprietary software notice;
+- `docs/decisions/ADR-0001-PROPRIETARY-PROJECT-LICENSE.md` records the owner decision and scope;
+- third-party dependencies remain under their own licenses.
 
-- root `composer.lock` exists
-- P0-01 reconciliation and merge-closure commits exist in history
-- canonical execution state lists `P0-01` as completed
-- accepted CI evidence is recorded for the P0 baseline
+P0-02 should not be called fully closed until the focused PR/checks are accepted and merged.
 
-Action for future plan maintenance:
+## 4. Server-authority plan reconciliation
 
-- change P0-01 from missing/blocker to completed/verified
-- retain the requirement that CI and production installs use the committed lock
-- do not regenerate dependencies opportunistically during unrelated work
+Several major customer flows are already Laravel-authoritative and should not be rewritten merely for uniformity:
 
-### ADOPT-002 — server-authoritative migration is partially complete, not uniformly missing
+- Coins
+- Games
+- Reviews
+- Affiliate
+- Home marketplace data
 
-Status: `CORRECTION / COMPLETION`
+Residual dual/static authority is concentrated in a smaller set of surfaces:
 
-Several major customer flows are already Laravel-authoritative and fail without substituting browser business state, including the dedicated Coins, Games, Reviews, Affiliate and Home implementations.
+- `resources/js/pages/Product.jsx`
+- `resources/js/pages/Search.jsx`
+- `resources/js/pages/Systems.jsx`
+- `resources/js/main.jsx` global `StoreProvider`
+- `resources/js/platform/store.jsx`
+- `resources/js/data/catalog.js`
 
-Do not rewrite these working API-backed flows merely to make the frontend uniform.
+`resources/js/platform/api.js` currently hardcodes Laravel as the backend. Therefore many `Legacy*` branches are unreachable in current production mode, but they still create dual-authority source code, dead fallback complexity and regression risk.
 
-Remaining work should target residual dual-authority code only.
+The correct P1 strategy is targeted residual cleanup, not a customer-frontend rewrite.
 
-### ADOPT-003 — production backend selection is currently fixed to Laravel
+## 5. P1 small-batch work packages
 
-Status: `VERIFIED_PRESENT`
+### P1-A — Search legacy catalog removal
 
-`resources/js/platform/api.js` defines the backend as Laravel directly. Therefore many `apiBackend !== 'laravel'` branches are currently unreachable under the shipped runtime contract.
+Classification: `COMPLETION`
 
-This reduces immediate runtime fallback risk, but the dead legacy implementations still create maintenance, bundle, testing and regression risk.
+- remove production/runtime dependency on `data/catalog.js` from `Search.jsx`;
+- remove unreachable legacy category/product calculations;
+- preserve API search, facets, pagination, trending and recent search behavior;
+- API failure must remain an error/empty state, never demo data;
+- add regression coverage rejecting live-route static-catalog imports.
 
-Do not reinterpret this as permission to keep the duplicate business engine indefinitely.
+### P1-B — Product legacy authority removal
 
-### ADOPT-004 — residual static/legacy customer paths remain
+Classification: `COMPLETION / HARDENING`
 
-Status: `COMPLETION / HIGH PRIORITY`
+- remove static catalog/demo product fallback from Laravel product mode;
+- remove `useStore()` business operations from production product behavior;
+- preserve Laravel wallet, games, gifts, reviews, alerts, wishlist and catalog adapters;
+- eliminate hardcoded demo review/image paths from production behavior;
+- preserve explicit loading/not-found/error states;
+- test API failure and review/game/gift/cart integrations.
 
-Confirmed residuals include:
+### P1-C — Customer systems legacy branches
 
-- `resources/js/data/catalog.js` hardcoded marketplace catalog
-- `resources/js/platform/store.jsx` localStorage business engine
-- `resources/js/pages/Product.jsx` imports both static catalog and `useStore`
-- `resources/js/pages/Search.jsx` imports static catalog/category data for legacy branches
-- `resources/js/pages/Systems.jsx` contains many paired `Laravel*` and `Legacy*` implementations
-- global `StoreProvider` is still mounted in `resources/js/main.jsx`
+Classification: `COMPLETION / REFACTOR`
 
-`Systems.jsx` legacy coverage includes, among others:
-
-- Orders
-- Checkout
-- Tracking
-- Wallet
-- Notifications
-- Messages
-- Settings
-- Gifts
-- Vendor Dashboard
-- Returns Center
-- Saved Alerts
-- Operations Center
-- Seller Quality
-
-Because the Laravel backend is mandatory, remove these residuals incrementally rather than constructing a new adapter architecture around them.
-
-### ADOPT-005 — product media plan entry is materially stale
-
-Status: `CORRECTION / LARGELY VERIFIED PRESENT`
-
-The current product editor no longer uses an editable `imageUrl` business field or sends `images: [url]` in the product save payload.
-
-Current behavior separates product business-field persistence from managed media operations and supports:
-
-- product-specific managed upload
-- reusable Media Library attach
-- queued library media for newly created products
-- managed detach
-- alt/order update
-- explicit detection of historical unmanaged media
-
-Future work must verify lifecycle edge cases and historical URL migration, but should not reimplement this completed foundation.
-
-### ADOPT-006 — seller-logo persistence is stable on the backend but frontend contract is transitional
-
-Status: `PARTIAL`
-
-Current backend behavior:
-
-- persists `logoMediaAssetId` in vendor metadata
-- resolves delivery URL from the media asset at response time
-- validates seller/global media scope
-- rejects cross-vendor private media
-- supports temporary URL-picker compatibility by resolving the URL back to an allowed asset
-
-Current frontend behavior in Seller Settings still stores the selected picker `item.url` in form state and submits `logoUrl` rather than using `logoMediaAssetId` directly.
-
-Required completion:
-
-- make Seller Settings retain both display URL and stable media asset ID separately
-- submit `logoMediaAssetId` as the authoritative selection
-- stop depending on URL reverse-resolution for new selections
-- retain URL compatibility only for migration/backward compatibility until existing historical data is proven converged
-- verify archive/reference protection remains correct
-
-### ADOPT-007 — seller-logo backend behavior already has meaningful feature coverage
-
-Status: `VERIFIED_PRESENT`
-
-Existing feature tests cover:
-
-- stable asset-reference persistence
-- URL compatibility normalization to asset ID
-- cross-vendor logo denial
-- public URL resolution from the stored media reference
-- seller media-library scoping
-
-Do not duplicate these tests unnecessarily. Add frontend/component coverage for the picker contract when the UI is corrected.
-
-### ADOPT-008 — frontend component-test gap remains
-
-Status: `HARDENING / REQUIRED`
-
-Current `package.json` includes build, lint, source audits and Playwright E2E tooling, but no normal React component/unit test stack such as Vitest + Testing Library.
-
-Add this only as a focused P1/P4 quality layer, not as a broad test-framework rewrite.
-
-Priority coverage:
-
-- RBAC rendering primitives
-- Media Library picker/selection contracts
-- Admin design-system primitives
-- form state with destructive/permission-sensitive actions
-- server-error/no-fake-fallback behavior
-
-### ADOPT-009 — demo credential risk is environment-guarded, not an exposed production-secret finding
-
-Status: `HARDENING / VERIFY CONTINUOUSLY`
-
-The documented predictable accounts are local/demo identities.
-
-Current safeguards include:
-
-- demo seeder exits when demo configuration is disabled
-- production example environment explicitly disables demo seeding
-- production example disables sandbox payment/shipping/SMS simulators
-
-Keep regression coverage that makes accidental production demo seeding impossible. Do not classify the documented local password itself as a production credential unless evidence shows it is used outside the guarded demo environment.
-
-## 5. VCS/governance baseline
-
-Current `main` is protected by an active GitHub ruleset.
-
-Observed protections include:
-
-- pull-request workflow
-- branch deletion protection
-- non-fast-forward protection
-- review-thread resolution requirement
-- code-scanning/code-quality rules
-
-Observed hardening gap:
-
-- required approving review count is currently zero
-
-Do not change governance automatically. Treat stronger independent review as a policy decision, especially before production release.
-
-## 6. Revised P0–P5 interpretation
-
-Do not replace the existing P0–P5 plan. Reconcile it as follows.
-
-### P0 — Truth baseline and release blockers
-
-Current state: `IN_PROGRESS`
-
-- P0-CI-BASELINE: completed with recorded accepted evidence
-- P0-01 lockfile: completed; stale blocker language should be corrected
-- P0-02 license contradiction: `BLOCKED`, owner/legal decision required
-- P0-03 static-audit false-confidence concern: retain; behavior tests remain authoritative
-
-P0 exit remains blocked by P0-02.
-
-### P1 — Server-authoritative residual cleanup
-
-Treat as targeted residual cleanup, not a full frontend migration.
-
-Recommended work packages:
-
-#### P1-WP1 — Remove dead backend branching from Search
-
-- remove static catalog/category imports from `Search.jsx`
-- remove unreachable legacy search computation
-- preserve API search, filters, pagination, recent searches and suggestions
-- add/retain failure-state coverage proving no demo products appear on API failure
-
-Classification: `PARALLEL_SAFE` after P0 policy blocker is cleared or explicitly allowed as independent remediation.
-
-#### P1-WP2 — Remove dead legacy branches from Product
-
-- remove static catalog/demo review/demo image dependencies that exist only for non-Laravel mode
-- remove `useStore` business fallback paths
-- preserve current API product, wallet, games, gifts, reviews, wishlist and alert contracts
-- keep public visual design unchanged
-- verify product API failure renders explicit error/loading/empty behavior rather than fixture content
-
-Classification: `COORDINATED_PARALLEL` because Product touches several shared customer contracts.
-
-#### P1-WP3 — Split `Systems.jsx` cleanup by domain
-
-Do not delete all legacy code in one giant diff.
-
-Suggested sequence:
+Split cleanup by domain rather than deleting all `Systems.jsx` legacy code in one giant diff. Candidate order:
 
 1. Orders + Tracking
-2. Wallet + Notifications + Messages
-3. Settings + Alerts
-4. Gifts + Returns
-5. Checkout
-6. Vendor/Operations/Seller Quality legacy remnants
+2. Checkout
+3. Wallet
+4. Notifications + Messages
+5. Settings
+6. Gifts
+7. Returns + Alerts
+8. Operations/Seller-quality compatibility surfaces
 
-For each slice:
+For each batch:
 
-- remove only the proven unreachable legacy path
-- verify the Laravel path first
-- add targeted regression coverage
-- run frontend build + affected PHP/Playwright gates
+- remove unreachable `Legacy*` branch;
+- remove corresponding `useStore()` dependencies;
+- verify Laravel behavior first;
+- targeted tests/build before proceeding.
 
-Classification: `SERIALIZE` within `Systems.jsx` to avoid conflicting edits.
+### P1-D — retire global legacy StoreProvider
 
-#### P1-WP4 — Retire global StoreProvider only after consumer proof
+Classification: `COMPLETION`
 
-- inventory remaining imports/usages
-- remove StoreProvider from `main.jsx` only after no production component requires it
-- delete `platform/store.jsx` only after usage search plus tests prove replacement coverage
-- delete/move `data/catalog.js` only after all runtime imports are removed
+Only after all live consumers are removed:
 
-Classification: `SERIALIZE / FINAL P1 CLEANUP`.
+- unmount `StoreProvider` from `main.jsx`;
+- remove `platform/store.jsx` if no development/test consumer legitimately remains;
+- remove or relocate `data/catalog.js` to an explicit test/dev-fixture boundary;
+- add a governance/static rule preventing production live routes from importing legacy fixture authority.
 
-### P2 — Media architecture completion
+Do not delete the provider first and repair breakage afterward.
 
-Current state is more advanced than the original plan indicates.
+## 6. Media plan reconciliation
 
-Priorities:
+### Product managed media
 
-1. convert Seller Settings UI to submit stable logo asset ID directly
-2. audit archive/delete reference protection for active logo/product usage
-3. classify remaining `*Url` fields by intentional external URL vs managed media
-4. handle historical unmanaged product media through explicit migration/convergence
-5. retain existing managed product-media architecture
+Status: `PARTIAL → SUBSTANTIALLY IMPLEMENTED`
 
-Do not rebuild the media library.
+Current `CatalogManagement.jsx` keeps product business-field saves separate from media attachment operations and uses managed media/library endpoints. Historical unmanaged media is identified separately.
 
-### P3 — Functional/admin domain repair
+Do not repeat the old product-media rewrite blindly. Verify lifecycle and migration gaps first.
 
-Keep existing plan. Prioritize behavioral/API defects over visual work.
+### Seller storefront logo
 
-Do not treat page presence as CRUD completeness.
+Status: `PARTIAL / CONTRACT CLEANUP`
 
-### P4 — Untitled UI Admin conversion
+Backend behavior is materially ahead of the original audit:
 
-Not yet evidenced as completed by current dependencies/source structure.
+- stable `logoMediaAssetId` is persisted;
+- presentation URL is resolved from the media asset;
+- seller/global ownership rules are enforced;
+- cross-vendor selection is rejected;
+- compatibility URL input is normalized to a stable asset reference.
 
-Preserve storefront CSS/visual identity. Scope design-system adoption to Admin first. Do not globally introduce resets that can change storefront behavior.
+Remaining cleanup:
 
-### P5 — Certification and cleanup
+- frontend `SellerSettings` should submit the selected media asset ID directly instead of relying on `item.url` compatibility;
+- retain the compatibility resolver only as a bounded migration path where justified;
+- verify archive/reference behavior before removing compatibility code.
 
-Retain as the final broad gate after P1–P4.
+Existing `MarketplaceMediaStorefrontTest` already covers stable ID persistence, URL normalization, cross-vendor denial and public URL resolution.
 
-No production-readiness claim should be made from historical milestone prose alone.
+## 7. Security/data observations
 
-## 7. Small-batch critical path after license decision
+Current API route structure includes authenticated boundaries, role middleware, throttles, provider-webhook routing and server-side seller resource scoping. These are positive indicators, not blanket proof of all security properties.
 
-Recommended execution order:
+High-value negative requirements to preserve/test during P1:
 
-`P0-02 decision`
+- API failure MUST NOT fall back to fake/static business data;
+- browser localStorage MUST NOT become authoritative for balances, orders, inventory, returns, coupons, shipping prices or financial state;
+- one seller MUST NOT select/read another seller's private media;
+- customer/seller/admin isolation MUST remain server-enforced;
+- demo accounts MUST remain impossible to seed/use accidentally in production.
 
-→ `license metadata reconciliation + focused checks`
+## 8. Testing strategy for the next engineering packages
 
-→ `plan/state reconciliation`
+Fast gate per small batch:
 
-→ `P1-WP1 Search legacy removal`
+- changed-source lint/static checks;
+- affected frontend source audit/build;
+- focused PHPUnit tests for touched API/domain contracts;
+- focused Playwright route/behavior test where user behavior changes.
 
-→ `P1-WP2 Product legacy removal`
+Milestone gate after legacy authority removal:
 
-→ `P1-WP3 Systems slices`
+- full Laravel unit/feature matrix;
+- SQLite/MySQL/PostgreSQL compatibility where currently supported;
+- production frontend build;
+- browser E2E/accessibility regression;
+- governance/security checks;
+- runtime integration gate.
 
-→ `P1-WP4 StoreProvider/catalog retirement`
+Do not rerun a flaky failure until it happens to pass and call it green.
 
-→ `P2 seller-logo frontend stable-ID contract`
+## 9. Admin migration sequencing
 
-→ `P2 remaining managed-media audit`
+Do not start a broad Untitled UI rewrite while P1 authority cleanup remains uncertain on shared data paths.
 
-→ `P3 admin functional verification`
+Safe order remains:
 
-→ `P4 Admin design-system migration`
+1. P0 release blocker closure
+2. P1 residual server-authority cleanup
+3. remaining stable media-reference cleanup
+4. admin functional/API verification
+5. scoped Admin design-system foundation
+6. AdminShell
+7. admin pages in representative small batches
+8. full regression/certification
 
-→ `P5 certification`
+Customer storefront visual design remains out of scope for the Admin UI migration.
 
-This order is intentionally conservative about shared customer surfaces while eliminating known duplicate authority before large UI work.
+## 10. Current next safe action
 
-## 8. Testing strategy for upcoming residual cleanup
+For this branch/PR:
 
-Use two-speed gates.
+1. validate the proprietary project-level license reconciliation;
+2. run/observe repository CI and metadata checks;
+3. merge only when the focused P0-02 change is accepted under repository protections;
+4. update canonical execution state to mark P0-02 complete with exact merge evidence;
+5. then begin P1-A Search legacy catalog removal as the first small implementation batch.
 
-### Fast gate per small batch
-
-As applicable:
-
-- changed-file lint
-- frontend source audit
-- relevant PHPUnit feature tests
-- targeted Playwright spec
-- production frontend build
-- relevant static banned-pattern check
-
-### Full gate at milestone boundary
-
-As applicable:
-
-- static/build job
-- Laravel static analysis
-- SQLite suite
-- real MySQL suite
-- PostgreSQL suite
-- desktop/mobile browser E2E
-- accessibility/W3C gates
-- runtime integration/restore/launch verification
-- CodeQL/governance scans
-
-Do not rerun flaky tests until green and call that success. Record flakes as defects.
-
-## 9. Stop-the-line conditions
-
-Stop affected work immediately for:
-
-- data loss or migration corruption
-- cross-user/cross-vendor data leakage
-- credential/secret exposure
-- unexplained destructive diff
-- authorization bypass
-- demo/business fallback appearing in Laravel production flow
-- repository state that cannot be safely reconciled
-
-Preserve evidence before recovery work.
-
-## 10. Current checkpoint
-
-State: `BLOCKED`
-
-Current critical-path task: `P0-02`
-
-Blocking decision: intended repository/project license.
-
-No license choice was inferred during this audit.
-
-Parallel-safe audit work completed:
-
-- current main/head baseline confirmed
-- existing memory/state system reused
-- P0-01 stale plan finding reconciled
-- server-authoritative migration progress reclassified
-- residual legacy customer surfaces identified
-- product-media plan status corrected
-- seller-logo backend/frontend contract distinguished
-- VCS ruleset posture reviewed
-- post-blocker small-batch execution sequence defined
-
-Next safe action on the critical path:
-
-1. obtain explicit owner/legal decision: proprietary vs GPLv3 intent (and exact GPL SPDX variant if GPL is chosen)
-2. reconcile `LICENSE` and `composer.json` accordingly in a focused change
-3. execute focused validation/CI
-4. update canonical execution state
-5. begin P1 residual cleanup in the work-package order above
-
-Do not start a broad UI rewrite while P1 duplicate-authority residuals remain unresolved.
+Do not start broad P1 application changes inside the P0-02 licensing PR.
