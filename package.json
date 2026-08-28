@@ -22,7 +22,7 @@
     "e2e:install": "playwright install chromium firefox webkit",
     "e2e:bootstrap": "npm install --no-save --package-lock=false @playwright/test@1.62.1 @axe-core/playwright@4.13.0 vnu-jar@26.8.21",
     "e2e:run": "playwright test",
-    "test": "node scripts/frontend-test.mjs && php scripts/audit-routing-deployment.php",
+    "test": "node scripts/frontend-test.mjs && node scripts/audit-legacy-store-authority.mjs && php scripts/audit-routing-deployment.php",
     "test:build": "npm run build",
     "audit:documentation": "node scripts/audit-code-documentation.cjs",
     "audit:file-names": "php scripts/audit-file-names.php",
