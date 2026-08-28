@@ -61,6 +61,9 @@ for (const file of sourceFiles) {
 (missingImports === 0 ? pass : fail)(`frontend relative imports resolve (${relativeImports} checked)`);
 (placeholderLinks === 0 ? pass : fail)(`frontend placeholder/dead navigation absent (${placeholderLinks})`);
 
+const searchPage = fs.readFileSync('resources/js/pages/Search.jsx', 'utf8');
+(!/(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(searchPage) ? pass : fail)('Search live route does not import the legacy static catalog fixture');
+
 const toolkit = fs.readFileSync('resources/js/components/Toolkit.jsx','utf8');
 (!toolkit.includes("to||'#'") && toolkit.includes('onAction') ? pass : fail)('SectionHeader cannot create a fallback # link');
 const shellFiles=['resources/js/layout/Shell.jsx','resources/js/layout/AdminShell.jsx','resources/js/layout/VendorShell.jsx','resources/js/layout/AccountShell.jsx'];
