@@ -1,7 +1,7 @@
 import {useEffect,useId,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {FaCheck,FaExclamationTriangle,FaStar,FaClock,FaArrowRight,FaSpinner,FaInbox,FaRedo,FaChevronLeft,FaChevronRight} from 'react-icons/fa';
-import {countdown} from '../platform/store';
+import {countdown} from '../platform/time';
 const placeholder='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#eef1f5"/><path d="M310 350l70-90 65 75 45-50 90 115H260z" fill="#cbd5e1"/><circle cx="350" cy="210" r="34" fill="#cbd5e1"/></svg>`);
 /** Handles safe image for the VSN Ecommerce interface. */
 export function SafeImage({src,alt='',className='',...props}){const [bad,setBad]=useState(false);useEffect(/** Inline callback for this operation. */ ()=>setBad(false),[src]);return <img className={className} src={bad||!src?placeholder:src} alt={alt} loading="lazy" decoding="async" onError={/** Inline callback for this operation. */ ()=>setBad(true)} {...props}/>}
