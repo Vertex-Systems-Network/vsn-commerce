@@ -87,8 +87,31 @@ test.describe('interaction quality and click safety',()=>{
     await page.goto('/');
     await page.getByLabel('Search catalog').fill('phone');
     await page.getByRole('button',{name:'Search',exact:true}).click();
-    await expect(page).toHaveURL(/\/search\?q=phone$/);
+    await expect.poll(()=>new URL(page.url()).pathname,{message:'Search action should navigate to the search route'}).toBe('/search');
+    await expect.poll(()=>new URL(page.url()).searchParams.get('q'),{message:'Search action should preserve the submitted query'}).toBe('phone');
     await expect(page.locator('#main-content')).toBeVisible();
+  });
+
+  test('search API failure fails closed without legacy catalog content',async({page})=>{
+    await page.addInitScript(()=>{
+      const nativeFetch=window.fetch.bind(window);
+      window.fetch=async(input,init)=>{
+        const rawUrl=typeof input==='string'?input:input?.url||String(input);
+        const url=new URL(rawUrl,window.location.origin);
+        if(url.pathname==='/api/v1/products'){
+          return new Response(JSON.stringify({message:'Catalog temporarily unavailable'}),{
+            status:503,
+            statusText:'Service Unavailable',
+            headers:{'Content-Type':'application/json'},
+          });
+        }
+        return nativeFetch(input,init);
+      };
+    });
+    await page.goto('/search?q=phone');
+    await expect(page.getByText('Search unavailable')).toBeVisible();
+    await expect(page.getByText('Catalog temporarily unavailable')).toBeVisible();
+    await expect(page.locator('.product-grid')).toHaveCount(0);
   });
 
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{

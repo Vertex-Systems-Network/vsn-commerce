@@ -30,6 +30,15 @@ while (stack.length) {
   }
 }
 
+const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx'];
+for (const file of serverAuthoritativeLiveRoutes) {
+  const text = fs.readFileSync(file, 'utf8');
+  const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
+  const usesBackendModeBranch = /\bapiBackend\b/.test(text);
+  (!importsLegacyCatalog ? pass : fail)(`server-authoritative live route has no legacy catalog import: ${file}`);
+  (!usesBackendModeBranch ? pass : fail)(`server-authoritative live route has no backend-mode branch: ${file}`);
+}
+
 let relativeImports = 0;
 let missingImports = 0;
 let placeholderLinks = 0;
@@ -60,9 +69,6 @@ for (const file of sourceFiles) {
 }
 (missingImports === 0 ? pass : fail)(`frontend relative imports resolve (${relativeImports} checked)`);
 (placeholderLinks === 0 ? pass : fail)(`frontend placeholder/dead navigation absent (${placeholderLinks})`);
-
-const searchPage = fs.readFileSync('resources/js/pages/Search.jsx', 'utf8');
-(!/(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(searchPage) ? pass : fail)('Search live route does not import the legacy static catalog fixture');
 
 const toolkit = fs.readFileSync('resources/js/components/Toolkit.jsx','utf8');
 (!toolkit.includes("to||'#'") && toolkit.includes('onAction') ? pass : fail)('SectionHeader cannot create a fallback # link');
