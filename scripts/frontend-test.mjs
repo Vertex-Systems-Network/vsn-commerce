@@ -56,6 +56,22 @@ for (const name of expectedSystemsExports) {
 }
 (systemsCompatibility.includes('from "./SystemsServer"') ? pass : fail)('Systems compatibility surface delegates to SystemsServer');
 
+const systemsServer = fs.readFileSync('resources/js/pages/SystemsServer.jsx', 'utf8');
+const preservedSystemsContracts = [
+  ['/admin/tax', 'Systems admin controls preserve tax navigation'],
+  ['retry-initialization', 'Systems checkout preserves failed payment retry'],
+  ['session.promotions', 'Systems checkout preserves server promotion detail'],
+  ['taxAddedMinor', 'Systems checkout preserves tax inclusion/addition detail'],
+  ['coinRedemptionMinor', 'Systems checkout preserves coin redemption monetary detail'],
+  ['systemOps.deployments', 'Systems operations preserve deployment evidence'],
+  ['operationalLiabilities', 'Systems operations preserve operational liabilities'],
+  ['Cancelled by finance', 'Systems operations preserve payout cancellation'],
+  ['request.refund', 'Systems returns preserve refund status'],
+];
+for (const [fragment, label] of preservedSystemsContracts) {
+  (systemsServer.includes(fragment) ? pass : fail)(label);
+}
+
 let relativeImports = 0;
 let missingImports = 0;
 let placeholderLinks = 0;
