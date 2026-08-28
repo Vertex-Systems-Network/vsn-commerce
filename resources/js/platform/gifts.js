@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiDelete, apiGet, apiPost } from "./api";
+import { apiGet, apiPost } from "./api";
 
 const key = /** Handles key for the VSN Ecommerce interface. */ (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
