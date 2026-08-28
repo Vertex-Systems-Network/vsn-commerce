@@ -30,6 +30,13 @@ while (stack.length) {
   }
 }
 
+const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx'];
+for (const file of serverAuthoritativeLiveRoutes) {
+  const text = fs.readFileSync(file, 'utf8');
+  const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
+  (!importsLegacyCatalog ? pass : fail)(`server-authoritative live route has no legacy catalog import: ${file}`);
+}
+
 let relativeImports = 0;
 let missingImports = 0;
 let placeholderLinks = 0;
