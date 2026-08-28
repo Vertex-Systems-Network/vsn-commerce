@@ -138,12 +138,20 @@ test.describe('interaction quality and click safety',()=>{
 
   test('Systems tracking API failure fails closed without legacy shipment content',async({page})=>{
     await loginAs(page,'customer');
-    await page.route('**/api/v1/shipments**',async route=>{
-      await route.fulfill({
-        status:503,
-        contentType:'application/json',
-        body:JSON.stringify({message:'Shipment tracking temporarily unavailable'}),
-      });
+    await page.addInitScript(()=>{
+      const nativeFetch=window.fetch.bind(window);
+      window.fetch=async(input,init)=>{
+        const rawUrl=typeof input==='string'?input:input?.url||String(input);
+        const url=new URL(rawUrl,window.location.origin);
+        if(url.pathname==='/api/v1/shipments'){
+          return new Response(JSON.stringify({message:'Shipment tracking temporarily unavailable'}),{
+            status:503,
+            statusText:'Service Unavailable',
+            headers:{'Content-Type':'application/json'},
+          });
+        }
+        return nativeFetch(input,init);
+      };
     });
     await page.goto('/tracking');
     await expect(page.getByRole('heading',{name:'Track order'})).toBeVisible();
