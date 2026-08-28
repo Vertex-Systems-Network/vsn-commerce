@@ -30,12 +30,14 @@ while (stack.length) {
   }
 }
 
-const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx'];
+const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx','resources/js/pages/Product.jsx'];
 for (const file of serverAuthoritativeLiveRoutes) {
   const text = fs.readFileSync(file, 'utf8');
   const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
+  const importsLegacyStore = /(?:from\s+|import\s*\()\s*['"][^'"]*platform\/store(?:\.(?:js|jsx))?['"]/.test(text);
   const usesBackendModeBranch = /\bapiBackend\b/.test(text);
   (!importsLegacyCatalog ? pass : fail)(`server-authoritative live route has no legacy catalog import: ${file}`);
+  (!importsLegacyStore ? pass : fail)(`server-authoritative live route has no legacy StoreProvider import: ${file}`);
   (!usesBackendModeBranch ? pass : fail)(`server-authoritative live route has no backend-mode branch: ${file}`);
 }
 
