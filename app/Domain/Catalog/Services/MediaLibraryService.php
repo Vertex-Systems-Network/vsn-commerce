@@ -98,7 +98,7 @@ class MediaLibraryService
     /** Archives a library asset only when it is not currently referenced by active marketplace content. */
     public function archive(MediaLibraryAsset $asset): void
     {
-        $usedByProduct = ProductMediaAsset::query()->where('status','active')->where('metadata->media_library_asset_id',$asset->public_id)->exists();
+        $usedByProduct = ProductMediaAsset::query()->where('status', 'active')->where('metadata->media_library_asset_id', $asset->public_id)->exists();
         abort_if($usedByProduct, 422, 'This media item is currently used by a product. Remove it from products before archiving it.');
 
         $usedByStorefront = Vendor::query()->where('metadata->logoMediaAssetId', $asset->public_id)->exists();
