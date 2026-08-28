@@ -114,6 +114,28 @@ test.describe('interaction quality and click safety',()=>{
     await expect(page.locator('.product-grid')).toHaveCount(0);
   });
 
+  test('product API failure fails closed without legacy product content',async({page})=>{
+    await page.addInitScript(()=>{
+      const nativeFetch=window.fetch.bind(window);
+      window.fetch=async(input,init)=>{
+        const rawUrl=typeof input==='string'?input:input?.url||String(input);
+        const url=new URL(rawUrl,window.location.origin);
+        if(/^\/api\/v1\/products\/[^/]+$/.test(url.pathname)){
+          return new Response(JSON.stringify({message:'Product temporarily unavailable'}),{
+            status:503,
+            statusText:'Service Unavailable',
+            headers:{'Content-Type':'application/json'},
+          });
+        }
+        return nativeFetch(input,init);
+      };
+    });
+    await page.goto('/product/iphone-16-pro-max-titanium');
+    await expect(page.getByText('Product temporarily unavailable')).toBeVisible();
+    await expect(page.locator('.pdp-page')).toHaveCount(0);
+    await expect(page.getByRole('heading',{name:/iPhone 16 Pro Max Titanium/i})).toHaveCount(0);
+  });
+
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{
     test.setTimeout(120_000);
     await loginAs(page,'customer');
