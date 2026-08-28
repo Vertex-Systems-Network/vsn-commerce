@@ -51,7 +51,7 @@ class MediaLibraryService
         if (! $path) throw ValidationException::withMessages(['file'=>['Media library file could not be stored.']]);
 
         try {
-            return DB::transaction(/** Persists the reusable media row atomically. */ function () use ($actor,$file,$vendor,$alt,$scopeKey,$disk,$path,$inspected,$existing): MediaLibraryAsset {
+            return DB::transaction(/** Persists the reusable media row atomically. */ function () use ($actor, $file, $vendor, $alt, $scopeKey, $disk, $path, $inspected, $existing): MediaLibraryAsset {
                 $payload = [
                     'vendor_id'=>$vendor?->id,'uploaded_by_user_id'=>$actor->id,'scope_key'=>$scopeKey,'disk'=>$disk,'path'=>$path,
                     'original_name'=>$file->getClientOriginalName(),'alt_text'=>trim((string)$alt) ?: null,'mime_type'=>$inspected['mime'],
@@ -73,10 +73,10 @@ class MediaLibraryService
         abort_unless($library->status === 'active', 404);
         $max = (int) config('vsn.catalog.max_product_images', 10);
         abort_if($product->images()->count() >= $max, 422, "A product can have at most {$max} images.");
-        $existing = ProductMediaAsset::query()->where('product_id',$product->id)->where('sha256',$library->sha256)->first();
+        $existing = ProductMediaAsset::query()->where('product_id', $product->id)->where('sha256', $library->sha256)->first();
         if ($existing && $existing->status === 'active') return $existing;
 
-        $result = DB::transaction(/** Creates the product-specific media reference while reusing the library object. */ function () use ($product,$library,$actor,$alt,$existing): ProductMediaAsset {
+        $result = DB::transaction(/** Creates the product-specific media reference while reusing the library object. */ function () use ($product, $library, $actor, $alt, $existing): ProductMediaAsset {
             $sort = (int) ($product->images()->max('sort_order') ?? -1) + 1;
             $cleanAlt = trim((string)$alt) ?: ($library->alt_text ?: $product->name);
             $payload = [
@@ -87,7 +87,7 @@ class MediaLibraryService
             ];
             if ($existing) { $existing->fill($payload)->save(); $asset=$existing; }
             else { $asset=ProductMediaAsset::create(['public_id'=>(string)Str::ulid(), ...$payload]); }
-            ProductImage::query()->where('product_id',$product->id)->where('media_asset_id',$asset->id)->delete();
+            ProductImage::query()->where('product_id', $product->id)->where('media_asset_id', $asset->id)->delete();
             ProductImage::create(['product_id'=>$product->id,'media_asset_id'=>$asset->id,'url'=>Storage::disk($library->disk)->url($library->path),'source'=>'managed','alt_text'=>$cleanAlt,'sort_order'=>$sort]);
             return $asset;
         }, 3);
