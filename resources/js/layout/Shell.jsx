@@ -8,10 +8,11 @@ import SkipLink from "../components/SkipLink";
 export default function Shell({ children, cartCount = 0 }) {
  const nav = useNavigate();const location=useLocation();
  const { user, loading: authLoading, logout } = useAuth();
+ const userId=user?.id;
  const [activity,setActivity]=useState({notificationsUnread:0,messagesUnread:0});const [menuOpen,setMenuOpen]=useState(false);const [search,setSearch]=useState('');const [navCategories,setNavCategories]=useState([]);
  useEffect(/** Inline callback for this operation. */ ()=>setMenuOpen(false),[location.pathname]);
  useEffect(/** Loads the live public category navigation from Laravel. */ ()=>{let live=true;apiGet("/categories").then(/** Stores only active server categories. */ rows=>{if(live)setNavCategories((rows||[]).slice(0,8))}).catch(/** Keeps navigation usable when category loading fails. */ ()=>{if(live)setNavCategories([])});return/** Ignores late category responses after shell unmount. */ ()=>{live=false}},[]);
- useEffect(/** Loads authenticated activity counters from the server. */ ()=>{if(!user){setActivity({notificationsUnread:0,messagesUnread:0});return undefined;}let live=true;const load=/** Handles load for the VSN Ecommerce interface. */ ()=>apiGet("/activity").then(/** Inline callback for this operation. */ data=>live&&setActivity(data||{})).catch(/** Inline callback for this operation. */ ()=>{});load();const id=setInterval(load,15000);return/** Inline callback for this operation. */ ()=>{live=false;clearInterval(id)}},[user?.id]);
+ useEffect(/** Loads authenticated activity counters from the server. */ ()=>{if(!userId){setActivity({notificationsUnread:0,messagesUnread:0});return undefined;}let live=true;const load=/** Handles load for the VSN Ecommerce interface. */ ()=>apiGet("/activity").then(/** Inline callback for this operation. */ data=>live&&setActivity(data||{})).catch(/** Inline callback for this operation. */ ()=>{});load();const id=setInterval(load,15000);return/** Inline callback for this operation. */ ()=>{live=false;clearInterval(id)}},[userId]);
  const submitSearch=/** Handles submit search for the VSN Ecommerce interface. */ ()=>{const value=search.trim();nav(value?`/search?q=${encodeURIComponent(value)}`:'/search')};
  return <>
   <SkipLink/>
