@@ -68,7 +68,7 @@ class MediaLibraryService
         $directory = $vendor ? 'media-library/vendors/'.$vendor->id : 'media-library/global';
         $path = $file->storeAs($directory, Str::ulid().'.'.$extension, $disk);
 
-        if (!$path) {
+        if (! $path) {
             throw ValidationException::withMessages([
                 'file' => ['Media library file could not be stored.'],
             ]);
