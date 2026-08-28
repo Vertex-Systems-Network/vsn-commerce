@@ -91,6 +91,16 @@ test.describe('interaction quality and click safety',()=>{
     await expect(page.locator('#main-content')).toBeVisible();
   });
 
+  test('search API failure fails closed without legacy catalog content',async({page})=>{
+    await page.route(/\/api\/v1\/products(?:\?.*)?$/,async route=>{
+      await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Catalog temporarily unavailable'})});
+    });
+    await page.goto('/search?q=phone');
+    await expect(page.getByText('Search unavailable')).toBeVisible();
+    await expect(page.getByText('Catalog temporarily unavailable')).toBeVisible();
+    await expect(page.locator('.product-grid')).toHaveCount(0);
+  });
+
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{
     test.setTimeout(120_000);
     await loginAs(page,'customer');
