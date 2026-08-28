@@ -91,8 +91,7 @@ class MediaLibraryService
                 'sha256'=>$library->sha256,'width'=>$library->width,'height'=>$library->height,'status'=>'active','visibility'=>'public',
                 'metadata'=>['source'=>'media_library','media_library_asset_id'=>$library->public_id],'sort_order'=>$sort,
             ];
-            if ($existing) { $existing->fill($payload)->save(); $asset=$existing; }
-            else { $asset=ProductMediaAsset::create(['public_id'=>(string)Str::ulid(), ...$payload]); }
+            if ($existing) { $existing->fill($payload)->save(); $asset=$existing; } else { $asset=ProductMediaAsset::create(['public_id'=>(string)Str::ulid(), ...$payload]); }
             ProductImage::query()->where('product_id', $product->id)->where('media_asset_id', $asset->id)->delete();
             ProductImage::create(['product_id'=>$product->id,'media_asset_id'=>$asset->id,'url'=>Storage::disk($library->disk)->url($library->path),'source'=>'managed','alt_text'=>$cleanAlt,'sort_order'=>$sort]);
             return $asset;
