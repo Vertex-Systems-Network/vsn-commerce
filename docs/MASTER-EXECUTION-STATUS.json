@@ -1,1 +1,152 @@
-{"schema_version":"1.2","repository":"Vertex-Systems-Network/vsn-commerce","package":{"id":"P1","name":"Server-authoritative residual cleanup","status":"IN_PROGRESS","done":3,"required":4,"percent":75},"task":{"id":"P1-D","name":"Retire legacy StoreProvider and static catalog production authority","package":"P1","sequence":4,"status":"IN_PROGRESS"},"status":"IN_PROGRESS","branch":"main","base_branch":"main","base_head":"b2dbd6cd9e15c96f32893e08105fd826e5fc7726","task_head":"b2dbd6cd9e15c96f32893e08105fd826e5fc7726","head_policy":{"type":"STATE_ONLY_DESCENDANT_ALLOWED","canonical_state_path":"docs/MASTER-EXECUTION-STATUS.json","description":"For an active branch task, the live task/PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file and explicitly referenced state-history snapshots. Completed merged tasks retain their accepted code task_head plus explicit merge evidence."},"history_snapshots":[{"path":"docs/MASTER-EXECUTION-STATUS.history-pre-p1-d.json","source_head":"b2dbd6cd9e15c96f32893e08105fd826e5fc7726","blob_sha":"e92cbd45c49ff98b45f2409429be6ec6843d84b1","role":"VERBATIM_PRIOR_CANONICAL_STATE","coverage":"All canonical execution state, failed-gate history and acceptance evidence recorded before P1-C closure / P1-D activation."}],"last_observed_pr_head":null,"pull_request":null,"acceptance_criteria":["Inventory every remaining production import or consumer of resources/js/platform/store.jsx, StoreProvider, useStore, resources/js/data/catalog.js and apiBackend before deleting or unmounting anything.","Remove the global StoreProvider wrapper from resources/js/main.jsx only after repository evidence proves no live production consumer still depends on its context.","Retire resources/js/platform/store.jsx as production business authority; if any development/test fixture behavior must remain, isolate it behind an explicitly named DEV/TEST-only boundary that cannot activate in production.","Retire resources/js/data/catalog.js from production runtime authority; delete it when unused or move retained demo data to an explicit development/test fixture boundary with no live-route imports.","No authoritative balances, inventory, orders, returns, coupons, shipping prices, games, gifts, messages, finance state, eligibility or other business truth may remain in localStorage or static fixtures.","Production API failures must fail closed or show retry/error states and must never reactivate legacy StoreProvider/static catalog business state.","Extend frontend/source regression gates so live production code cannot reintroduce StoreProvider/useStore, apiBackend dual routing or static catalog business imports after retirement.","Preserve customer storefront, account, Seller Center and Admin route URLs and visual behavior; P1-D is authority retirement, not a redesign or unrelated refactor.","Run focused source/runtime/browser evidence plus production build and exact-head Governance Code Scanning, CodeQL and full CI including SQLite/MySQL/PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch gate before merge.","P1 package may be marked 4/4 complete only after P1-D exact-head acceptance, protected merge and canonical closure evidence."],"completed_tasks":["P0-CI-BASELINE","P0-01","P0-02","P0-03","P1-A","P1-B","P1-C"],"blocked_tasks":[],"failed_gates":["P1-C CI run 33160079078 on head 945531d24295e48daf0e1f34104ece4d88224a51 exposed frontend lint/accessibility/hooks failures plus browser-E2E regression evidence; the branch was not accepted and focused remediation continued.","P1-C CI run 33163233515 on head 2de5ee831dfe0d7f2ff9688bf53be17fdf5c870a retained three accessibility label-association findings and a browser-E2E failure; database suites and security/governance checks were green. Subsequent commits fixed the exact-head failures without reintroducing legacy authority."],"acceptance_evidence":[{"task_id":"P1-C","workflow_run_id":33170182000,"workflow":"Governance Code Scanning","source_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","status":"SUCCESS","role":"ACCEPTANCE"},{"task_id":"P1-C","workflow_run_id":33170181998,"workflow":"CodeQL","source_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","status":"SUCCESS","role":"ACCEPTANCE"},{"task_id":"P1-C","workflow_run_id":33170182030,"workflow":"CI","source_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","status":"SUCCESS","role":"ACCEPTANCE","passed_jobs":[{"name":"static-and-build","job_id":98845200140},{"name":"sqlite-tests","job_id":98845200344},{"name":"mysql-tests","job_id":98845200353},{"name":"postgres-tests","job_id":98845200297},{"name":"browser-e2e","job_id":98845200347},{"name":"runtime-integration","job_id":98847433836}],"runtime_evidence":{"artifact_id":9685727454,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:1a7f2f8af0884725a54045680243f58e21cfbc5a8cc3c927fd6aff0568a10670","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_blockers":0,"launch_gate_warnings":0,"required_db_indexes":13,"missing_db_indexes":0}},{"task_id":"P1-C","pull_request":27,"accepted_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","merge_commit":"b2dbd6cd9e15c96f32893e08105fd826e5fc7726","merged_at":"2026-08-28T13:27:42Z","status":"MERGED","role":"MERGE_CLOSURE"}],"p1_progress":{"P1-A":"DONE","P1-B":"DONE","P1-C":"DONE","P1-D":"IN_PROGRESS"},"known_risks":["resources/js/main.jsx still globally mounts StoreProvider.","resources/js/platform/store.jsx still contains localStorage/static business authority and imports resources/js/data/catalog.js.","GitHub code-search results were incomplete during activation, so P1-D must perform a repository-source inventory before any deletion rather than assuming main.jsx is the only consumer.","Legacy prose in AGENTS.md can describe pre-remediation findings; code/runtime/tests and this canonical checkpoint supersede stale status assertions."],"next_exact_action":"Audit every remaining import/consumer of StoreProvider, useStore, platform/store.jsx, data/catalog.js and apiBackend on main@b2dbd6cd9e15c96f32893e08105fd826e5fc7726; then plan the smallest safe P1-D consumer-first retirement sequence before deleting or unmounting legacy files.","updated_at":"2026-08-28T13:27:42Z"}
+{
+  "schema_version": "1.2",
+  "repository": "Vertex-Systems-Network/vsn-commerce",
+  "package": {
+    "id": "P1",
+    "name": "Server-authoritative residual cleanup",
+    "status": "IN_PROGRESS",
+    "done": 3,
+    "required": 4,
+    "percent": 75
+  },
+  "task": {
+    "id": "P1-D",
+    "name": "Retire legacy StoreProvider and static catalog production authority",
+    "package": "P1",
+    "sequence": 4,
+    "status": "IN_PROGRESS"
+  },
+  "status": "IN_PROGRESS",
+  "branch": "main",
+  "base_branch": "main",
+  "base_head": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
+  "task_head": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
+  "head_policy": {
+    "type": "STATE_ONLY_DESCENDANT_ALLOWED",
+    "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
+    "description": "For an active branch task, the live task/PR head may differ from task_head only by descendant commits whose complete diff from task_head is restricted to the canonical execution-state file and explicitly referenced state-history snapshots. Completed merged tasks retain their accepted code task_head plus explicit merge evidence."
+  },
+  "history_snapshots": [
+    {
+      "path": "docs/MASTER-EXECUTION-STATUS.history-pre-p1-d.json",
+      "source_head": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
+      "blob_sha": "e92cbd45c49ff98b45f2409429be6ec6843d84b1",
+      "role": "VERBATIM_PRIOR_CANONICAL_STATE",
+      "coverage": "All canonical execution state, failed-gate history and acceptance evidence recorded before P1-C closure / P1-D activation."
+    }
+  ],
+  "last_observed_pr_head": null,
+  "pull_request": null,
+  "acceptance_criteria": [
+    "Inventory every remaining production import or consumer of resources/js/platform/store.jsx, StoreProvider, useStore, resources/js/data/catalog.js and apiBackend before deleting or unmounting anything.",
+    "Remove the global StoreProvider wrapper from resources/js/main.jsx only after repository evidence proves no live production consumer still depends on its context.",
+    "Retire resources/js/platform/store.jsx as production business authority; if any development/test fixture behavior must remain, isolate it behind an explicitly named DEV/TEST-only boundary that cannot activate in production.",
+    "Retire resources/js/data/catalog.js from production runtime authority; delete it when unused or move retained demo data to an explicit development/test fixture boundary with no live-route imports.",
+    "No authoritative balances, inventory, orders, returns, coupons, shipping prices, games, gifts, messages, finance state, eligibility or other business truth may remain in localStorage or static fixtures.",
+    "Production API failures must fail closed or show retry/error states and must never reactivate legacy StoreProvider/static catalog business state.",
+    "Extend frontend/source regression gates so live production code cannot reintroduce StoreProvider/useStore, apiBackend dual routing or static catalog business imports after retirement.",
+    "Preserve customer storefront, account, Seller Center and Admin route URLs and visual behavior; P1-D is authority retirement, not a redesign or unrelated refactor.",
+    "Run focused source/runtime/browser evidence plus production build and exact-head Governance Code Scanning, CodeQL and full CI including SQLite/MySQL/PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch gate before merge.",
+    "P1 package may be marked 4/4 complete only after P1-D exact-head acceptance, protected merge and canonical closure evidence."
+  ],
+  "completed_tasks": [
+    "P0-CI-BASELINE",
+    "P0-01",
+    "P0-02",
+    "P0-03",
+    "P1-A",
+    "P1-B",
+    "P1-C"
+  ],
+  "blocked_tasks": [],
+  "failed_gates": [
+    "P1-C CI run 33160079078 on head 945531d24295e48daf0e1f34104ece4d88224a51 exposed frontend lint/accessibility/hooks failures plus browser-E2E regression evidence; the branch was not accepted and focused remediation continued.",
+    "P1-C CI run 33163233515 on head 2de5ee831dfe0d7f2ff9688bf53be17fdf5c870a retained three accessibility label-association findings and a browser-E2E failure; database suites and security/governance checks were green. Subsequent commits fixed the exact-head failures without reintroducing legacy authority."
+  ],
+  "acceptance_evidence": [
+    {
+      "task_id": "P1-C",
+      "workflow_run_id": 33170182000,
+      "workflow": "Governance Code Scanning",
+      "source_head": "a1661a1de3ff818570b720605fea2eef83e43fd4",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE"
+    },
+    {
+      "task_id": "P1-C",
+      "workflow_run_id": 33170181998,
+      "workflow": "CodeQL",
+      "source_head": "a1661a1de3ff818570b720605fea2eef83e43fd4",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE"
+    },
+    {
+      "task_id": "P1-C",
+      "workflow_run_id": 33170182030,
+      "workflow": "CI",
+      "source_head": "a1661a1de3ff818570b720605fea2eef83e43fd4",
+      "status": "SUCCESS",
+      "role": "ACCEPTANCE",
+      "passed_jobs": [
+        {
+          "name": "static-and-build",
+          "job_id": 98845200140
+        },
+        {
+          "name": "sqlite-tests",
+          "job_id": 98845200344
+        },
+        {
+          "name": "mysql-tests",
+          "job_id": 98845200353
+        },
+        {
+          "name": "postgres-tests",
+          "job_id": 98845200297
+        },
+        {
+          "name": "browser-e2e",
+          "job_id": 98845200347
+        },
+        {
+          "name": "runtime-integration",
+          "job_id": 98847433836
+        }
+      ],
+      "runtime_evidence": {
+        "artifact_id": 9685727454,
+        "artifact_name": "vsn-launch-verification",
+        "artifact_digest": "sha256:1a7f2f8af0884725a54045680243f58e21cfbc5a8cc3c927fd6aff0568a10670",
+        "manifest_all_required_checks": true,
+        "launch_gate_ready": true,
+        "launch_gate_blockers": 0,
+        "launch_gate_warnings": 0,
+        "required_db_indexes": 13,
+        "missing_db_indexes": 0
+      }
+    },
+    {
+      "task_id": "P1-C",
+      "pull_request": 27,
+      "accepted_head": "a1661a1de3ff818570b720605fea2eef83e43fd4",
+      "merge_commit": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
+      "merged_at": "2026-08-28T13:27:42Z",
+      "status": "MERGED",
+      "role": "MERGE_CLOSURE"
+    }
+  ],
+  "p1_progress": {
+    "P1-A": "DONE",
+    "P1-B": "DONE",
+    "P1-C": "DONE",
+    "P1-D": "IN_PROGRESS"
+  },
+  "known_risks": [
+    "resources/js/main.jsx still globally mounts StoreProvider.",
+    "resources/js/platform/store.jsx still contains localStorage/static business authority and imports resources/js/data/catalog.js.",
+    "GitHub code-search results were incomplete during activation, so P1-D must perform a repository-source inventory before any deletion rather than assuming main.jsx is the only consumer.",
+    "Legacy prose in AGENTS.md can describe pre-remediation findings; code/runtime/tests and this canonical checkpoint supersede stale status assertions."
+  ],
+  "next_exact_action": "Audit every remaining import/consumer of StoreProvider, useStore, platform/store.jsx, data/catalog.js and apiBackend on main@b2dbd6cd9e15c96f32893e08105fd826e5fc7726; then plan the smallest safe P1-D consumer-first retirement sequence before deleting or unmounting legacy files.",
+  "updated_at": "2026-08-28T13:27:42Z"
+}
