@@ -30,14 +30,14 @@ final class MediaSurfaceBoundarySourceContractTest extends TestCase
     {
         $reviews = $this->source('app/Domain/Reviews/Actions/SubmitVerifiedReview.php');
         $this->assertStringContainsString('$image->store("reviews/', $reviews);
-        $this->assertStringContainsString("'disk'=>$disk", $reviews);
-        $this->assertStringContainsString("'path'=>$path", $reviews);
-        $this->assertStringNotContainsString("'url'=>$path", $reviews);
+        $this->assertStringContainsString("'disk'=>\$disk", $reviews);
+        $this->assertStringContainsString("'path'=>\$path", $reviews);
+        $this->assertStringNotContainsString("'url'=>\$path", $reviews);
 
         $messages = $this->source('app/Domain/Messaging/Actions/SendConversationMessage.php');
         $this->assertStringContainsString('$file->storeAs("messages/', $messages);
-        $this->assertStringContainsString("'disk'=>'local','path'=>$path", $messages);
-        $this->assertStringNotContainsString("'url'=>$path", $messages);
+        $this->assertStringContainsString("'disk'=>'local','path'=>\$path", $messages);
+        $this->assertStringNotContainsString("'url'=>\$path", $messages);
 
         $kyc = $this->source('app/Domain/Kyc/Actions/SubmitKycVerification.php');
         $this->assertStringContainsString("config('vsn.kyc.document_disk', 'local')", $kyc);
@@ -68,10 +68,10 @@ final class MediaSurfaceBoundarySourceContractTest extends TestCase
     {
         $shipping = $this->source('app/Domain/Shipping/Actions/CreateShipment.php');
         $this->assertStringContainsString('createShipment($shipment', $shipping);
-        $this->assertStringContainsString("'label_url'=>$result->labelUrl", $shipping);
+        $this->assertStringContainsString("'label_url'=>\$result->labelUrl", $shipping);
 
         $notifications = $this->source('app/Domain/Notifications/Actions/PublishMarketplaceNotification.php');
-        $this->assertStringContainsString("'action_url' => $actionUrl", $notifications);
+        $this->assertStringContainsString("'action_url' => \$actionUrl", $notifications);
 
         $messages = $this->source('app/Domain/Messaging/Actions/SendConversationMessage.php');
         $this->assertStringContainsString("'/messages?conversation='", $messages);
