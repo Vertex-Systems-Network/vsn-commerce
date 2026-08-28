@@ -136,6 +136,30 @@ test.describe('interaction quality and click safety',()=>{
     await expect(page.getByRole('heading',{name:/iPhone 16 Pro Max Titanium/i})).toHaveCount(0);
   });
 
+  test('Systems tracking API failure fails closed without legacy shipment content',async({page})=>{
+    await loginAs(page,'customer');
+    await page.addInitScript(()=>{
+      const nativeFetch=window.fetch.bind(window);
+      window.fetch=async(input,init)=>{
+        const rawUrl=typeof input==='string'?input:input?.url||String(input);
+        const url=new URL(rawUrl,window.location.origin);
+        if(url.pathname==='/api/v1/shipments'){
+          return new Response(JSON.stringify({message:'Shipment tracking temporarily unavailable'}),{
+            status:503,
+            statusText:'Service Unavailable',
+            headers:{'Content-Type':'application/json'},
+          });
+        }
+        return nativeFetch(input,init);
+      };
+    });
+    await page.goto('/tracking');
+    await expect(page.getByRole('heading',{name:'Track order'})).toBeVisible();
+    await expect(page.getByText('Shipment tracking temporarily unavailable')).toBeVisible();
+    await expect(page.getByText('Legacy demo tracking')).toHaveCount(0);
+    await expect(page.locator('.tracking-card')).toHaveCount(0);
+  });
+
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{
     test.setTimeout(120_000);
     await loginAs(page,'customer');

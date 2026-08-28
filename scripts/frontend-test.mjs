@@ -30,7 +30,12 @@ while (stack.length) {
   }
 }
 
-const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx','resources/js/pages/Product.jsx'];
+const serverAuthoritativeLiveRoutes = [
+  'resources/js/pages/Search.jsx',
+  'resources/js/pages/Product.jsx',
+  'resources/js/pages/Systems.jsx',
+  'resources/js/pages/SystemsServer.jsx',
+];
 for (const file of serverAuthoritativeLiveRoutes) {
   const text = fs.readFileSync(file, 'utf8');
   const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
@@ -39,6 +44,32 @@ for (const file of serverAuthoritativeLiveRoutes) {
   (!importsLegacyCatalog ? pass : fail)(`server-authoritative live route has no legacy catalog import: ${file}`);
   (!usesBackendModeBranch ? pass : fail)(`server-authoritative live route has no backend-mode branch: ${file}`);
   (!usesLegacyStoreAuthority ? pass : fail)(`server-authoritative live route has no legacy store authority: ${file}`);
+}
+
+const systemsCompatibility = fs.readFileSync('resources/js/pages/Systems.jsx', 'utf8');
+const expectedSystemsExports = [
+  'Orders', 'Checkout', 'Tracking', 'Wallet', 'Notifications', 'Messages', 'Settings',
+  'Gifts', 'AdminControl', 'ReturnsCenter', 'SavedAlerts', 'OperationsCenter', 'SellerQuality',
+];
+for (const name of expectedSystemsExports) {
+  (new RegExp(`\\b${name}\\b`).test(systemsCompatibility) ? pass : fail)(`Systems compatibility surface exports ${name}`);
+}
+(systemsCompatibility.includes('from "./SystemsServer"') ? pass : fail)('Systems compatibility surface delegates to SystemsServer');
+
+const systemsServer = fs.readFileSync('resources/js/pages/SystemsServer.jsx', 'utf8');
+const preservedSystemsContracts = [
+  ['/admin/tax', 'Systems admin controls preserve tax navigation'],
+  ['retry-initialization', 'Systems checkout preserves failed payment retry'],
+  ['session.promotions', 'Systems checkout preserves server promotion detail'],
+  ['taxAddedMinor', 'Systems checkout preserves tax inclusion/addition detail'],
+  ['coinRedemptionMinor', 'Systems checkout preserves coin redemption monetary detail'],
+  ['systemOps.deployments', 'Systems operations preserve deployment evidence'],
+  ['operationalLiabilities', 'Systems operations preserve operational liabilities'],
+  ['Cancelled by finance', 'Systems operations preserve payout cancellation'],
+  ['request.refund', 'Systems returns preserve refund status'],
+];
+for (const [fragment, label] of preservedSystemsContracts) {
+  (systemsServer.includes(fragment) ? pass : fail)(label);
 }
 
 let relativeImports = 0;
