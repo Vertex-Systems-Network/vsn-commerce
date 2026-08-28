@@ -50,7 +50,7 @@ class MediaLibraryService
         $extension = match ($inspected['mime']) {'image/png'=>'png','image/webp'=>'webp',default=>'jpg'};
         $directory = $vendor ? 'media-library/vendors/'.$vendor->id : 'media-library/global';
         $path = $file->storeAs($directory, Str::ulid().'.'.$extension, $disk);
-        if (! $path) {
+        if (!$path) {
             throw ValidationException::withMessages(['file'=>['Media library file could not be stored.']]);
         }
 
