@@ -35,14 +35,15 @@ class UserDataIsolationContractTest extends TestCase
     /** Confirms the customer dashboard obtains personal data from authenticated APIs rather than bundled demo state. */
     public function test_account_overview_uses_authenticated_server_endpoints(): void
     {
-        $source = file_get_contents(dirname(__DIR__, 2).'/resources/js/pages/Account.jsx');
+        $root = dirname(__DIR__, 2);
+        $source = file_get_contents($root.'/resources/js/pages/Account.jsx');
         foreach (['/orders', '/wallet', '/wishlist', '/activity', '/returns'] as $endpoint) {
             $this->assertStringContainsString($endpoint, $source, "Account UI is missing {$endpoint} server data.");
         }
 
-        $store = preg_replace('/\s+/', '', (string) file_get_contents(dirname(__DIR__, 2).'/resources/js/platform/store.jsx'));
-        $this->assertStringContainsString('constinitialOrders=[];', $store);
-        $this->assertStringContainsString('constinitialNotifications=[];', $store);
-        $this->assertStringContainsString('constinitialMessages=[];', $store);
+        $this->assertFileDoesNotExist($root.'/resources/js/platform/store.jsx', 'Legacy client business store must remain retired.');
+        $this->assertFileDoesNotExist($root.'/resources/js/data/catalog.js', 'Bundled demo catalog authority must remain retired.');
+        $this->assertStringNotContainsString('useStore', $source, 'Account UI must not regain legacy client business authority.');
+        $this->assertStringNotContainsString('data/catalog', $source, 'Account UI must not regain bundled catalog authority.');
     }
 }

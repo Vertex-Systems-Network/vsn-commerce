@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiBackend, apiDelete, apiGet, apiPost } from "./api";
+import { useCallback, useEffect, useState } from "react";
+import { apiGet, apiPost } from "./api";
 
 const key = /** Handles key for the VSN Ecommerce interface. */ (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
 /** Handles use laravel gifts for the VSN Ecommerce interface. */
 export function useLaravelGifts() {
   const [dashboard, setDashboard] = useState({ profile: null, rewards: [], sent: [], received: [] });
-  const [loading, setLoading] = useState(apiBackend === "laravel");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const refresh = useCallback(/** Inline callback for this operation. */ async () => {
-    if (apiBackend !== "laravel") return null;
     const next = await apiGet("/gifts");
     setDashboard(next || { profile: null, rewards: [], sent: [], received: [] });
     setError("");
@@ -18,7 +17,6 @@ export function useLaravelGifts() {
   }, []);
 
   useEffect(/** Inline callback for this operation. */ () => {
-    if (apiBackend !== "laravel") { setLoading(false); return; }
     let live = true;
     apiGet("/gifts")
       .then(/** Inline callback for this operation. */ (next) => live && setDashboard(next || { profile: null, rewards: [], sent: [], received: [] }))

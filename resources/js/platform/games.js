@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiBackend, apiGet, apiPost } from "./api";
+import { apiGet, apiPost } from "./api";
 
 /** Handles use laravel games for the VSN Ecommerce interface. */
 export function useLaravelGames() {
   const [games, setGames] = useState([]);
   const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(apiBackend === "laravel");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const refresh = useCallback(/** Inline callback for this operation. */ async () => {
-    if (apiBackend !== "laravel") return { games: [], entries: [] };
     const gameRows = await apiGet("/games");
     setGames(Array.isArray(gameRows) ? gameRows : []);
     let entryRows = [];
@@ -25,7 +24,6 @@ export function useLaravelGames() {
   }, []);
 
   useEffect(/** Inline callback for this operation. */ () => {
-    if (apiBackend !== "laravel") { setLoading(false); return; }
     let live = true;
     apiGet("/games")
       .then(/** Inline callback for this operation. */ async (gameRows) => {

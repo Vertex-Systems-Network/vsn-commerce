@@ -2,34 +2,12 @@ import {useEffect,useState} from 'react';
 import {Link} from 'react-router-dom';
 import SEO from '../components/SEO';
 import {Badge,Button,Card,SectionHeader,Status} from '../components/Toolkit';
-import {apiBackend,apiGet,apiPost} from '../platform/api';
-import {FaShieldAlt,FaCreditCard,FaTruck,FaSms,FaIdCard,FaEnvelope,FaCloudUploadAlt,FaClock,FaLink,FaSearch,FaUniversalAccess,FaGavel,FaChartLine,FaDatabase,FaKey,FaServer,FaCheckCircle,FaExclamationTriangle} from 'react-icons/fa';
-
-const modules=[
- ['Authentication & sessions',FaKey,'Core ready','Refresh/session/device model + 2FA adapter points','ready'],
- ['Payments & refunds',FaCreditCard,'Adapter required','Stripe / PayFast / JazzCash / Easypaisa / COD + webhook reconciliation','adapter'],
- ['Courier & shipping',FaTruck,'Adapter required','Live rates, AWB, tracking webhooks, RTO and partial shipment','adapter'],
- ['SMS / OTP',FaSms,'Adapter required','Phone verification, delivery OTP, abuse/rate limits','adapter'],
- ['KYC / identity',FaIdCard,'Adapter required','CNIC/passport, liveness, expiry and provider callbacks','adapter'],
- ['Transactional email',FaEnvelope,'Adapter required','Order, review reward, recovery, stock, game and security emails','adapter'],
- ['Media storage',FaCloudUploadAlt,'Core ready','Review/KYC/profile/dispute media abstraction; S3/CDN can replace local media','ready'],
- ['Background jobs',FaClock,'Core ready','Laravel scheduler/queue foundation for checkout expiry, affiliate settlement and Game Win lifecycle','ready'],
- ['Webhook processing',FaLink,'Core ready','Provider event log, idempotency, signature adapter and retry state','ready'],
- ['Permissions / audit',FaShieldAlt,'Core ready','Buyer/vendor/support/finance/KYC/admin capability map + audit trail','ready'],
- ['Search service',FaSearch,'Adapter ready','PostgreSQL catalog search now; Meilisearch/Algolia/Elastic adapter point later','adapter'],
- ['Accessibility QA',FaUniversalAccess,'Checklist ready','Keyboard, ARIA, focus, contrast and mobile tap-target audit','ready'],
- ['Legal / compliance',FaGavel,'Center added','Terms, privacy, returns, seller, affiliate, coins, game and KYC consent','ready'],
- ['Observability',FaServer,'Core ready','System events, failed jobs, webhook failures and provider health','ready'],
- ['Backup / recovery',FaDatabase,'Ops checklist','Database/media backup policy and restore-runbook hooks','adapter'],
- ['Analytics / funnels',FaChartLine,'Adapter ready','Commerce events and provider-neutral analytics mapping','adapter'],
-];
+import {apiGet,apiPost} from '../platform/api';
+import {FaShieldAlt,FaLink,FaDatabase,FaServer,FaCheckCircle,FaExclamationTriangle} from 'react-icons/fa';
 
 /** Handles production readiness for the VSN Ecommerce interface. */
 export default function ProductionReadiness(){
- if(apiBackend==='laravel') return <LaravelProductionReadiness/>;
- const [filter,setFilter]=useState('all');
- const shown=modules.filter(/** Inline callback for this operation. */ m=>filter==='all'||m[4]===filter);
- return <><SEO title="Production Readiness | VSN Ecommerce" description="VSN Ecommerce provider integrations, security, jobs, compliance and operational readiness."/><div className="page-wrap production-readiness"><SectionHeader eyebrow="ADMIN / OPERATIONS" title="Production readiness" description="Legacy provider/readiness checklist."/><div className="readiness-summary"><Card><FaCheckCircle/><small>Core modules</small><strong>{modules.filter(/** Inline callback for this operation. */ m=>m[4]==='ready').length}</strong><span>Implemented or structurally ready</span></Card><Card><FaExclamationTriangle/><small>Provider adapters</small><strong>{modules.filter(/** Inline callback for this operation. */ m=>m[4]==='adapter').length}</strong><span>Need credentials/vendor selection</span></Card></div><div className="readiness-filters"><button className={filter==='all'?'active':''} onClick={/** Inline callback for this operation. */ ()=>setFilter('all')}>All</button><button className={filter==='ready'?'active':''} onClick={/** Inline callback for this operation. */ ()=>setFilter('ready')}>Core ready</button><button className={filter==='adapter'?'active':''} onClick={/** Inline callback for this operation. */ ()=>setFilter('adapter')}>Needs provider</button></div><div className="readiness-grid">{shown.map(/** Inline callback for this operation. */ ([name,Icon,status,desc,state])=><Card key={name} className="readiness-card"><div className="readiness-icon"><Icon/></div><div><div className="readiness-title"><h3>{name}</h3><Badge tone={state==='ready'?'success':'warning'}>{status}</Badge></div><p>{desc}</p></div></Card>)}</div></div></>;
+ return <LaravelProductionReadiness/>;
 }
 
 /** Handles laravel production readiness for the VSN Ecommerce interface. */
