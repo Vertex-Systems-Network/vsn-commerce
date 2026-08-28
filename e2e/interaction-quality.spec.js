@@ -136,6 +136,22 @@ test.describe('interaction quality and click safety',()=>{
     await expect(page.getByRole('heading',{name:/iPhone 16 Pro Max Titanium/i})).toHaveCount(0);
   });
 
+  test('Systems tracking API failure fails closed without legacy shipment content',async({page})=>{
+    await loginAs(page,'customer');
+    await page.route('**/api/v1/shipments**',async route=>{
+      await route.fulfill({
+        status:503,
+        contentType:'application/json',
+        body:JSON.stringify({message:'Shipment tracking temporarily unavailable'}),
+      });
+    });
+    await page.goto('/tracking');
+    await expect(page.getByRole('heading',{name:'Track order'})).toBeVisible();
+    await expect(page.getByText('Shipment tracking temporarily unavailable')).toBeVisible();
+    await expect(page.getByText('Legacy demo tracking')).toHaveCount(0);
+    await expect(page.locator('.tracking-card')).toHaveCount(0);
+  });
+
   test('customer workspace navigation clicks render without runtime errors',async({page})=>{
     test.setTimeout(120_000);
     await loginAs(page,'customer');
