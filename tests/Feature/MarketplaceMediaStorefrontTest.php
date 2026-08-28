@@ -94,6 +94,37 @@ class MarketplaceMediaStorefrontTest extends TestCase
         $this->assertArrayNotHasKey('logoUrl', $metadata);
     }
 
+    /** Confirms an active storefront logo keeps its reusable media alive until the seller clears the reference. */
+    public function test_storefront_logo_media_cannot_be_archived_until_reference_is_cleared(): void
+    {
+        Storage::fake('public');
+        $seller = User::factory()->create(['role' => UserRole::Seller]);
+        $vendor = Vendor::create(['owner_user_id' => $seller->id, 'name' => 'Protected Logo Store', 'slug' => 'protected-logo-store', 'status' => 'active', 'commission_bps' => 1000]);
+        $asset = $this->media($vendor, $seller, 'protected-logo.jpg', 'vendor:'.$vendor->id);
+        Storage::disk('public')->put($asset->path, 'logo-binary');
+
+        $this->actingAs($seller)->putJson('/api/v1/vendor/settings', $this->settingsPayload($vendor, [
+            'logoMediaAssetId' => $asset->public_id,
+            'logoUrl' => null,
+        ]))->assertOk()->assertJsonPath('data.vendor.logoMediaAssetId', $asset->public_id);
+
+        $this->actingAs($seller)->deleteJson('/api/v1/vendor/media-library/'.$asset->public_id)
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'This media item is currently used as a seller storefront logo. Choose another logo before archiving it.');
+        $this->assertDatabaseHas('media_library_assets', ['id' => $asset->id, 'status' => 'active']);
+        Storage::disk('public')->assertExists($asset->path);
+
+        $this->actingAs($seller)->putJson('/api/v1/vendor/settings', $this->settingsPayload($vendor))
+            ->assertOk()
+            ->assertJsonPath('data.vendor.logoMediaAssetId', null);
+
+        $this->actingAs($seller)->deleteJson('/api/v1/vendor/media-library/'.$asset->public_id)
+            ->assertOk()
+            ->assertJsonPath('data.archived', true);
+        $this->assertDatabaseHas('media_library_assets', ['id' => $asset->id, 'status' => 'archived']);
+        Storage::disk('public')->assertMissing($asset->path);
+    }
+
     /** Confirms the current URL-based picker compatibility path is normalized back to a stable asset id. */
     public function test_existing_logo_picker_url_is_normalized_to_media_asset_reference(): void
     {
