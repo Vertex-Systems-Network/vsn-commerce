@@ -20,6 +20,7 @@ export default function Product({ onAdd }) {
   const laravelGames = useLaravelGames();
   const laravelGifts = useLaravelGifts();
   const laravelReviews = useLaravelReviews();
+  const loadProductReviews = laravelReviews.loadProductReviews;
   const alerts = useLaravelProductAlerts();
 
   const slugify = /** Handles slugify for the VSN Ecommerce interface. */ value => String(value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -64,6 +65,7 @@ export default function Product({ onAdd }) {
     game: false,
     installment: false,
   };
+  const remoteProductId = remoteProduct?.id;
   const images = (remoteProduct?.images || []).filter(Boolean);
   const mainImage = images[activeImage] || product.image || '';
   const visibleCoinBalance = Number(laravelWallet.wallet?.balanceCoins || 0);
@@ -155,9 +157,9 @@ export default function Product({ onAdd }) {
   }, [remoteProduct?.id]);
 
   useEffect(/** Inline callback for this operation. */ () => {
-    if (!remoteProduct) return;
-    laravelReviews.loadProductReviews(reviewProductKey).catch(/** Inline callback for this operation. */ () => {});
-  }, [remoteProduct?.id, reviewProductKey, laravelReviews.loadProductReviews]);
+    if (!remoteProductId) return;
+    loadProductReviews(reviewProductKey).catch(/** Inline callback for this operation. */ () => {});
+  }, [remoteProductId, reviewProductKey, loadProductReviews]);
 
   useEffect(/** Inline callback for this operation. */ () => {
     apiGet('/payment-methods')
