@@ -5,22 +5,22 @@
     "id": "P1",
     "name": "Server-authoritative residual cleanup",
     "status": "IN_PROGRESS",
-    "done": 2,
+    "done": 3,
     "required": 4,
-    "percent": 50
+    "percent": 75
   },
   "task": {
-    "id": "P1-C",
-    "name": "Make Systems routes fully server-authoritative",
+    "id": "P1-D",
+    "name": "Retire global legacy StoreProvider and static client authority",
     "package": "P1",
-    "sequence": 3,
+    "sequence": 4,
     "status": "IN_PROGRESS"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "99d786b44e41818b4ea24afb23203a32ac009839",
-  "task_head": "99d786b44e41818b4ea24afb23203a32ac009839",
+  "base_head": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
+  "task_head": "b2dbd6cd9e15c96f32893e08105fd826e5fc7726",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
@@ -29,13 +29,15 @@
   "last_observed_pr_head": null,
   "pull_request": null,
   "acceptance_criteria": [
-    "resources/js/pages/Systems.jsx must not import or consume resources/js/data/catalog.js or platform/store.jsx/useStore as live-route business authority.",
-    "Systems.jsx live customer routes must not branch on apiBackend to legacy implementations; Laravel/API contracts must be the sole business-authority path while preserving existing route URLs and customer-facing visual behavior.",
-    "Orders, checkout and other Systems.jsx domains must use server-issued state for inventory, pricing, payments, shipping, wallet conversion, order status and related business values; client fallback constants such as a hardcoded coins-per-rupee authority must not substitute missing server truth.",
-    "API failure must fail closed with an explicit unavailable/error state and must never fall back to static catalog, localStorage orders or other legacy business data.",
-    "P1-C must stay consumer-scoped: do not delete the global StoreProvider, platform/store.jsx or resources/js/data/catalog.js until remaining consumers are migrated and P1-D proves them unused.",
-    "The frontend fast gate must reject future Systems.jsx reintroduction of apiBackend legacy routing, useStore business authority or static catalog imports.",
-    "Targeted browser coverage, frontend quality checks, production build and applicable repository CI/governance acceptance must pass on the exact PR head before merge."
+    "Inventory every remaining import/use of StoreProvider, useStore, resources/js/platform/store.jsx, resources/js/data/catalog.js and related legacy client business-authority helpers with repository/source-aware checks; incomplete hosted code-search results are not sole proof of absence.",
+    "Any remaining live consumer must be migrated to existing Laravel/API/provider contracts before legacy engine deletion; do not recreate client authority or invent missing server truth.",
+    "Remove the global StoreProvider mount from resources/js/main.jsx only after no live child depends on it.",
+    "Delete or reduce platform/store.jsx and static catalog authority only after exact source, build and browser evidence proves they are unused by live routes; preserve only independently required non-authoritative utilities and separate them clearly.",
+    "No localStorage-backed orders, wallet/coins, profile/KYC, inventory, payments, shipping, returns, reviews, alerts, gifts, games, seller/admin or other business truth may survive as production authority.",
+    "Any missing server-contract seam must fail closed and trigger re-planning instead of adding a client/static fallback.",
+    "Frontend fast gates must prevent reintroduction of legacy StoreProvider/useStore/static-catalog production authority.",
+    "Preserve route URLs, authentication/RBAC, checkout semantics, tenant isolation and customer-facing visual behavior; no Admin or storefront redesign belongs in P1-D.",
+    "Exact final implementation head must be current with protected main, have no unresolved review blocker, and pass Governance, CodeQL and full CI including browser E2E/WCAG/W3C and runtime integration/restore/launch gates before merge."
   ],
   "completed_tasks": [
     "P0-CI-BASELINE",
@@ -43,7 +45,8 @@
     "P0-02",
     "P0-03",
     "P1-A",
-    "P1-B"
+    "P1-B",
+    "P1-C"
   ],
   "blocked_tasks": [],
   "failed_gates": [
@@ -54,7 +57,8 @@
     "CI run 32660615534 (#298) on state-only descendant 159f205537bd297d26b56f39902c83e35796667f: static-and-build, SQLite, MySQL, PostgreSQL and browser-e2e succeeded; Governance Code Scanning 32660615546 (#129) and CodeQL 32660615582 (#131) also succeeded. runtime-integration job 97247406686 reached the full PostgreSQL suite and ran 427 tests / 2205 assertions with 1 error and 1 failure (4 skipped): MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin_role still received null auth at MobileApiTest.php:284, and KycSecurityTest::test_phone_sandbox_is_disabled_by_default expected HTTP 503 but received 200. No vsn-launch-verification artifact was produced. The host PostgreSQL suite is green while the Compose runtime test service still inherits CACHE_LIMITER_STORE=redis and VSN_SANDBOX_SMS_ENABLED=true from app_env; focused commit 627399cfe7c6d8e3c5b3f1272a453f838f1c4542 overrides those two values directly in test.environment before Laravel boots.",
     "CI run 32665873766 (#311) attempt 1 on P0-01 reconciliation head 7b26458030cd350ad375713c8024fb52665d14c0: runtime-integration job 97262404293 failed during Docker test-stage composer install after repeated api.github.com HTTP/2 504 dependency-download responses, culminating on phpstan/phpstan with Composer exit 100. Classified as transient external dependency-fetch failure; no repository/runtime assertion failed and no launch-verification artifact was produced on attempt 1.",
     "P1-A CI run 33129544084 (#326) on head 1ae88432788de54938a58070a81687500c9ba4e5 failed only browser-e2e job 98715591638 at the desktop/mobile browser gate. Evidence showed two test-harness assumptions rather than a production Search fallback regression: checkout navigated away before the asynchronous server cart POST completed, and the deliberate products-API 503 fail-closed test was also counted by the shared unexpected-5xx runtime monitor. Focused E2E synchronization changes were applied before exact-head acceptance.",
-    "P1-B CI run 33154457356 (#335) on reconciliation head 1f9e1275b4c6fc8a2976a99cc664b65edb429e4c: static-and-build job 98793804310 failed at step 'Run React, hooks and accessibility lint on changed frontend files'. The Product personalization effect read remoteProduct while its dependency list tracked only remoteProduct?.id, creating a stale-closure lint failure. PostgreSQL, MySQL and SQLite jobs succeeded; browser/runtime work was superseded when focused commit 1bbd91e71a585913e9beaf2a3dc722b51e43f5c0 fixed the dependency and remaining server-truth presentation leaks."
+    "P1-B CI run 33154457356 (#335) on reconciliation head 1f9e1275b4c6fc8a2976a99cc664b65edb429e4c: static-and-build job 98793804310 failed at step 'Run React, hooks and accessibility lint on changed frontend files'. The Product personalization effect read remoteProduct while its dependency list tracked only remoteProduct?.id, creating a stale-closure lint failure. PostgreSQL, MySQL and SQLite jobs succeeded; browser/runtime work was superseded when focused commit 1bbd91e71a585913e9beaf2a3dc722b51e43f5c0 fixed the dependency and remaining server-truth presentation leaks.",
+    "P1-C prior exact-head runtime-integration job 98842171858 on head 20cf011cc123de54f9caef48b6930fde7e3ba9ed failed at step 'Unified runtime + restore drill + launch gate'. It is retained as historical diagnostic evidence only; the failure was superseded by exact final head a1661a1de3ff818570b720605fea2eef83e43fd4 with all required workflows and runtime/browser gates green."
   ],
   "acceptance_evidence": [
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32643922899,"workflow":"Governance Code Scanning","source_head":"accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2","status":"SUCCESS"},
@@ -72,7 +76,7 @@
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32657707600,"workflow":"CI","source_head":"d64f5863ffd66ac05b9e0feb399b6c1cbf71d251","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97241104992,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2201,"errors":2,"failures":2,"skipped":4,"exact_failures":["LaunchGateRuntimeTest::test_complete_runtime_manifest_passes_manifest_check — file_put_contents(/var/www/html/runtime/test-launch-manifest.json): Permission denied.","MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin_role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200.","ZeroToEndIntegrityTest::test_fresh_source_contains_all_laravel_runtime_directory_placeholders — storage/framework/cache/data/.gitignore missing."]}]},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615546,"workflow":"Governance Code Scanning","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"SUCCESS"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615582,"workflow":"CodeQL","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"SUCCESS"},
-    {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615534,"workflow":"CI","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97247406686,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2205,"errors":1,"failures":1,"skipped":4,"exact_failures":["MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200."],"launch_verification_artifact":false}]},
+    {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615534,"workflow":"CI","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97247406686,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2205,"errors":1,"failures":1,"skipped":4,"exact_failures":["MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api even for admin role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200."],"launch_verification_artifact":false}]},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256030,"workflow":"Governance Code Scanning","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256070,"workflow":"CodeQL","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662255994,"workflow":"CI","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE","passed_jobs":[{"name":"static-and-build","job_id":97250138759},{"name":"sqlite-tests","job_id":97250138800},{"name":"mysql-tests","job_id":97250138730},{"name":"postgres-tests","job_id":97250138594},{"name":"browser-e2e","job_id":97250138723},{"name":"runtime-integration","job_id":97253188297}],"runtime_evidence":{"artifact_id":9499456412,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:6ee4385bf44105a2bb5b8e20d12d0018ba7e3efcd652cd571d4b12d623388da8","manifest_generated_at":"2026-08-23T20:15:45Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_audit_ok":true,"database_index_missing":[]}},
@@ -88,26 +92,28 @@
     {"task_id":"P1-A","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"285a9fe47aa81901b06dc2ede2ab4851e2378755","governance":{"workflow_run_id":33131893704,"status":"SUCCESS"},"codeql":{"workflow_run_id":33131893710,"status":"SUCCESS"},"ci":{"workflow_run_id":33131893723,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98723071654},{"name":"sqlite-tests","job_id":98723071780},{"name":"mysql-tests","job_id":98723071943},{"name":"postgres-tests","job_id":98723071725},{"name":"browser-e2e","job_id":98723071875},{"name":"runtime-integration","job_id":98724713929}]},"browser_evidence":{"artifact_id":9670744686,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:8982eb40e16466b20ee9c516ca898a5628f8fb0c96c475223b32ba70ab3f5a6c"},"runtime_evidence":{"artifact_id":9670846294,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:858f98e0d188cdb716ac26bba39d0f89d96688c436a589adb0dc1b97b63a6b69","manifest_generated_at":"2026-08-28T01:23:04Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_status":"ready","launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_required":13,"database_index_audit_ok":true,"database_index_missing":[]}},
     {"task_id":"P1-A","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":15,"source_head":"285a9fe47aa81901b06dc2ede2ab4851e2378755","merge_commit_sha":"572c7170837e6c57b1284672843f003f170ef110","merged_at":"2026-08-28T07:10:52Z","main_head_verified":true,"note":"PR #15 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. main was verified at merge commit 572c7170837e6c57b1284672843f003f170ef110. Search is now Laravel/API-authoritative with the static catalog fallback and residual apiBackend branch removed."},
     {"task_id":"P1-B","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"1bbd91e71a585913e9beaf2a3dc722b51e43f5c0","governance":{"workflow_run_id":33154771812,"status":"SUCCESS"},"codeql":{"workflow_run_id":33154771868,"status":"SUCCESS"},"ci":{"workflow_run_id":33154771908,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98794880636},{"name":"sqlite-tests","job_id":98794880657},{"name":"mysql-tests","job_id":98794880502},{"name":"postgres-tests","job_id":98794880637},{"name":"browser-e2e","job_id":98794880875},{"name":"runtime-integration","job_id":98796723205}]},"browser_evidence":{"artifact_id":9679358663,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:8e708e50d390bd5240cd50ae1a4ecb0af3cf97e44c67bf803511d58baba309c5"},"runtime_evidence":{"artifact_id":9679526095,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:cf55d1e78bf3a28a8af9349a9bc0c0d6e5a9d0153236aeb4536da3d70db07c43","manifest_generated_at":"2026-08-28T08:33:01Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_status":"ready","launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_required":13,"database_index_audit_ok":true,"database_index_missing":[]}},
-    {"task_id":"P1-B","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":23,"source_head":"1bbd91e71a585913e9beaf2a3dc722b51e43f5c0","merge_commit_sha":"99d786b44e41818b4ea24afb23203a32ac009839","merged_at":"2026-08-28T08:35:08Z","main_head_verified":true,"note":"PR #23 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. Product now uses Laravel/API-authoritative product, media, pricing, inventory, wallet/game/gift/review/alert/wishlist and cart contracts, and its deliberate API-failure browser test proves the route fails closed without static/demo substitution."}
+    {"task_id":"P1-B","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":23,"source_head":"1bbd91e71a585913e9beaf2a3dc722b51e43f5c0","merge_commit_sha":"99d786b44e41818b4ea24afb23203a32ac009839","merged_at":"2026-08-28T08:35:08Z","main_head_verified":true,"note":"PR #23 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. Product now uses Laravel/API-authoritative product, media, pricing, inventory, wallet/game/gift/review/alert/wishlist and cart contracts, and its deliberate API-failure browser test proves the route fails closed without static/demo substitution."},
+    {"task_id":"P1-C","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","governance":{"workflow_run_id":33170182000,"status":"SUCCESS"},"codeql":{"workflow_run_id":33170181998,"status":"SUCCESS"},"ci":{"workflow_run_id":33170182030,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98845200140},{"name":"sqlite-tests","job_id":98845200344},{"name":"mysql-tests","job_id":98845200353},{"name":"postgres-tests","job_id":98845200297},{"name":"browser-e2e","job_id":98845200347},{"name":"runtime-integration","job_id":98847433836}]},"browser_evidence":{"artifact_id":9685528713,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:6bb89130d7227ef19f20b6a04503cae444875399dd4be22545c7db32bdaf5a94"},"runtime_evidence":{"artifact_id":9685727454,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:1a7f2f8af0884725a54045680243f58e21cfbc5a8cc3c927fd6aff0568a10670"}},
+    {"task_id":"P1-C","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":27,"source_head":"a1661a1de3ff818570b720605fea2eef83e43fd4","merge_commit_sha":"b2dbd6cd9e15c96f32893e08105fd826e5fc7726","merged_at":"2026-08-28T13:27:42Z","main_head_verified":true,"note":"PR #27 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. Systems live routes now delegate to the server-authoritative implementation, preserve the existing named route exports, remove apiBackend/useStore/static-catalog live authority, fail closed on API errors and retain server checkout/wallet/payment semantics."}
   ],
   "next_exact_action": {
-    "type": "IMPLEMENT_P1_C",
-    "candidate_task": "P1-C",
-    "description": "Create a short-lived branch from verified main and remove Systems.jsx dual authority domain-by-domain. Replace apiBackend legacy route forks, useStore/localStorage business authority and static catalog dependencies with the existing Laravel/API contracts while preserving current customer route URLs and storefront visuals.",
+    "type": "IMPLEMENT_P1_D",
+    "candidate_task": "P1-D",
+    "description": "After this state-only closure merges and protected main is re-read, create a new short-lived implementation branch and perform a verification-first retirement of the residual global StoreProvider/platform store/static catalog authority. Prove remaining consumers, migrate only any smallest live seam to existing server contracts, then remove proven-unused legacy authority without redesigning the UI.",
     "preconditions": [
-      "Confirm main HEAD is still 99d786b44e41818b4ea24afb23203a32ac009839 or a known state-only descendant before implementation.",
-      "Keep P1-C scoped to Systems.jsx and only the smallest directly required platform helpers, regression tests and fast-gate updates; do not retire the global StoreProvider in this batch.",
-      "Migrate Systems.jsx domains incrementally so Orders, Checkout and adjacent customer-system flows remain reviewable and reversible rather than replacing the file in one giant rewrite.",
-      "Do not redesign customer storefront visuals while removing Systems dual authority.",
-      "Do not delete resources/js/data/catalog.js or platform/store.jsx globally until P1-D verifies all remaining consumers are gone."
+      "Confirm protected main is still the post-closure merge boundary or a known state-only descendant before P1-D implementation.",
+      "Do not treat incomplete GitHub code-search indexing or zero hosted search hits as proof that no consumers remain; use source-aware inventory plus build/test evidence.",
+      "Do not remove StoreProvider from resources/js/main.jsx until all live child consumers are proven migrated or absent.",
+      "Do not recreate localStorage/static business authority if a missing server contract is discovered; stop at the seam and re-plan.",
+      "Keep P1-D scoped to residual legacy client-state retirement and the smallest required regression/fast-gate updates; no Admin/storefront redesign, schema churn or later-package work."
     ],
     "expected_evidence": [
-      "Systems.jsx no longer imports data/catalog, apiBackend or useStore as live-route business authority.",
-      "Systems customer routes use server-authorized orders, checkout, shipping, payment, wallet and related domain data without localStorage/static fallback substitution.",
-      "Deliberate API failures fail closed and do not expose legacy order/catalog/checkout state.",
-      "Frontend fast gate rejects future Systems.jsx legacy authority reintroduction.",
-      "Targeted browser tests, frontend quality checks and npm run build succeed for the focused change.",
-      "Applicable GitHub CI/governance checks succeed on the exact PR head before merge."
+      "Source-aware audit accounts for all StoreProvider/useStore/platform/store/static-catalog imports and usages.",
+      "No live production route depends on localStorage/static catalog/store business truth after the change.",
+      "Global StoreProvider mount and legacy store/catalog authority are removed only where proven unused, with any retained utility explicitly non-authoritative.",
+      "Frontend fast gates reject reintroduction of legacy client business authority.",
+      "Targeted browser behavior, frontend quality checks and production build succeed.",
+      "Governance, CodeQL and full CI including database matrices, browser E2E/WCAG/W3C and runtime integration/restore/launch gate succeed on the exact final implementation head before merge."
     ]
   },
   "architecture_decisions": [
@@ -115,18 +121,18 @@
     {"id":"LICENSE-001","decision":"VSN Commerce original project materials are proprietary / closed-source; project metadata must not grant GPLv3 or another open-source project license without a new explicit owner decision.","reason":"Repository owner explicitly rejected GPLv3 on 2026-08-28; ADR-0001 records the decision while preserving third-party licenses."},
     {"id":"P1-SEQUENCE-001","decision":"Remove residual client-side/static authority in small domain batches before retiring the global StoreProvider or redesigning Admin.","reason":"Current Laravel mode is mandatory, but residual unreachable legacy branches still create dual-authority regression risk; consumer-first removal is safer than a giant deletion."},
     {"id":"P1-B-SCOPE-001","decision":"Use Product.jsx as the second P1 consumer-first batch before Systems.jsx and global StoreProvider retirement.","reason":"Product.jsx directly imported the static catalog and global store and contained multiple apiBackend branches; P1-B removed that consumer-side legacy authority while preserving Laravel contracts."},
-    {"id":"P1-C-SCOPE-001","decision":"Use Systems.jsx as the third P1 consumer-first batch and migrate its customer-system domains incrementally before global StoreProvider retirement.","reason":"Systems.jsx still directly imports apiBackend, useStore and the static catalog and contains Laravel-vs-Legacy route forks for live customer workflows. Removing those consumer-side branches before P1-D is the smallest safe path to proving the legacy engine unused."}
+    {"id":"P1-C-SCOPE-001","decision":"Use Systems.jsx as the third P1 consumer-first batch and migrate its customer-system domains incrementally before global StoreProvider retirement.","reason":"P1-C removed Systems live-route apiBackend/useStore/static-catalog authority while preserving the named route surface and server-authoritative customer/system contracts."},
+    {"id":"P1-D-SCOPE-001","decision":"Make the final P1 batch verification-first: prove residual StoreProvider/useStore/static-catalog consumers before global legacy client-state retirement.","reason":"Protected main still mounts StoreProvider and platform/store.jsx still contains localStorage-backed business authority, while hosted code-search indexing is incomplete. Deletion is safe only after source-aware consumer proof and existing server-contract coverage."}
   ],
   "known_risks": [
     "AGENTS.md still contains stale P0-01, P0-02 and P0-03 status text from the 2026-08-22 audit; repository evidence and this canonical checkpoint supersede those historical status labels until the plan document is reconciled.",
-    "Systems.jsx still contains extensive Laravel-vs-Legacy route branching and imports apiBackend, useStore and the static catalog; P1-C is active to remove those live-route authority forks without redesigning the storefront.",
-    "The global StoreProvider is still mounted in resources/js/main.jsx and platform/store.jsx retains localStorage-backed business authority; it must not be removed until its consumers are migrated and P1-D proves the legacy engine unused.",
+    "resources/js/main.jsx still mounts StoreProvider and resources/js/platform/store.jsx still contains localStorage-backed legacy business state plus a static catalog import; P1-D is active to verify remaining consumers and retire this engine safely.",
+    "GitHub hosted code-search returned incomplete_results=true during P1-D pre-activation, so zero hosted search hits must not be used as sole proof that legacy consumers are absent.",
     "Third-party dependencies retain their own license obligations even though the project-level VSN Commerce materials are proprietary."
   ],
   "unresolved_issues": [
-    "P1-C: Systems.jsx retains extensive legacy-vs-Laravel route and business-authority branches.",
-    "P1-D: global StoreProvider/platform/store.jsx retirement remains blocked until consumer migrations prove the legacy engine unused.",
+    "P1-D: verify all residual StoreProvider/useStore/static-catalog consumers, migrate any remaining live seam to existing server contracts, then retire the global legacy client-state engine without reintroducing fallback authority.",
     "AGENTS.md and some README progress prose remain stale relative to verified repository state and should be reconciled without rewriting historical audit context."
   ],
-  "updated_at": "2026-08-28T13:35:08+05:00"
+  "updated_at": "2026-08-28T18:34:14+05:00"
 }
