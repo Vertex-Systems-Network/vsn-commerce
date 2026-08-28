@@ -1,8 +1,5 @@
 const BASE = (import.meta.env.VITE_VSN_API_BASE || "").replace(/\/$/, "");
-const BACKEND = "laravel";
-
 const prefix = "/api/v1";
-const isLaravel = true;
 
 /** Handles device id for the VSN Ecommerce interface. */
 function deviceId() {
@@ -30,8 +27,6 @@ export function apiUrl(path) {
 
 /** Handles ensure csrf for the VSN Ecommerce interface. */
 async function ensureCsrf() {
-  if (!isLaravel) return;
-
   await fetch(`${BASE}/sanctum/csrf-cookie`, {
     method: "GET",
     credentials: "include",
@@ -46,14 +41,15 @@ export async function apiRequest(path, options = {}) {
 
   if (mutating) await ensureCsrf();
 
+  const currentDeviceId = deviceId();
   const headers = {
     Accept: "application/json",
     ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
-    ...(isLaravel && deviceId() ? { "X-Device-Id": deviceId() } : {}),
+    ...(currentDeviceId ? { "X-Device-Id": currentDeviceId } : {}),
   };
 
-  if (isLaravel && mutating) {
+  if (mutating) {
     const xsrf = cookie("XSRF-TOKEN");
     if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
   }
@@ -116,5 +112,3 @@ export function apiPut(path, body, options = {}) {
 export function apiDelete(path, options = {}) {
   return apiRequest(path, { ...options, method: "DELETE" });
 }
-
-export { BACKEND as apiBackend };
