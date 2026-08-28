@@ -1,6 +1,6 @@
 // P1-C compatibility surface: keep the existing named route-module contract while
 // delegating all live Systems business state to the Laravel/API-authoritative implementation.
-// Global StoreProvider retirement is intentionally deferred to P1-D.
+// Residual client-authority retirement is owned by the active P1-D boundary.
 export {
 	Orders,
 	Checkout,
