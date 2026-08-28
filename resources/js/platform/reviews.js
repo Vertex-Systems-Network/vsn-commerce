@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiBackend, apiGet, apiPost } from "./api";
+import { apiGet, apiPost } from "./api";
 
 /** Handles use laravel reviews for the VSN Ecommerce interface. */
 export function useLaravelReviews() {
   const [dashboard, setDashboard] = useState({ pending: [], reviews: [], coupons: [] });
   const [productReviews, setProductReviews] = useState({});
-  const [loading, setLoading] = useState(apiBackend === "laravel");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const refresh = useCallback(/** Inline callback for this operation. */ async () => {
-    if (apiBackend !== "laravel") return null;
     const next = await apiGet("/reviews");
     setDashboard(next || { pending: [], reviews: [], coupons: [] });
     setError("");
@@ -17,7 +16,6 @@ export function useLaravelReviews() {
   }, []);
 
   useEffect(/** Inline callback for this operation. */ () => {
-    if (apiBackend !== "laravel") { setLoading(false); return; }
     let live = true;
     apiGet("/reviews")
       .then(/** Inline callback for this operation. */ (next) => live && setDashboard(next || { pending: [], reviews: [], coupons: [] }))
@@ -38,7 +36,7 @@ export function useLaravelReviews() {
   }, [refresh]);
 
   const loadProductReviews = useCallback(/** Inline callback for this operation. */ async (productId) => {
-    if (apiBackend !== "laravel" || !productId) return [];
+    if (!productId) return [];
     const response = await apiGet(`/products/${productId}/reviews?perPage=20`);
     const items = response?.items || [];
     setProductReviews(/** Inline callback for this operation. */ (current) => ({ ...current, [productId]: items }));
