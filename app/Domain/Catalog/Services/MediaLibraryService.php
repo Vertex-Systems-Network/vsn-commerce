@@ -32,7 +32,9 @@ class MediaLibraryService
         );
         $scopeKey = $vendor ? 'vendor:'.$vendor->id : 'global';
         $existing = MediaLibraryAsset::query()->where('scope_key', $scopeKey)->where('sha256', $inspected['sha256'])->first();
-        if ($existing && $existing->status === 'active') return $existing;
+        if ($existing && $existing->status === 'active') {
+            return $existing;
+        }
         if ($existing && Storage::disk($existing->disk)->exists($existing->path)) {
             $existing->forceFill([
                 'uploaded_by_user_id'=>$actor->id,
@@ -48,7 +50,9 @@ class MediaLibraryService
         $extension = match ($inspected['mime']) {'image/png'=>'png','image/webp'=>'webp',default=>'jpg'};
         $directory = $vendor ? 'media-library/vendors/'.$vendor->id : 'media-library/global';
         $path = $file->storeAs($directory, Str::ulid().'.'.$extension, $disk);
-        if (! $path) throw ValidationException::withMessages(['file'=>['Media library file could not be stored.']]);
+        if (! $path) {
+            throw ValidationException::withMessages(['file'=>['Media library file could not be stored.']]);
+        }
 
         try {
             return DB::transaction(/** Persists the reusable media row atomically. */ function () use ($actor, $file, $vendor, $alt, $scopeKey, $disk, $path, $inspected, $existing): MediaLibraryAsset {
@@ -74,7 +78,9 @@ class MediaLibraryService
         $max = (int) config('vsn.catalog.max_product_images', 10);
         abort_if($product->images()->count() >= $max, 422, "A product can have at most {$max} images.");
         $existing = ProductMediaAsset::query()->where('product_id', $product->id)->where('sha256', $library->sha256)->first();
-        if ($existing && $existing->status === 'active') return $existing;
+        if ($existing && $existing->status === 'active') {
+            return $existing;
+        }
 
         $result = DB::transaction(/** Creates the product-specific media reference while reusing the library object. */ function () use ($product, $library, $actor, $alt, $existing): ProductMediaAsset {
             $sort = (int) ($product->images()->max('sort_order') ?? -1) + 1;
