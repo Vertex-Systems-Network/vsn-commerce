@@ -30,7 +30,12 @@ while (stack.length) {
   }
 }
 
-const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx','resources/js/pages/Product.jsx'];
+const serverAuthoritativeLiveRoutes = [
+  'resources/js/pages/Search.jsx',
+  'resources/js/pages/Product.jsx',
+  'resources/js/pages/Systems.jsx',
+  'resources/js/pages/SystemsServer.jsx',
+];
 for (const file of serverAuthoritativeLiveRoutes) {
   const text = fs.readFileSync(file, 'utf8');
   const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
@@ -40,6 +45,16 @@ for (const file of serverAuthoritativeLiveRoutes) {
   (!usesBackendModeBranch ? pass : fail)(`server-authoritative live route has no backend-mode branch: ${file}`);
   (!usesLegacyStoreAuthority ? pass : fail)(`server-authoritative live route has no legacy store authority: ${file}`);
 }
+
+const systemsCompatibility = fs.readFileSync('resources/js/pages/Systems.jsx', 'utf8');
+const expectedSystemsExports = [
+  'Orders', 'Checkout', 'Tracking', 'Wallet', 'Notifications', 'Messages', 'Settings',
+  'Gifts', 'AdminControl', 'ReturnsCenter', 'SavedAlerts', 'OperationsCenter', 'SellerQuality',
+];
+for (const name of expectedSystemsExports) {
+  (new RegExp(`\\b${name}\\b`).test(systemsCompatibility) ? pass : fail)(`Systems compatibility surface exports ${name}`);
+}
+(systemsCompatibility.includes('from "./SystemsServer"') ? pass : fail)('Systems compatibility surface delegates to SystemsServer');
 
 let relativeImports = 0;
 let missingImports = 0;
