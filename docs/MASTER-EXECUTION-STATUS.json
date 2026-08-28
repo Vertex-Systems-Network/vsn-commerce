@@ -2,25 +2,25 @@
   "schema_version": "1.1",
   "repository": "Vertex-Systems-Network/vsn-commerce",
   "package": {
-    "id": "P0",
-    "name": "Truth baseline and release blockers",
+    "id": "P1",
+    "name": "Server-authoritative residual cleanup",
     "status": "IN_PROGRESS",
-    "done": null,
-    "required": 10,
-    "percent": null
+    "done": 0,
+    "required": 4,
+    "percent": 0
   },
   "task": {
-    "id": "P0-02",
-    "name": "Resolve repository license metadata contradiction",
-    "package": "P0",
-    "sequence": 3,
-    "status": "BLOCKED"
+    "id": "P1-A",
+    "name": "Remove Search legacy static catalog authority",
+    "package": "P1",
+    "sequence": 1,
+    "status": "IN_PROGRESS"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "ab46014d9e881232e2d4470c116151cc68803cf5",
-  "task_head": "ab46014d9e881232e2d4470c116151cc68803cf5",
+  "base_head": "3debfd1adc104299eb23e2350d76d0da672613d7",
+  "task_head": "3debfd1adc104299eb23e2350d76d0da672613d7",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
@@ -29,17 +29,19 @@
   "last_observed_pr_head": null,
   "pull_request": null,
   "acceptance_criteria": [
-    "Obtain an explicit repository-owner/legal decision identifying the intended project license; do not infer the answer from the currently contradictory files.",
-    "Root LICENSE and composer.json license metadata must be made intentionally consistent with that explicit decision.",
-    "Do not treat the contradiction as cosmetic or mark P0-02 complete while the intended license remains undecided."
+    "resources/js/pages/Search.jsx must not import or consume resources/js/data/catalog.js for production/live-route behavior.",
+    "Search product results, category/vendor facets, counts and pagination must remain Laravel/API-authoritative with no legacy fallback branch.",
+    "Search API failure must render the existing error/empty experience and must never substitute static/demo catalog data.",
+    "The frontend fast gate must reject future production live-route imports of the legacy catalog fixture boundary.",
+    "Targeted frontend tests/audits and production build must pass before merge, followed by applicable repository CI/governance acceptance."
   ],
   "completed_tasks": [
     "P0-CI-BASELINE",
-    "P0-01"
+    "P0-01",
+    "P0-02",
+    "P0-03"
   ],
-  "blocked_tasks": [
-    "P0-02"
-  ],
+  "blocked_tasks": [],
   "failed_gates": [
     "CI run 32643922913 (#291) on state-only descendant accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2: runtime-integration job 97206098504 failed at step 'Unified runtime + restore drill + launch gate'.",
     "CI run 32653398285 (#292) on state-only descendant 440b3e94782fd766db3efe09cd4d5af93a8bfbd2: runtime-integration job 97229622817 failed at step 'Unified runtime + restore drill + launch gate' and produced no launch-verification artifact. Source inspection found scripts/runtime-verify.sh still used php artisan test despite the repository's direct-PHPUnit P0 contract and dependency set; commit 45fd74fce42f45b51e71ed553772098b3007ab0e replaced only those two stale runner invocations.",
@@ -64,42 +66,51 @@
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32657707600,"workflow":"CI","source_head":"d64f5863ffd66ac05b9e0feb399b6c1cbf71d251","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97241104992,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2201,"errors":2,"failures":2,"skipped":4,"exact_failures":["LaunchGateRuntimeTest::test_complete_runtime_manifest_passes_manifest_check — file_put_contents(/var/www/html/runtime/test-launch-manifest.json): Permission denied.","MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin_role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200.","ZeroToEndIntegrityTest::test_fresh_source_contains_all_laravel_runtime_directory_placeholders — storage/framework/cache/data/.gitignore missing."]}]},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615546,"workflow":"Governance Code Scanning","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"SUCCESS"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615582,"workflow":"CodeQL","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"SUCCESS"},
-    {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615534,"workflow":"CI","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97247406686,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2205,"errors":1,"failures":1,"skipped":4,"exact_failures":["MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin_role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200."],"launch_verification_artifact":false}]},
+    {"task_id":"P0-CI-BASELINE","workflow_run_id":32660615534,"workflow":"CI","source_head":"159f205537bd297d26b56f39902c83e35796667f","status":"FAILURE","passed_jobs":["static-and-build","sqlite-tests","mysql-tests","postgres-tests","browser-e2e"],"failed_jobs":[{"name":"runtime-integration","job_id":97247406686,"failed_step":"Unified runtime + restore drill + launch gate","failing_stage":"Full containerized PostgreSQL PHPUnit suite","tests":427,"assertions":2205,"errors":1,"failures":1,"skipped":4,"exact_failures":["MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin role — ErrorException: Trying to access array offset on null at MobileApiTest.php:284.","KycSecurityTest::test_phone_sandbox_is_disabled_by_default — expected HTTP 503, received 200."],"launch_verification_artifact":false}]},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256030,"workflow":"Governance Code Scanning","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662256070,"workflow":"CodeQL","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE"},
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32662255994,"workflow":"CI","source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","status":"SUCCESS","role":"ACCEPTANCE","passed_jobs":[{"name":"static-and-build","job_id":97250138759},{"name":"sqlite-tests","job_id":97250138800},{"name":"mysql-tests","job_id":97250138730},{"name":"postgres-tests","job_id":97250138594},{"name":"browser-e2e","job_id":97250138723},{"name":"runtime-integration","job_id":97253188297}],"runtime_evidence":{"artifact_id":9499456412,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:6ee4385bf44105a2bb5b8e20d12d0018ba7e3efcd652cd571d4b12d623388da8","manifest_generated_at":"2026-08-23T20:15:45Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_audit_ok":true,"database_index_missing":[]}},
     {"task_id":"P0-CI-BASELINE","role":"MERGE_CLOSURE","status":"SUCCESS","source_head":"dad4487edaf55a0483fca0f00e59343f07fdb190","merge_commit_sha":"c0c38a4942437ae3c234445ef5c67e4835e9164c","merged_at":"2026-08-23T20:32:29Z","main_head_verified":true,"main_required_status_checks":[],"note":"GitHub merged PR #1 successfully with expected head dad4487edaf55a0483fca0f00e59343f07fdb190. main points to merge commit c0c38a4942437ae3c234445ef5c67e4835e9164c. Branch metadata reports no enforced required status-check contexts; therefore no additional repository-required post-merge check blocks task closure."},
     {"task_id":"P0-01","role":"RECONCILIATION_ACCEPTANCE","status":"SUCCESS","observed_main_head":"11af0a2aa6649191f7c7b175194ab1174a66aaa8","composer_json_blob_sha":"23c1bb38b2b97e9847d3fed2df34263b10f3987d","composer_lock_blob_sha":"4262480bf873f14682707b7f77174edb2ed21dc0","provenance":{"known_absent_at":"e316ed1ece3c7a647e94639c32f6ae5f6e3f05c1","comparison_base":"058ef611761da92aa37d021f859c645f89fec6ea","accepted_code_head":"627399cfe7c6d8e3c5b3f1272a453f838f1c4542","comparison_result":"composer.lock added with 8525 lines before accepted P0-CI code head"},"hosted_ci":{"workflow_run_id":32662255994,"job_id":97250138759,"source_head":"dff1695b1240d699e2d9e1ca6cec6e58176a7a5c","php_version":"8.4.24","composer_version":"2.10.2","composer_validate":"SUCCESS","composer_install":{"source":"lock file","installs":113,"updates":0,"removals":0},"lock_artifact_id":9499257411,"lock_artifact_digest":"sha256:17b1177b91c17d5993688d2993cc8b68fde3e21072dd62e12006f7aafe02d50d"},"runtime_install":{"docker_composer_image":"composer:2.8","lock_copy_contract":"COPY composer.* ./","accepted_runtime_job_id":97253188297},"note":"Live evidence proves the stale missing-lock claim is no longer true. The reviewed lockfile is tracked, composer validation succeeds, deterministic install uses the lock with zero updates/removals, and the accepted runtime path is green. No lock regeneration or dependency-version change is required for P0-01."},
     {"task_id":"P0-01","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"7b26458030cd350ad375713c8024fb52665d14c0","governance":{"workflow_run_id":32665873739,"status":"SUCCESS"},"codeql":{"workflow_run_id":32665873806,"status":"SUCCESS"},"ci":{"workflow_run_id":32665873766,"run_attempt":2,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":97269569406},{"name":"sqlite-tests","job_id":97269569338},{"name":"mysql-tests","job_id":97269584970},{"name":"postgres-tests","job_id":97269569014},{"name":"browser-e2e","job_id":97269583921},{"name":"runtime-integration","job_id":97269568904}]},"runtime_evidence":{"artifact_id":9501202737,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:3568e869cecc531d1955a69e91e5fe7a2b21e5b9c9afc52a2856876622b96e2d","launch_gate_ready":true,"launch_gate_status":"ready","launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_required":13,"database_index_audit_ok":true,"database_index_missing":[]}},
-    {"task_id":"P0-01","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":11,"source_head":"7b26458030cd350ad375713c8024fb52665d14c0","merge_commit_sha":"ab46014d9e881232e2d4470c116151cc68803cf5","merged_at":"2026-08-23T22:23:54Z","main_head_verified":true,"note":"PR #11 merged with an expected-head SHA guard after exact-head Governance, CodeQL and CI acceptance. main was then verified at merge commit ab46014d9e881232e2d4470c116151cc68803cf5."}
+    {"task_id":"P0-01","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":11,"source_head":"7b26458030cd350ad375713c8024fb52665d14c0","merge_commit_sha":"ab46014d9e881232e2d4470c116151cc68803cf5","merged_at":"2026-08-23T22:23:54Z","main_head_verified":true,"note":"PR #11 merged with an expected-head SHA guard after exact-head Governance, CodeQL and CI acceptance. main was then verified at merge commit ab46014d9e881232e2d4470c116151cc68803cf5."},
+    {"task_id":"P0-02","role":"OWNER_DECISION","status":"SUCCESS","decision_date":"2026-08-28","decision":"VSN Commerce is proprietary / closed-source and is not GPLv3.","decision_record":"docs/decisions/ADR-0001-PROPRIETARY-PROJECT-LICENSE.md"},
+    {"task_id":"P0-02","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"5cb7baea277786af510db1d65fc25e4c0c9b58ea","governance":{"workflow_run_id":33126827311,"status":"SUCCESS"},"codeql":{"workflow_run_id":33126827310,"status":"SUCCESS"},"ci":{"workflow_run_id":33126827306,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98706883661},{"name":"sqlite-tests","job_id":98706883501},{"name":"mysql-tests","job_id":98706883450},{"name":"postgres-tests","job_id":98706883353},{"name":"browser-e2e","job_id":98706883448},{"name":"runtime-integration","job_id":98708205868}]},"composer_validate":"SUCCESS","runtime_evidence":{"artifact_id":9668986850,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:4a6c7e435391259a27c7c5441fa13a7e9c09cd61b634a009846ce4e192a088ac"}},
+    {"task_id":"P0-02","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":13,"source_head":"5cb7baea277786af510db1d65fc25e4c0c9b58ea","merge_commit_sha":"3debfd1adc104299eb23e2350d76d0da672613d7","merged_at":"2026-08-27T23:50:10Z","main_head_verified":true,"note":"PR #13 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. Root project licensing is now proprietary and composer.json remains consistently proprietary."},
+    {"task_id":"P0-03","role":"RECONCILIATION_ACCEPTANCE","status":"SUCCESS","source_head":"3debfd1adc104299eb23e2350d76d0da672613d7","verification":{"static_audit":"scripts/audit-marketplace-media-storefront.php remains a dependency-free structural gate and explicitly references behavior-test contracts instead of being treated as sole proof.","behavior_tests":["tests/Feature/MarketplaceMediaStorefrontTest.php","tests/Feature/CatalogMediaWriteContractTest.php","tests/Unit/MarketplaceFeatureContractTest.php"],"behavior_contracts":["seller/global media scoping","stable seller logo media ID persistence","cross-vendor logo denial","public logo URL resolution","arbitrary product image URL write rejection","customer data isolation"],"ci_workflow_run_id":33126827306,"ci_status":"SUCCESS"},"note":"P0-03 is reconciled as resolved because semantic Feature/Unit tests exist and were executed successfully by full CI; the string-level marketplace audit is retained only as a fast structural gate and is not used as sole completion evidence."}
   ],
   "next_exact_action": {
-    "type": "RESOLVE_BLOCKED_P0_TASK",
-    "candidate_task": "P0-02",
-    "description": "Obtain an explicit repository-owner/legal decision for the intended VSN Commerce project license. Current main has a GNU GPL v3 LICENSE while composer.json declares proprietary. Do not edit either file or infer which license is intended until that decision is provided. After the decision, make only the scoped metadata/license changes, validate Composer metadata, capture evidence, and update canonical state.",
+    "type": "IMPLEMENT_P1_A",
+    "candidate_task": "P1-A",
+    "description": "Create a short-lived branch from verified main and remove Search.jsx production dependency on the static catalog. Preserve API search/facets/pagination/error behavior and add a frontend fast-gate regression that rejects live-route legacy catalog imports.",
     "preconditions": [
-      "Confirm main HEAD has not moved unexpectedly before implementation.",
-      "Do not infer the intended license from the existing GPL-3.0 LICENSE or proprietary Composer metadata.",
-      "Do not merge Dependabot PR #6 or other dependency updates as a prerequisite for P0-02.",
-      "Do not start P1/P2/P3/P4/P5 work while unresolved P0 release-blocker tasks remain."
+      "Confirm main HEAD is still 3debfd1adc104299eb23e2350d76d0da672613d7 or a known state-only descendant before implementation.",
+      "Do not mix Product.jsx, Systems.jsx or StoreProvider cleanup into P1-A.",
+      "Do not redesign customer storefront visuals while removing the legacy Search authority path.",
+      "Do not remove resources/js/data/catalog.js globally until all remaining consumers have been migrated."
     ],
     "expected_evidence": [
-      "An explicit owner/legal decision identifying the intended project license.",
-      "A focused diff making LICENSE and composer.json license metadata intentionally consistent with that decision.",
-      "Successful composer validate --no-check-publish after the metadata change."
+      "Search.jsx no longer imports data/catalog or contains a legacy product/category fallback branch.",
+      "Frontend fast gate rejects future live-route static catalog imports.",
+      "npm test and npm run build succeed for the focused change.",
+      "Applicable GitHub CI/governance checks succeed on the exact PR head before merge."
     ]
   },
   "architecture_decisions": [
-    {"id":"STATE-HEAD-001","decision":"Treat canonical-state-only descendant commits as code-equivalent to task_head for head reconciliation and hosted acceptance evidence.","reason":"A commit cannot embed its own final SHA inside the state file it contains; without this rule every canonical-state update would invalidate itself."}
+    {"id":"STATE-HEAD-001","decision":"Treat canonical-state-only descendant commits as code-equivalent to task_head for head reconciliation and hosted acceptance evidence.","reason":"A commit cannot embed its own final SHA inside the state file it contains; without this rule every canonical-state update would invalidate itself."},
+    {"id":"LICENSE-001","decision":"VSN Commerce original project materials are proprietary / closed-source; project metadata must not grant GPLv3 or another open-source project license without a new explicit owner decision.","reason":"Repository owner explicitly rejected GPLv3 on 2026-08-28; ADR-0001 records the decision while preserving third-party licenses."},
+    {"id":"P1-SEQUENCE-001","decision":"Remove residual client-side/static authority in small domain batches before retiring the global StoreProvider or redesigning Admin.","reason":"Current Laravel mode is mandatory, but residual unreachable legacy branches still create dual-authority regression risk; consumer-first removal is safer than a giant deletion."}
   ],
   "known_risks": [
-    "AGENTS.md still contains stale P0-01 composer.lock blocker/progress-ledger text; canonical state records P0-01 satisfied and now includes exact-head acceptance plus merge closure evidence.",
-    "LICENSE is GPL-3.0 while composer.json declares proprietary; resolution requires an intentional owner/legal decision and is the active blocked P0-02 item.",
-    "Dependabot dependency updates are not a prerequisite for P0-02."
+    "AGENTS.md still contains stale P0-01, P0-02 and P0-03 status text from the 2026-08-22 audit; repository evidence and this canonical checkpoint supersede those historical status labels until the plan document is reconciled.",
+    "resources/js/pages/Search.jsx still imports resources/js/data/catalog.js and contains an unreachable legacy fallback branch; P1-A is active to remove it.",
+    "Product.jsx, Systems.jsx, the global StoreProvider and platform/store.jsx retain later P1 residual legacy authority and must be migrated domain-by-domain.",
+    "Third-party dependencies retain their own license obligations even though the project-level VSN Commerce materials are proprietary."
   ],
   "unresolved_issues": [
-    "P0-02 is blocked because the intended project license is not specified by canonical state and the repository explicitly forbids guessing it.",
-    "P0/P1 documentation contains stale claims relative to current main and must be reconciled only when supported by verified code/test evidence."
+    "P1-A: Search.jsx production source still carries static catalog fallback code despite Laravel being the mandatory backend.",
+    "P1-B/P1-C/P1-D residual legacy authority remains after Search and must not be conflated with the focused P1-A batch.",
+    "AGENTS.md and some README progress prose remain stale relative to verified repository state and should be reconciled without rewriting historical audit context."
   ],
-  "updated_at": "2026-08-23T22:39:00Z"
+  "updated_at": "2026-08-28T04:56:00+05:00"
 }
