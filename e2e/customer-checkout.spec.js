@@ -4,7 +4,13 @@ test('customer completes COD checkout from product to order confirmation', /** I
   await login(page, ACCOUNTS.customer, '/account');
   await page.goto('/product/iphone-16-pro-max-titanium');
   await expect(page.getByRole('heading', { name: /iPhone 16 Pro Max Titanium/i })).toBeVisible();
+  const cartMutation = page.waitForResponse(response => {
+    const url = new URL(response.url());
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/cart/items';
+  });
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  const cartResponse = await cartMutation;
+  expect(cartResponse.ok(), `Add-to-cart API should succeed, received HTTP ${cartResponse.status()}`).toBeTruthy();
   await page.goto('/cart');
   await expect(page.getByRole('heading', { name: 'Your cart' })).toBeVisible();
   await expect(page.getByText('iPhone 16 Pro Max Titanium')).toBeVisible();
