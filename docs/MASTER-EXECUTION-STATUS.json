@@ -5,22 +5,22 @@
     "id": "P1",
     "name": "Server-authoritative residual cleanup",
     "status": "IN_PROGRESS",
-    "done": 0,
+    "done": 1,
     "required": 4,
-    "percent": 0
+    "percent": 25
   },
   "task": {
-    "id": "P1-A",
-    "name": "Remove Search legacy static catalog authority",
+    "id": "P1-B",
+    "name": "Make Product route fully server-authoritative",
     "package": "P1",
-    "sequence": 1,
+    "sequence": 2,
     "status": "IN_PROGRESS"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "3debfd1adc104299eb23e2350d76d0da672613d7",
-  "task_head": "3debfd1adc104299eb23e2350d76d0da672613d7",
+  "base_head": "572c7170837e6c57b1284672843f003f170ef110",
+  "task_head": "572c7170837e6c57b1284672843f003f170ef110",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
@@ -29,17 +29,20 @@
   "last_observed_pr_head": null,
   "pull_request": null,
   "acceptance_criteria": [
-    "resources/js/pages/Search.jsx must not import or consume resources/js/data/catalog.js for production/live-route behavior.",
-    "Search product results, category/vendor facets, counts and pagination must remain Laravel/API-authoritative with no legacy fallback branch.",
-    "Search API failure must render the existing error/empty experience and must never substitute static/demo catalog data.",
-    "The frontend fast gate must reject future production live-route imports of the legacy catalog fixture boundary.",
-    "Targeted frontend tests/audits and production build must pass before merge, followed by applicable repository CI/governance acceptance."
+    "resources/js/pages/Product.jsx must not import or consume resources/js/data/catalog.js, demo product media, demo review fixtures or other static product authority for live-route behavior.",
+    "Product identity, media, variants/options, pricing, stock, seller data, reviews, wishlist, product alerts, Game Win eligibility and gift/payment interactions must remain Laravel/API-authoritative with no apiBackend legacy branch.",
+    "Product.jsx must not use the global legacy StoreProvider/useStore as business authority; existing Laravel wallet, games, gifts, reviews, personalization, catalog-alert and cart contracts must be preserved.",
+    "Product API failure must fail closed with an explicit unavailable/error state and must never substitute the first static/demo product or demo media/reviews.",
+    "Product-to-cart behavior must continue to submit the selected server-authorized variant/options and preserve checkout behavior.",
+    "The frontend fast gate must reject future Product live-route imports of the legacy catalog fixture and residual apiBackend/useStore authority branching.",
+    "Targeted frontend/browser verification and production build must pass before merge, followed by applicable repository CI/governance acceptance."
   ],
   "completed_tasks": [
     "P0-CI-BASELINE",
     "P0-01",
     "P0-02",
-    "P0-03"
+    "P0-03",
+    "P1-A"
   ],
   "blocked_tasks": [],
   "failed_gates": [
@@ -48,7 +51,8 @@
     "CI run 32656271096 (#294) on state-only descendant 3299fb47ec07ff1e28328f47183a215889df365e: static-and-build, SQLite, MySQL, PostgreSQL and browser-e2e succeeded, but runtime-integration job 97236359531 failed during the first containerized PostgreSQL PHPUnit suite. GitHub-hosted log evidence showed 411 errors because Tests\\TestCase refused DB_DATABASE=vsn_ecommerce as a non-test database. Runtime PostgreSQL already creates vsn_test; focused commit cc92ae5b904bd8f4327a0a5c4b6c4c906f5e9554 isolates Docker tests onto postgres/vsn_test without weakening the database safety guard.",
     "CI run 32657707600 (#296) on state-only descendant d64f5863ffd66ac05b9e0feb399b6c1cbf71d251: static-and-build, SQLite, MySQL, PostgreSQL and browser-e2e succeeded, while runtime-integration job 97241104992 reached the full PostgreSQL suite and ran 427 tests / 2201 assertions but exited with 2 errors and 2 failures (4 skipped). Exact hosted failures were: LaunchGateRuntimeTest could not write runtime/test-launch-manifest.json because the host runtime bind mount was not writable by www-data; MobileApiTest admin-role login produced null auth and then an array-offset error while the test container inherited the external Redis limiter; KycSecurityTest expected sandbox SMS disabled (503) but inherited VSN_SANDBOX_SMS_ENABLED=true and received 200; ZeroToEndIntegrityTest found storage/framework/cache/data/.gitignore missing from the Docker image because .dockerignore excluded storage runtime placeholders. Focused commit d796a30bd2199dce51a269725b2a6ddfa1ff0067 isolates these test-container concerns without changing production endpoint behavior or weakening assertions.",
     "CI run 32660615534 (#298) on state-only descendant 159f205537bd297d26b56f39902c83e35796667f: static-and-build, SQLite, MySQL, PostgreSQL and browser-e2e succeeded; Governance Code Scanning 32660615546 (#129) and CodeQL 32660615582 (#131) also succeeded. runtime-integration job 97247406686 reached the full PostgreSQL suite and ran 427 tests / 2205 assertions with 1 error and 1 failure (4 skipped): MobileApiTest::test_customer_mobile_access_token_cannot_open_admin_operational_api_even_for_admin_role still received null auth at MobileApiTest.php:284, and KycSecurityTest::test_phone_sandbox_is_disabled_by_default expected HTTP 503 but received 200. No vsn-launch-verification artifact was produced. The host PostgreSQL suite is green while the Compose runtime test service still inherits CACHE_LIMITER_STORE=redis and VSN_SANDBOX_SMS_ENABLED=true from app_env; focused commit 627399cfe7c6d8e3c5b3f1272a453f838f1c4542 overrides those two values directly in test.environment before Laravel boots.",
-    "CI run 32665873766 (#311) attempt 1 on P0-01 reconciliation head 7b26458030cd350ad375713c8024fb52665d14c0: runtime-integration job 97262404293 failed during Docker test-stage composer install after repeated api.github.com HTTP/2 504 dependency-download responses, culminating on phpstan/phpstan with Composer exit 100. Classified as transient external dependency-fetch failure; no repository/runtime assertion failed and no launch-verification artifact was produced on attempt 1."
+    "CI run 32665873766 (#311) attempt 1 on P0-01 reconciliation head 7b26458030cd350ad375713c8024fb52665d14c0: runtime-integration job 97262404293 failed during Docker test-stage composer install after repeated api.github.com HTTP/2 504 dependency-download responses, culminating on phpstan/phpstan with Composer exit 100. Classified as transient external dependency-fetch failure; no repository/runtime assertion failed and no launch-verification artifact was produced on attempt 1.",
+    "P1-A CI run 33129544084 (#326) on head 1ae88432788de54938a58070a81687500c9ba4e5 failed only browser-e2e job 98715591638 at the desktop/mobile browser gate. Evidence showed two test-harness assumptions rather than a production Search fallback regression: checkout navigated away before the asynchronous server cart POST completed, and the deliberate products-API 503 fail-closed test was also counted by the shared unexpected-5xx runtime monitor. Focused E2E synchronization changes were applied before exact-head acceptance."
   ],
   "acceptance_evidence": [
     {"task_id":"P0-CI-BASELINE","workflow_run_id":32643922899,"workflow":"Governance Code Scanning","source_head":"accd57eff5a20fc0eb8fa019fd5bf2a0bc29b5a2","status":"SUCCESS"},
@@ -77,40 +81,50 @@
     {"task_id":"P0-02","role":"OWNER_DECISION","status":"SUCCESS","decision_date":"2026-08-28","decision":"VSN Commerce is proprietary / closed-source and is not GPLv3.","decision_record":"docs/decisions/ADR-0001-PROPRIETARY-PROJECT-LICENSE.md"},
     {"task_id":"P0-02","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"5cb7baea277786af510db1d65fc25e4c0c9b58ea","governance":{"workflow_run_id":33126827311,"status":"SUCCESS"},"codeql":{"workflow_run_id":33126827310,"status":"SUCCESS"},"ci":{"workflow_run_id":33126827306,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98706883661},{"name":"sqlite-tests","job_id":98706883501},{"name":"mysql-tests","job_id":98706883450},{"name":"postgres-tests","job_id":98706883353},{"name":"browser-e2e","job_id":98706883448},{"name":"runtime-integration","job_id":98708205868}]},"composer_validate":"SUCCESS","runtime_evidence":{"artifact_id":9668986850,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:4a6c7e435391259a27c7c5441fa13a7e9c09cd61b634a009846ce4e192a088ac"}},
     {"task_id":"P0-02","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":13,"source_head":"5cb7baea277786af510db1d65fc25e4c0c9b58ea","merge_commit_sha":"3debfd1adc104299eb23e2350d76d0da672613d7","merged_at":"2026-08-27T23:50:10Z","main_head_verified":true,"note":"PR #13 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. Root project licensing is now proprietary and composer.json remains consistently proprietary."},
-    {"task_id":"P0-03","role":"RECONCILIATION_ACCEPTANCE","status":"SUCCESS","source_head":"3debfd1adc104299eb23e2350d76d0da672613d7","verification":{"static_audit":"scripts/audit-marketplace-media-storefront.php remains a dependency-free structural gate and explicitly references behavior-test contracts instead of being treated as sole proof.","behavior_tests":["tests/Feature/MarketplaceMediaStorefrontTest.php","tests/Feature/CatalogMediaWriteContractTest.php","tests/Unit/MarketplaceFeatureContractTest.php"],"behavior_contracts":["seller/global media scoping","stable seller logo media ID persistence","cross-vendor logo denial","public logo URL resolution","arbitrary product image URL write rejection","customer data isolation"],"ci_workflow_run_id":33126827306,"ci_status":"SUCCESS"},"note":"P0-03 is reconciled as resolved because semantic Feature/Unit tests exist and were executed successfully by full CI; the string-level marketplace audit is retained only as a fast structural gate and is not used as sole completion evidence."}
+    {"task_id":"P0-03","role":"RECONCILIATION_ACCEPTANCE","status":"SUCCESS","source_head":"3debfd1adc104299eb23e2350d76d0da672613d7","verification":{"static_audit":"scripts/audit-marketplace-media-storefront.php remains a dependency-free structural gate and explicitly references behavior-test contracts instead of being treated as sole proof.","behavior_tests":["tests/Feature/MarketplaceMediaStorefrontTest.php","tests/Feature/CatalogMediaWriteContractTest.php","tests/Unit/MarketplaceFeatureContractTest.php"],"behavior_contracts":["seller/global media scoping","stable seller logo media ID persistence","cross-vendor logo denial","public logo URL resolution","arbitrary product image URL write rejection","customer data isolation"],"ci_workflow_run_id":33126827306,"ci_status":"SUCCESS"},"note":"P0-03 is reconciled as resolved because semantic Feature/Unit tests exist and were executed successfully by full CI; the string-level marketplace audit is retained only as a fast structural gate and is not used as sole completion evidence."},
+    {"task_id":"P1-A","role":"INTERMEDIATE_MERGE","status":"SUCCESS","pr_number":17,"source_head":"1038a699fe9c8fc5277ec9fc59069e733ad2b534","merge_commit_sha":"c4468a570412e38f96baa04f2429f7e0305e5fde","merged_at":"2026-08-28T00:59:30Z","note":"PR #17 removed the static Search catalog import/fallback first. The final P1-A branch was then merged forward with this main commit so no duplicate or conflicting Search implementation was introduced."},
+    {"task_id":"P1-A","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"285a9fe47aa81901b06dc2ede2ab4851e2378755","governance":{"workflow_run_id":33131893704,"status":"SUCCESS"},"codeql":{"workflow_run_id":33131893710,"status":"SUCCESS"},"ci":{"workflow_run_id":33131893723,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98723071654},{"name":"sqlite-tests","job_id":98723071780},{"name":"mysql-tests","job_id":98723071943},{"name":"postgres-tests","job_id":98723071725},{"name":"browser-e2e","job_id":98723071875},{"name":"runtime-integration","job_id":98724713929}]},"browser_evidence":{"artifact_id":9670744686,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:8982eb40e16466b20ee9c516ca898a5628f8fb0c96c475223b32ba70ab3f5a6c"},"runtime_evidence":{"artifact_id":9670846294,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:858f98e0d188cdb716ac26bba39d0f89d96688c436a589adb0dc1b97b63a6b69","manifest_generated_at":"2026-08-28T01:23:04Z","manifest_all_required_checks":true,"launch_gate_ready":true,"launch_gate_status":"ready","launch_gate_blockers":0,"launch_gate_warnings":0,"database_index_required":13,"database_index_audit_ok":true,"database_index_missing":[]}},
+    {"task_id":"P1-A","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":15,"source_head":"285a9fe47aa81901b06dc2ede2ab4851e2378755","merge_commit_sha":"572c7170837e6c57b1284672843f003f170ef110","merged_at":"2026-08-28T07:10:52Z","main_head_verified":true,"note":"PR #15 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. main was verified at merge commit 572c7170837e6c57b1284672843f003f170ef110. Search is now Laravel/API-authoritative with the static catalog fallback and residual apiBackend branch removed."}
   ],
   "next_exact_action": {
-    "type": "IMPLEMENT_P1_A",
-    "candidate_task": "P1-A",
-    "description": "Create a short-lived branch from verified main and remove Search.jsx production dependency on the static catalog. Preserve API search/facets/pagination/error behavior and add a frontend fast-gate regression that rejects live-route legacy catalog imports.",
+    "type": "IMPLEMENT_P1_B",
+    "candidate_task": "P1-B",
+    "description": "Create a short-lived branch from verified main and make Product.jsx fully server-authoritative. Remove its static catalog/demo fallback and unreachable apiBackend/useStore business-authority branches while preserving existing Laravel product, media, wallet, games, gifts, reviews, alerts, wishlist and cart contracts.",
     "preconditions": [
-      "Confirm main HEAD is still 3debfd1adc104299eb23e2350d76d0da672613d7 or a known state-only descendant before implementation.",
-      "Do not mix Product.jsx, Systems.jsx or StoreProvider cleanup into P1-A.",
-      "Do not redesign customer storefront visuals while removing the legacy Search authority path.",
-      "Do not remove resources/js/data/catalog.js globally until all remaining consumers have been migrated."
+      "Confirm main HEAD is still 572c7170837e6c57b1284672843f003f170ef110 or a known state-only descendant before implementation.",
+      "Keep P1-B scoped to Product.jsx and only the smallest directly required regression-test/fast-gate updates; do not mix Systems.jsx or global StoreProvider retirement into this batch.",
+      "Do not redesign customer storefront visuals while removing Product dual authority.",
+      "Do not delete resources/js/data/catalog.js or platform/store.jsx globally until remaining consumers have been migrated.",
+      "Preserve server-selected product variants/options and existing product-to-cart/checkout contracts."
     ],
     "expected_evidence": [
-      "Search.jsx no longer imports data/catalog or contains a legacy product/category fallback branch.",
-      "Frontend fast gate rejects future live-route static catalog imports.",
-      "npm test and npm run build succeed for the focused change.",
+      "Product.jsx no longer imports data/catalog, demo product media/reviews, apiBackend or useStore as live-route authority.",
+      "Product API failure fails closed without substituting demo/static product data.",
+      "Existing server-authorized product media, variants, wishlist, alerts, reviews, game/gift and cart behavior remains functional.",
+      "Frontend fast gate rejects future Product live-route legacy catalog/apiBackend/useStore authority reintroduction.",
+      "Targeted browser tests, npm test and npm run build succeed for the focused change.",
       "Applicable GitHub CI/governance checks succeed on the exact PR head before merge."
     ]
   },
   "architecture_decisions": [
     {"id":"STATE-HEAD-001","decision":"Treat canonical-state-only descendant commits as code-equivalent to task_head for head reconciliation and hosted acceptance evidence.","reason":"A commit cannot embed its own final SHA inside the state file it contains; without this rule every canonical-state update would invalidate itself."},
     {"id":"LICENSE-001","decision":"VSN Commerce original project materials are proprietary / closed-source; project metadata must not grant GPLv3 or another open-source project license without a new explicit owner decision.","reason":"Repository owner explicitly rejected GPLv3 on 2026-08-28; ADR-0001 records the decision while preserving third-party licenses."},
-    {"id":"P1-SEQUENCE-001","decision":"Remove residual client-side/static authority in small domain batches before retiring the global StoreProvider or redesigning Admin.","reason":"Current Laravel mode is mandatory, but residual unreachable legacy branches still create dual-authority regression risk; consumer-first removal is safer than a giant deletion."}
+    {"id":"P1-SEQUENCE-001","decision":"Remove residual client-side/static authority in small domain batches before retiring the global StoreProvider or redesigning Admin.","reason":"Current Laravel mode is mandatory, but residual unreachable legacy branches still create dual-authority regression risk; consumer-first removal is safer than a giant deletion."},
+    {"id":"P1-B-SCOPE-001","decision":"Use Product.jsx as the second P1 consumer-first batch before Systems.jsx and global StoreProvider retirement.","reason":"Current Product.jsx directly imports the static catalog and global store and contains multiple apiBackend branches across product data, media, alerts, reviews, games and gifts, while existing Laravel hooks already cover those live domains. Removing the consumer-side legacy authority first is the smallest coherent next step."
+    }
   ],
   "known_risks": [
     "AGENTS.md still contains stale P0-01, P0-02 and P0-03 status text from the 2026-08-22 audit; repository evidence and this canonical checkpoint supersede those historical status labels until the plan document is reconciled.",
-    "resources/js/pages/Search.jsx still imports resources/js/data/catalog.js and contains an unreachable legacy fallback branch; P1-A is active to remove it.",
-    "Product.jsx, Systems.jsx, the global StoreProvider and platform/store.jsx retain later P1 residual legacy authority and must be migrated domain-by-domain.",
+    "Product.jsx still imports resources/js/data/catalog.js and platform/store.jsx and contains residual apiBackend branches, demo media/review fallback data and local business-authority paths; P1-B is active to remove them without redesigning the storefront.",
+    "Systems.jsx still contains extensive Laravel-vs-Legacy route branching and imports both useStore and the static catalog; this remains a later P1 consumer batch after Product.",
+    "The global StoreProvider is still mounted in resources/js/main.jsx and platform/store.jsx retains localStorage-backed business authority; it must not be removed until its consumers are migrated and proven unused.",
     "Third-party dependencies retain their own license obligations even though the project-level VSN Commerce materials are proprietary."
   ],
   "unresolved_issues": [
-    "P1-A: Search.jsx production source still carries static catalog fallback code despite Laravel being the mandatory backend.",
-    "P1-B/P1-C/P1-D residual legacy authority remains after Search and must not be conflated with the focused P1-A batch.",
+    "P1-B: Product.jsx retains static catalog/demo fallback plus apiBackend/useStore dual authority despite Laravel being the mandatory backend.",
+    "P1-C: Systems.jsx retains extensive legacy-vs-Laravel route and business-authority branches.",
+    "P1-D: global StoreProvider/platform/store.jsx retirement remains blocked until consumer migrations prove the legacy engine unused.",
     "AGENTS.md and some README progress prose remain stale relative to verified repository state and should be reconciled without rewriting historical audit context."
   ],
-  "updated_at": "2026-08-28T04:56:00+05:00"
+  "updated_at": "2026-08-28T12:10:00+05:00"
 }
