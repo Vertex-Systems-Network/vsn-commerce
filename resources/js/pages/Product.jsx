@@ -38,6 +38,16 @@ const EMPTY_PRODUCT = {
   metadata: {},
 };
 
+/** Formats server-authorized product pricing using the product currency. */
+function formatMoney(amount, currency = 'PKR') {
+  const value = Number(amount || 0);
+  try {
+    return new Intl.NumberFormat('en-PK', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+  } catch {
+    return `${currency} ${value.toLocaleString()}`;
+  }
+}
+
 /** Handles product for the VSN Ecommerce interface. */
 export default function Product({ onAdd }) {
   const { id } = useParams();
@@ -91,6 +101,7 @@ export default function Product({ onAdd }) {
   const freeGiftWrapReward = laravelGifts.rewards.some(/** Inline callback for this operation. */ r => r.code === 'free_gift_wrap' && r.status === 'available');
   const categoryLabel = product.categoryName || product.category || 'Products';
   const warrantyLabel = typeof product.metadata?.warranty === 'string' && product.metadata.warranty.trim() ? product.metadata.warranty : 'Seller terms apply';
+  const productCurrency = product.currency || 'PKR';
 
   useEffect(/** Loads the public product exclusively from the Laravel catalog API. */ () => {
     let live=true;
@@ -115,7 +126,7 @@ export default function Product({ onAdd }) {
     if (!remoteProduct) return;
     recordProductView(remoteProduct, selectedRemoteVariant?.id || null).catch(/** Inline callback for this operation. */ ()=>{});
     wishlistStatus(remoteProduct).then(/** Inline callback for this operation. */ x=>setWishlist(/** Inline callback for this operation. */ w=>({...w,saved:Boolean(x.saved),itemId:x.itemId||null}))).catch(/** Inline callback for this operation. */ ()=>{});
-  }, [remoteProduct?.id, selectedRemoteVariant?.id]);
+  }, [remoteProduct, selectedRemoteVariant?.id]);
 
   const toggleWishlist = /** Handles toggle wishlist for the VSN Ecommerce interface. */ async () => {
     if (!remoteProduct) return;
@@ -198,7 +209,7 @@ export default function Product({ onAdd }) {
     try {
       const review = await laravelReviews.submit({ orderItemId: eligibleReview.orderItemId, rating: reviewRating, text: reviewText, images: reviewImages.map(/** Inline callback for this operation. */ x => x.file).filter(Boolean) });
       await laravelReviews.loadProductReviews(reviewProductKey).catch(/** Inline callback for this operation. */ () => {});
-      setReviewResult({ok:true,msg:`Review submitted. Your 10% coupon is ${review.coupon?.code || 'now available'}.`});
+      setReviewResult({ok:true,msg:review.coupon?.code ? `Review submitted. Reward code: ${review.coupon.code}.` : 'Review submitted successfully.'});
       setReviewRating(0);
       setReviewText('');
       setReviewImages([]);
@@ -264,7 +275,7 @@ export default function Product({ onAdd }) {
           <p className="pdp-brand">{product.vendor || 'Marketplace seller'}</p>
           <h1>{product.name}</h1>
           <div className="pdp-rating-row"><Rating value={product.rating} reviews={product.reviews} />{product.sold > 0 && <span>{product.sold.toLocaleString()} sold</span>}<button><FaShareAlt /> Share</button></div>
-          <div className="pdp-price"><strong>Rs. {product.price.toLocaleString()}</strong>{product.old>product.price&&<del>Rs. {product.old.toLocaleString()}</del>}{discount > 0 && <span>Save Rs. {discount.toLocaleString()}</span>}</div>
+          <div className="pdp-price"><strong>{formatMoney(product.price, productCurrency)}</strong>{product.old>product.price&&<del>{formatMoney(product.old, productCurrency)}</del>}{discount > 0 && <span>Save {formatMoney(discount, productCurrency)}</span>}</div>
           <div className="pdp-alert-actions"><button className={priceAlertActive ? 'active' : ''} onClick={/** Inline callback for this operation. */ async()=>{try{if(priceAlertActive){const a=alerts.alerts.find(/** Inline callback for this operation. */ x=>x.product?.slug===product.slug&&x.type==='price_drop'&&x.status==='active');if(a)await alerts.remove(a.id);setNotice('Price alert updated.')}else{await alerts.create(product,'price_drop');setNotice('Price-drop alert created.')}}catch(e){setNotice(e.message||'Price alert could not be updated.')}}}><FaBell /> {priceAlertActive ? 'Price alert on' : 'Notify price drop'}</button><button className={stockAlertActive ? 'active' : ''} onClick={/** Inline callback for this operation. */ async()=>{try{if(stockAlertActive){const a=alerts.alerts.find(/** Inline callback for this operation. */ x=>x.product?.slug===product.slug&&x.type==='back_in_stock'&&x.status==='active');if(a)await alerts.remove(a.id);setNotice('Stock alert updated.')}else{await alerts.create(product,'back_in_stock');setNotice('Back-in-stock alert created.')}}catch(e){setNotice(e.message||'Stock alert could not be updated.')}}}><FaBell /> {stockAlertActive ? 'Stock alert on' : 'Stock alert'}</button></div>
           <p className="pdp-summary">{product.shortDescription || 'Purchase through the marketplace checkout using the options currently authorized for this product.'}</p>
 
@@ -334,7 +345,7 @@ export default function Product({ onAdd }) {
                 {reviewResult && <div className={`review-result ${reviewResult.ok ? 'is-success' : 'is-error'}`}>{reviewResult.msg}</div>}
               </Card>}
               {submittedProductReviews.map(/** Inline callback for this operation. */ r => <Card key={r.id}><div className="pdp-review-head"><span className="review-avatar">Y</span><div><b>You</b><Rating value={r.rating} /><small>{new Date(r.submittedAt || r.createdAt).toLocaleDateString()} · Verified purchase</small></div></div><p>{r.text}</p>{r.images?.length > 0 && <div className="review-photo-strip">{r.images.map(/** Inline callback for this operation. */ (img, i) => <SafeImage key={img.id || i} src={img.url || img} alt={`Your review upload ${i + 1}`} />)}</div>}{r.coupon?.code&&<div className="review-earned"><FaTag /> Reward: <b>{r.coupon.code}</b></div>}</Card>)}
-              {visiblePublicReviews.map(/** Inline callback for this operation. */ (r, i) => { const name=r.user?.name||'Verified buyer'; return <Card key={r.id||`${name}-${i}`}><div className="pdp-review-head"><span className={`review-avatar avatar-${i + 1}`}>{name[0]}</span><div><b>{name}</b><Rating value={r.rating} /><small>{r.submittedAt?new Date(r.submittedAt).toLocaleDateString():'Verified purchase'} · Verified purchase</small></div></div><p>{r.text}</p>{r.images?.length>0&&<div className="review-photo-strip">{r.images.map(/** Inline callback for this operation. */ (img,x)=><SafeImage key={img.id||x} src={img.url||img} alt={`Review upload ${x+1}`}/>)}</div>}{r.sellerReply&&<div className="review-seller-reply"><b>{r.sellerReply.sellerName||'Seller'} replied</b><p>{r.sellerReply.text}</p></div>}<div className="review-engagement-actions"><button className={r.helpfulByMe?'active':''} onClick={/** Inline callback for this operation. */ ()=>helpfulReview(r)}><FaThumbsUp/> Helpful ({r.helpfulCount||0})</button><button onClick={/** Inline callback for this operation. */ ()=>reportReview(r)}><FaFlag/> Report</button></div></Card>; })}
+              {visiblePublicReviews.map(/** Inline callback for this operation. */ (r, i) => { const name=r.user?.name||'Verified buyer'; return <Card key={r.id||`${name}-${i}`}><div className="pdp-review-head"><span className={`review-avatar avatar-${i + 1}`}>{name[0]}</span><div><b>{name}</b><Rating value={r.rating} /><small>{r.submittedAt?`${new Date(r.submittedAt).toLocaleDateString()} · `:''}Verified purchase</small></div></div><p>{r.text}</p>{r.images?.length>0&&<div className="review-photo-strip">{r.images.map(/** Inline callback for this operation. */ (img,x)=><SafeImage key={img.id||x} src={img.url||img} alt={`Review upload ${x+1}`}/>)}</div>}{r.sellerReply&&<div className="review-seller-reply"><b>{r.sellerReply.sellerName||'Seller'} replied</b><p>{r.sellerReply.text}</p></div>}<div className="review-engagement-actions"><button className={r.helpfulByMe?'active':''} onClick={/** Inline callback for this operation. */ ()=>helpfulReview(r)}><FaThumbsUp/> Helpful ({r.helpfulCount||0})</button><button onClick={/** Inline callback for this operation. */ ()=>reportReview(r)}><FaFlag/> Report</button></div></Card>; })}
             </div>
           </div>
         </div>
