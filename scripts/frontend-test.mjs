@@ -34,7 +34,9 @@ const serverAuthoritativeLiveRoutes = ['resources/js/pages/Search.jsx'];
 for (const file of serverAuthoritativeLiveRoutes) {
   const text = fs.readFileSync(file, 'utf8');
   const importsLegacyCatalog = /(?:from\s+|import\s*\()\s*['"][^'"]*data\/catalog(?:\.js)?['"]/.test(text);
+  const usesBackendModeBranch = /\bapiBackend\b/.test(text);
   (!importsLegacyCatalog ? pass : fail)(`server-authoritative live route has no legacy catalog import: ${file}`);
+  (!usesBackendModeBranch ? pass : fail)(`server-authoritative live route has no backend-mode branch: ${file}`);
 }
 
 let relativeImports = 0;
