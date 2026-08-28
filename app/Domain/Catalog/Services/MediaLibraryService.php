@@ -95,11 +95,15 @@ class MediaLibraryService
         return $result;
     }
 
-    /** Archives a library asset only when it is not currently referenced by active product media. */
+    /** Archives a library asset only when it is not currently referenced by active marketplace content. */
     public function archive(MediaLibraryAsset $asset): void
     {
-        $inUse = ProductMediaAsset::query()->where('status','active')->where('metadata->media_library_asset_id',$asset->public_id)->exists();
-        abort_if($inUse, 422, 'This media item is currently used by a product. Remove it from products before archiving it.');
+        $usedByProduct = ProductMediaAsset::query()->where('status','active')->where('metadata->media_library_asset_id',$asset->public_id)->exists();
+        abort_if($usedByProduct, 422, 'This media item is currently used by a product. Remove it from products before archiving it.');
+
+        $usedByStorefront = Vendor::query()->where('metadata->logoMediaAssetId', $asset->public_id)->exists();
+        abort_if($usedByStorefront, 422, 'This media item is currently used as a seller storefront logo. Choose another logo before archiving it.');
+
         $asset->update(['status'=>'archived']);
         Storage::disk($asset->disk)->delete($asset->path);
     }
