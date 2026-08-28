@@ -5,22 +5,22 @@
     "id": "P2",
     "name": "Media architecture completion",
     "status": "IN_PROGRESS",
-    "done": 1,
+    "done": 2,
     "required": 4,
-    "percent": 25
+    "percent": 50
   },
   "task": {
-    "id": "P2-B",
-    "name": "Make seller storefront logo selection ID-native end-to-end",
+    "id": "P2-C",
+    "name": "Classify remaining media surfaces and lock domain storage/URL boundaries",
     "package": "P2",
-    "sequence": 2,
+    "sequence": 3,
     "status": "IN_PROGRESS"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "05933ae7dcf65358a0309f0edce20389587c096a",
-  "task_head": "05933ae7dcf65358a0309f0edce20389587c096a",
+  "base_head": "16c231c07a71eb16012991520a16018914e5a053",
+  "task_head": "16c231c07a71eb16012991520a16018914e5a053",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
@@ -29,14 +29,15 @@
   "last_observed_pr_head": null,
   "pull_request": null,
   "acceptance_criteria": [
-    "SellerSettings must carry a stable logoMediaAssetId as the selected storefront-logo identity; logoUrl may remain presentation/preview data only and must not be the current Seller UI persistence identity.",
-    "MediaLibraryPanel selection in SellerSettings must store the selected active media asset public ID directly and use its URL only for preview rendering.",
-    "The /vendor/settings write from the current Seller UI must submit logoMediaAssetId through the existing backend contract; do not invent a second seller-logo persistence model or schema.",
-    "Removing the logo must explicitly clear the stable media ID and presentation preview while preserving existing seller-owned settings behavior.",
-    "Preserve marketplace-global plus seller-owned media selection scope, cross-vendor denial, public URL resolution and the P2-A archive/reference protection behavior.",
-    "Keep the backend logoUrl compatibility resolver only as a bounded migration/backward-compatibility seam for older clients/data while the current Seller UI stops relying on it; do not remove compatibility until independent evidence proves it unused and safe to retire.",
-    "Add or strengthen semantic/source regression coverage proving the current Seller UI no longer submits picker item.url as logo identity and the stable-ID route succeeds through the real vendor settings contract.",
-    "Keep P2-B limited to seller storefront logo ID-native contract completion and the smallest required tests; no schema migration, historical product-media backfill, unrelated image-field conversion, Admin redesign, storefront redesign, dependency/config/RBAC change or P2-C+ implementation.",
+    "Inventory and classify every remaining current Admin, Seller and customer media/image/file URL-like surface outside the already managed product-media and seller-logo contracts as one of: reusable managed media identity, domain-scoped stored file, provider/external URL, application navigation URL, or dormant/unsupported legacy field.",
+    "Prove from current request validators/controllers/services that no active first-party image editor persists an arbitrary delivery URL as canonical identity; if implementation evidence reveals a real active seam, remediate only that smallest proven seam with existing media architecture rather than widening P2-C into a redesign.",
+    "Keep review images as domain-scoped uploaded disk/path assets with derived presentation URLs unless evidence proves they require reusable marketplace-media semantics; do not force reusable-library identity onto review evidence by assumption.",
+    "Keep message attachments and KYC documents as domain-scoped or private stored files, preserving immutability/security/access contracts; they are not reusable public catalog media.",
+    "Keep shipping label URLs and comparable provider-generated delivery/document URLs classified as provider-owned external references, and keep notification action URLs classified as application navigation rather than media identity.",
+    "Treat user_profiles.avatar_path as a dormant/read-only legacy field on current protected main because UpdateProfileRequest and ProfileController expose no active avatar writer; do not invent customer media-library scope or schema in P2-C without independent product authorization.",
+    "Add a durable architecture/source/behavior contract that documents these boundaries and prevents future first-party image editors from reintroducing arbitrary URL-as-identity persistence while allowing intentional provider/navigation URLs and domain-scoped file storage.",
+    "Keep historical URL-backed product-media rows and their additive migration/backfill entirely out of P2-C; that remains P2-D and must preserve tenant ownership, file existence, ordering, alt/read parity and zero-unresolved evidence before any compatibility removal.",
+    "Keep P2-C limited to classification, boundary documentation/contracts and only a smallest proven active seam if one is discovered during implementation; no broad schema migration, historical backfill, Admin/storefront redesign, dependency/config/RBAC change or P2-D+ implementation.",
     "Exact final implementation head must be current with protected main, have no unresolved review blocker, and pass Governance, CodeQL and full CI including static/build, SQLite, MySQL, PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch before merge."
   ],
   "completed_tasks": [
@@ -48,7 +49,8 @@
     "P1-B",
     "P1-C",
     "P1-D",
-    "P2-A"
+    "P2-A",
+    "P2-B"
   ],
   "blocked_tasks": [],
   "failed_gates": [
@@ -102,26 +104,27 @@
     {"task_id":"P1-D","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"1b49de0747e37ed9da1efa2766c6c3b9aa371a1f","governance":{"workflow_run_id":33181117454,"status":"SUCCESS"},"codeql":{"workflow_run_id":33181117430,"status":"SUCCESS"},"ci":{"workflow_run_id":33181117543,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98882324555},{"name":"sqlite-tests","job_id":98882324484},{"name":"mysql-tests","job_id":98882324540},{"name":"postgres-tests","job_id":98882324265},{"name":"browser-e2e","job_id":98882324449},{"name":"runtime-integration","job_id":98884685080}]},"browser_evidence":{"artifact_id":9689994644,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:f12b4d02484204d8418f59764e5243f02f13ff8da5d79f4f1dab52f516daf2fe"},"runtime_evidence":{"artifact_id":9690185494,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:61bf6acc0b487993d74dcf63f1521ec6246a2542efc8cfaad77193639e9d10ae","runtime_checks":true,"restore_success":true,"restore_rto_minutes":1,"restore_rpo_minutes":0,"launch_gate_ready":true,"launch_gate_status":"ready","launch_gate_blockers":0,"launch_gate_warnings":0}},
     {"task_id":"P1-D","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":32,"source_head":"1b49de0747e37ed9da1efa2766c6c3b9aa371a1f","merge_commit_sha":"1727c292ae7a1649b5d7b79900442da7aeec1d01","merged_at":"2026-08-28T14:55:28Z","main_head_verified":true,"note":"PR #32 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. The retained source walker reports zero legacy client-authority findings; StoreProvider is unmounted; platform/store.jsx and data/catalog.js are deleted; localStorage/static business fallback authority is retired; strengthened account isolation contracts require authenticated server endpoints and prevent legacy authority reintroduction. P1 is complete at 4/4."},
     {"task_id":"P2-A","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"1d2a99476677fecdee267965b3c779b950fb97c9","governance":{"workflow_run_id":33195864794,"status":"SUCCESS"},"codeql":{"workflow_run_id":33195864742,"status":"SUCCESS"},"ci":{"workflow_run_id":33195864753,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98932846895},{"name":"sqlite-tests","job_id":98932846956},{"name":"mysql-tests","job_id":98932846791},{"name":"postgres-tests","job_id":98932846797},{"name":"browser-e2e","job_id":98932846885},{"name":"runtime-integration","job_id":98935711431}]},"browser_evidence":{"artifact_id":9696047522,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:b31a83b2f85eb65495d4262386322d937257424801f4226fc166922e296c3fc2"},"runtime_evidence":{"artifact_id":9696216808,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:cb6658a216c1104d9f23b738524933eac6e5d47ceb149b9e4b1e17d482d56a91"}},
-    {"task_id":"P2-A","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":34,"source_head":"1d2a99476677fecdee267965b3c779b950fb97c9","merge_commit_sha":"05933ae7dcf65358a0309f0edce20389587c096a","merged_at":"2026-08-28T17:59:26Z","main_head_verified":true,"note":"PR #34 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. P2-A preserved existing managed-media contracts, documented the non-destructive legacy URL transition, and closed the seller-storefront-logo archive/reference gap with semantic regression coverage."}
+    {"task_id":"P2-A","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":34,"source_head":"1d2a99476677fecdee267965b3c779b950fb97c9","merge_commit_sha":"05933ae7dcf65358a0309f0edce20389587c096a","merged_at":"2026-08-28T17:59:26Z","main_head_verified":true,"note":"PR #34 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. P2-A preserved existing managed-media contracts, documented the non-destructive legacy URL transition, and closed the seller-storefront-logo archive/reference gap with semantic regression coverage."},
+    {"task_id":"P2-B","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"ff998c184e1be42a1396ab8dfafaa4527aa30ba0","governance":{"workflow_run_id":33206517747,"status":"SUCCESS"},"codeql":{"workflow_run_id":33206517802,"status":"SUCCESS"},"ci":{"workflow_run_id":33206517797,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98968853505},{"name":"sqlite-tests","job_id":98968853404},{"name":"mysql-tests","job_id":98968853260},{"name":"postgres-tests","job_id":98968853563},{"name":"browser-e2e","job_id":98968853479},{"name":"runtime-integration","job_id":98971382960}]},"browser_evidence":{"artifact_id":9700496432,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:4d5d08ae3769a1dabfc1028b2c901d90a3906c3df9b6a485edd581ce0ad1f7af"},"runtime_evidence":{"artifact_id":9700788473,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:c62ae4a0db58ebc73bb310ee8f9b12303571209a0464501f484ee083a2dc6b96"}},
+    {"task_id":"P2-B","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":36,"source_head":"ff998c184e1be42a1396ab8dfafaa4527aa30ba0","merge_commit_sha":"16c231c07a71eb16012991520a16018914e5a053","merged_at":"2026-08-28T20:19:55Z","main_head_verified":true,"note":"PR #36 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. SellerSettings now submits the stable media public ID as storefront-logo identity, uses the resolved URL only for preview/presentation, clears ID plus preview together, and retains the backend URL resolver only as bounded older-client/data compatibility."}
   ],
   "next_exact_action": {
-    "type": "IMPLEMENT_P2_B",
-    "candidate_task": "P2-B",
-    "description": "After this state-only P2-A closure/P2-B activation merges and protected main is re-read, create a new short-lived implementation branch. Make SellerSettings use the existing stable logoMediaAssetId contract directly from MediaLibraryPanel selection through /vendor/settings, keep logoUrl presentation-only in the current UI, and preserve the backend URL compatibility resolver only as a bounded older-client/data migration seam. Do not begin broader image-field conversion or historical media backfill in P2-B.",
+    "type": "IMPLEMENT_P2_C",
+    "candidate_task": "P2-C",
+    "description": "After this state-only P2-B closure/P2-C activation merges and protected main is re-read, create a fresh short-lived implementation branch. Produce a repository-grounded classification/contract for remaining media/image/file URL-like surfaces, add regression coverage for the boundary, and remediate only a smallest active arbitrary first-party URL-as-identity seam if implementation evidence actually proves one. Keep historical URL-backed product-media migration entirely in P2-D.",
     "preconditions": [
-      "Confirm protected main is the P2-A merge boundary 05933ae7dcf65358a0309f0edce20389587c096a or a known state-only descendant before P2-B implementation.",
-      "Reuse VendorStorefrontMediaService stable-ID validation and logoPayload behavior; do not introduce a new logo table, FK or duplicate media model.",
-      "Treat SellerSettings' current item=>set('logoUrl', item.url) picker behavior as the proven P2-B seam; keep changes focused on making that current UI ID-native.",
-      "Preserve marketplace-global/seller-owned media scope, cross-vendor denial and P2-A archive/reference protection.",
-      "Do not remove backend logoUrl compatibility until evidence from later migration/compatibility work proves it safe.",
-      "No schema, historical product-media backfill, remaining-image-field conversion, Admin redesign, storefront redesign or P2-C+ work belongs in P2-B."
+      "Confirm protected main contains the P2-B merge boundary 16c231c07a71eb16012991520a16018914e5a053 or a known state-only descendant before P2-C implementation.",
+      "Preserve P2-A managed product-media ownership/reference protections and P2-B stable seller-logo ID behavior.",
+      "Classify review_images as domain-scoped uploaded disk/path media with derived URLs, message_attachments as immutable domain files, KYC document paths as private security files, shipment label_url as provider-owned external data, notification action_url as navigation, and user_profiles.avatar_path as dormant/read-only on current protected main unless new source evidence disproves that classification.",
+      "Do not create customer media-library scope, a new media table, or broad schema migrations merely to normalize fields that are intentionally domain-specific files or provider/navigation URLs.",
+      "Do not perform historical product-media URL backfill or remove compatibility in P2-C; reserve that separately for P2-D."
     ],
     "expected_evidence": [
-      "SellerSettings source/form state stores and submits logoMediaAssetId from the selected media-library item.",
-      "logoUrl is used only as derived/presentation preview data in the current Seller UI, not selection identity.",
-      "Real vendor settings behavior tests prove stable-ID selection, clear/remove behavior, seller/global scope and cross-vendor denial remain correct.",
-      "Regression/source gate prevents reintroduction of SellerSettings picker URL-as-identity behavior.",
-      "No schema or unrelated media domain changes are present in the P2-B implementation diff.",
+      "A durable repository artifact or contract test records the remaining media boundary classification with source-backed rationale.",
+      "Current request/controller write paths are proven not to accept arbitrary first-party image delivery URLs as canonical identity, or any newly proven active seam is fixed narrowly with existing architecture.",
+      "Domain-scoped review/message/KYC file contracts and provider/navigation URL contracts remain behaviorally intact.",
+      "The dormant profile avatar path is not promoted into an unsupported writable URL identity or speculative customer media-library architecture.",
+      "Historical URL-backed product media remains unchanged and explicitly deferred to P2-D.",
       "Governance, CodeQL and full CI including static/build, SQLite, MySQL, PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch succeed on the exact final implementation head before merge."
     ]
   },
@@ -133,21 +136,22 @@
     {"id":"P1-C-SCOPE-001","decision":"Use Systems.jsx as the third P1 consumer-first batch and migrate its customer-system domains incrementally before global StoreProvider retirement.","reason":"P1-C removed Systems live-route apiBackend/useStore/static-catalog authority while preserving the named route surface and server-authoritative customer/system contracts."},
     {"id":"P1-D-SCOPE-001","decision":"Make the final P1 batch verification-first: prove residual StoreProvider/useStore/static-catalog consumers before global legacy client-state retirement.","reason":"The final P1 implementation proved all downstream consumers were migrated before unmounting StoreProvider and deleting the legacy store/catalog authority, with a retained source walker preventing regression."},
     {"id":"P2-A-AUDIT-001","decision":"Begin P2 with reconciliation of existing media contracts rather than immediate rewrites.","reason":"Product managed-media writes and seller-logo stable media ID behavior already have semantic coverage in the repository. P2 should preserve correct work, identify only real lifecycle/reference/legacy-data gaps, and avoid duplicating existing services or migrations."},
-    {"id":"P2-B-SCOPE-001","decision":"Use the existing backend stable seller-logo ID contract and remove SellerSettings' URL-as-selection-identity seam before broader remaining-image-field or historical-media work.","reason":"Protected main already validates and persists logoMediaAssetId, resolves presentation URLs, enforces seller/global scope and now protects active storefront references from archive. SellerSettings still submits MediaLibraryPanel item.url, making direct ID-native frontend/API completion the smallest remaining proven gap without schema churn."}
+    {"id":"P2-B-SCOPE-001","decision":"Use the existing backend stable seller-logo ID contract and remove SellerSettings' URL-as-selection-identity seam before broader remaining-image-field or historical-media work.","reason":"Protected main already validates and persists logoMediaAssetId, resolves presentation URLs, enforces seller/global scope and now protects active storefront references from archive. SellerSettings still submitted MediaLibraryPanel item.url, making direct ID-native frontend/API completion the smallest remaining proven gap without schema churn."},
+    {"id":"P2-C-SCOPE-001","decision":"Classify remaining media/file/URL surfaces by domain semantics before attempting any further normalization; do not force domain-scoped files, provider URLs, navigation URLs or dormant fields into the reusable media library by naming similarity alone.","reason":"Post-P2-B protected-main audit found no new active arbitrary first-party image URL writer: review images use uploaded disk/path storage with derived URLs, message attachments use immutable disk/path records, KYC uses private document paths, shipping labels are provider URLs, categories/promotions/games introduce no separate image URL writer, and avatar_path is exposed but has no current profile write contract. The only known historical URL-backed first-party media authority remains product legacy data, which is reserved for P2-D additive backfill."}
   ],
   "known_risks": [
     "AGENTS.md still contains stale P0/P1 status text and 2026-08-22 media findings; repository evidence and this canonical checkpoint supersede historical status labels until the plan document is reconciled.",
-    "Historical URL-backed product/media rows remain intentionally preserved; additive backfill, zero-unresolved verification and eventual compatibility retirement belong to a later separately authorized P2 task, not P2-B.",
-    "Remaining image/media URL-like fields across Admin/Seller/customer editors still require complete classification as intentional external URLs versus managed-media candidates in later P2 work.",
-    "SellerSettings currently uses picker item.url as selection identity even though the backend stable-ID contract exists; P2-B is active to remove this bounded seam without deleting backward compatibility prematurely.",
-    "The backend logoUrl compatibility resolver may still serve older clients/data and must not be removed until independent migration/usage evidence proves retirement safe.",
+    "Historical URL-backed product/media rows remain intentionally preserved; additive backfill, zero-unresolved verification and eventual compatibility retirement belong to P2-D, not P2-C.",
+    "user_profiles.avatar_path remains a dormant/read-only legacy-shaped field on current protected main and UserResource still exposes its stored value; P2-C must classify and contract-lock this without inventing unsupported customer media-library semantics.",
+    "Domain-scoped review images, message attachments and KYC documents must not be accidentally broadened into reusable public media because their ownership, immutability/privacy and lifecycle semantics differ from catalog/storefront media.",
+    "Provider/navigation URLs such as shipping label_url and notification action_url must remain semantically distinct from first-party media identity so future audits do not generate destructive false-positive migrations.",
+    "The backend seller logoUrl compatibility resolver may still serve older clients/data and must not be removed until independent migration/usage evidence proves retirement safe.",
     "Third-party dependencies retain their own license obligations even though the project-level VSN Commerce materials are proprietary."
   ],
   "unresolved_issues": [
-    "P2-B: make the current SellerSettings storefront-logo selection and /vendor/settings write use stable logoMediaAssetId directly while keeping logoUrl presentation-only and preserving bounded backend compatibility.",
-    "Later P2: classify and convert only proven managed-image URL fields across Admin/Seller/customer editors; intentional external URLs must remain distinct.",
-    "Later P2: perform any historical URL-backed media migration as additive backfill with tenant/file/order/alt/read-parity evidence, prove zero unresolved legacy rows, and only then consider destructive compatibility cleanup.",
+    "P2-C: codify the remaining media/file/URL boundary classification and add durable regression proof; remediate only a newly proven active arbitrary first-party image URL identity seam if one exists.",
+    "P2-D: perform historical URL-backed product-media migration as additive backfill with tenant/file/order/alt/read-parity evidence, prove zero unresolved legacy rows, and only then consider destructive compatibility cleanup.",
     "AGENTS.md and some README progress prose remain stale relative to verified repository state and should be reconciled without rewriting historical audit context."
   ],
-  "updated_at": "2026-08-28T23:04:44+05:00"
+  "updated_at": "2026-08-29T01:28:54+05:00"
 }
