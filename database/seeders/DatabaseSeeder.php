@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Models\KycVerification;
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorPayoutMethod;
@@ -93,6 +94,17 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Lahore Main Warehouse']
         );
 
+        $images = [
+            'iphone-16-pro-max-titanium' => 'https://images.unsplash.com/photo-1695048132590-b687e2a7e2aa?w=700&h=700&fit=crop&auto=format',
+            'macbook-pro-16-m4' => 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=700&h=700&fit=crop&auto=format',
+            'samsung-neo-qled-8k-tv' => 'https://images.unsplash.com/photo-1593359677879-a4bb92f829e1?w=700&h=700&fit=crop&auto=format',
+            'sony-wh-1000xm6-headphones' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700&h=700&fit=crop&auto=format',
+            'rolex-submariner-date' => 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=700&h=700&fit=crop&auto=format',
+            'ps5-console-bundle-pro' => 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=700&h=700&fit=crop&auto=format',
+            'air-jordan-1-retro-high-og' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&h=700&fit=crop&auto=format',
+            'dji-air-3s-drone-fly-more' => 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=700&h=700&fit=crop&auto=format',
+        ];
+
         $catalog = [
             ['Mobiles', 'iPhone 16 Pro Max Titanium', 289999, 329999, 248, true, true, ['Natural Titanium','Black','White','Blue'], ['256GB','512GB','1TB']],
             ['Laptops', 'MacBook Pro 16 M4', 699999, 759999, 84, true, false, ['Space Black','Silver'], ['512GB','1TB','2TB']],
@@ -127,6 +139,13 @@ class DatabaseSeeder extends Seeder
                     'metadata' => $game ? ['gameEntryCoins' => 70] : [],
                 ]
             );
+
+            if (isset($images[$product->slug])) {
+                ProductImage::firstOrCreate(
+                    ['product_id' => $product->id, 'sort_order' => 0],
+                    ['url' => $images[$product->slug], 'alt_text' => $product->name]
+                );
+            }
 
             $combinations = [];
             foreach ($colors as $color) {
