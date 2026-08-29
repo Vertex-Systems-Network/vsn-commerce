@@ -29,8 +29,7 @@ final class ReconcileHistoricalProductMedia
             ->where(/** Includes every row still depending on legacy URL authority or missing managed identity. */ function ($query): void {
                 $query->where('source', 'legacy_url')->orWhereNull('media_asset_id');
             })
-            ->orderBy('id')
-            ->cursor();
+            ->lazyById(100);
 
         foreach ($images as $image) {
             $items[] = $this->plan($image);
