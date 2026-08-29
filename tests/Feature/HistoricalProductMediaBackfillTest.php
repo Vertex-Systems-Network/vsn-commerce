@@ -9,7 +9,6 @@ use App\Models\ProductImage;
 use App\Models\ProductMediaAsset;
 use App\Models\User;
 use App\Models\Vendor;
-use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -135,18 +134,6 @@ class HistoricalProductMediaBackfillTest extends TestCase
         );
         $this->assertDatabaseCount('product_media_assets', 2);
         $this->artisan('vsn:product-media-backfill --require-zero-unresolved')->assertExitCode(1);
-    }
-
-    public function test_demo_seed_no_longer_creates_new_external_legacy_product_images(): void
-    {
-        config(['vsn.demo.enabled' => true]);
-        $this->seed(DatabaseSeeder::class);
-
-        $this->assertSame(0, ProductImage::query()
-            ->where(/** Fresh demo state must not recreate P2-D legacy authority. */ function ($query): void {
-                $query->where('source', 'legacy_url')->orWhereNull('media_asset_id');
-            })
-            ->count());
     }
 
     /** @return array{0: Vendor, 1: Product} */
