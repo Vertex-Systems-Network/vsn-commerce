@@ -188,7 +188,8 @@ class HistoricalProductMediaBackfillTest extends TestCase
 
     private function imageContents(string $name): string
     {
-        $file = UploadedFile::fake()->image($name, 20, 20);
+        $width = 20 + (strlen($name) % 7);
+        $file = UploadedFile::fake()->image($name, $width, 20);
         $contents = file_get_contents($file->getRealPath());
         $this->assertIsString($contents);
 
