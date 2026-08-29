@@ -47,7 +47,7 @@ class HistoricalProductMediaBackfillTest extends TestCase
         $this->assertSame(1, $result['applied']);
         $this->assertSame(0, $result['after']['total']);
 
-        $image->refresh()->load('mediaAsset');
+        $image->refresh()->load(['mediaAsset', 'product']);
         $this->assertSame('managed', $image->source);
         $this->assertNotNull($image->media_asset_id);
         $this->assertSame($url, $image->url);
