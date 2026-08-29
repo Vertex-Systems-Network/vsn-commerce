@@ -2,25 +2,25 @@
   "schema_version": "1.1",
   "repository": "Vertex-Systems-Network/vsn-commerce",
   "package": {
-    "id": "P2",
-    "name": "Media architecture completion",
+    "id": "P3",
+    "name": "Functional/admin domain repair",
     "status": "IN_PROGRESS",
-    "done": 3,
-    "required": 4,
-    "percent": 75
+    "done": 0,
+    "required": 1,
+    "percent": 0
   },
   "task": {
-    "id": "P2-D",
-    "name": "Backfill historical URL-backed product media into managed media identities",
-    "package": "P2",
-    "sequence": 4,
+    "id": "P3-A",
+    "name": "Audit admin-domain contracts and define repair sequence",
+    "package": "P3",
+    "sequence": 1,
     "status": "IN_PROGRESS"
   },
   "status": "IN_PROGRESS",
   "branch": "main",
   "base_branch": "main",
-  "base_head": "602d9d5ae37f4a49d8ba8249c54538db35b8e95a",
-  "task_head": "602d9d5ae37f4a49d8ba8249c54538db35b8e95a",
+  "base_head": "730d36f9c7970f4ac358e44e670b097061b51a45",
+  "task_head": "730d36f9c7970f4ac358e44e670b097061b51a45",
   "head_policy": {
     "type": "STATE_ONLY_DESCENDANT_ALLOWED",
     "canonical_state_path": "docs/MASTER-EXECUTION-STATUS.json",
@@ -29,16 +29,16 @@
   "last_observed_pr_head": null,
   "pull_request": null,
   "acceptance_criteria": [
-    "Inventory every historical product_images row still using legacy URL authority (including source=legacy_url and/or missing managed media identity as defined by the current schema) and produce a deterministic tenant-aware unresolved set before mutation.",
-    "Perform only additive reconciliation/backfill: where authoritative tenant ownership and storage/binary provenance can be proven, create or reuse the correct managed media asset and link the historical product image through media_asset_id with source=managed without deleting the legacy URL during P2-D.",
-    "Do not convert an untrusted arbitrary historical delivery URL into managed identity by blind network fetching or assumption; rows whose ownership, storage source or binary cannot be proven remain explicitly unresolved and must fail the zero-unresolved acceptance gate.",
-    "Preserve product/vendor tenant ownership and prevent cross-vendor media association throughout discovery, reconciliation and verification.",
-    "Preserve file existence, content hash or equivalent integrity metadata where available, MIME/size metadata where available, sort_order, alt text, primary/first-image semantics and current read parity when a legacy row becomes managed.",
-    "Make the backfill deterministic and safe to retry: already reconciled rows must not duplicate media assets or change semantic identity, and interrupted execution must be recoverable/forward-fix without double-application.",
-    "Prove behavior and data parity across the repository-supported SQLite, MySQL and PostgreSQL paths, including representative legacy, already-managed, unresolved and cross-tenant fixtures.",
-    "Require zero unresolved historical legacy product-media rows before any future compatibility fallback or legacy URL storage removal may even be proposed; P2-D itself must not remove the dual-read fallback, legacy URL column/storage or older-client compatibility.",
-    "Keep P2-D limited to historical product-media additive backfill, verification and the smallest necessary migration/data tooling/tests; no unrelated Admin/storefront redesign, customer media-library scope, dependency/config/RBAC expansion or destructive cleanup.",
-    "Exact final implementation head must be current with protected main, have no unresolved review blocker, and pass Governance, CodeQL and full CI including static/build, SQLite, MySQL, PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch before merge."
+    "Inventory every /admin/* React route and its required UI role/permission from the current protected-main source; do not infer coverage from navigation labels alone.",
+    "Map every admin route to the API endpoint, controller/action and backend RBAC permission that authorizes the operation, and fail the audit on unmapped or contradictory authority paths.",
+    "Classify CRUD completeness, filters/search/pagination, loading/empty/error/retry states and destructive or financial confirmation semantics for every admin domain.",
+    "Trace admin settings to observable runtime consumers, validation, defaults, cache invalidation and edit permissions; classify presentation-only or dead settings as explicit gaps rather than working functionality.",
+    "Verify admin/catalog/media flows preserve completed P2 managed-media identity, tenant ownership, stable-reference and non-destructive legacy-compatibility boundaries.",
+    "Verify financial, refund, payout, COD, dispute and other destructive operations are permissioned, attributable/audited where required, retry/idempotency-safe where applicable and fail closed.",
+    "Map existing semantic PHPUnit/browser/source tests to each admin domain and identify only missing happy-path and key-failure-path proof; do not duplicate already-valid coverage.",
+    "Identify oversized shared frontend/backend files that must be split by domain when a later bounded repair touches them; P3-A itself must not perform the refactor.",
+    "Produce a prioritized bounded P3 repair sequence with explicit dependency order, ownership/path budgets, security/data implications and acceptance evidence for each later package.",
+    "P3-A is audit/planning-only: do not change functional/admin runtime behavior, schema, controllers, React pages, RBAC rules or visual design, and do not activate P4/P5 through this task."
   ],
   "completed_tasks": [
     "P0-CI-BASELINE",
@@ -51,7 +51,8 @@
     "P1-D",
     "P2-A",
     "P2-B",
-    "P2-C"
+    "P2-C",
+    "P2-D"
   ],
   "blocked_tasks": [],
   "failed_gates": [
@@ -109,26 +110,28 @@
     {"task_id":"P2-B","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"ff998c184e1be42a1396ab8dfafaa4527aa30ba0","governance":{"workflow_run_id":33206517747,"status":"SUCCESS"},"codeql":{"workflow_run_id":33206517802,"status":"SUCCESS"},"ci":{"workflow_run_id":33206517797,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":98968853505},{"name":"sqlite-tests","job_id":98968853404},{"name":"mysql-tests","job_id":98968853260},{"name":"postgres-tests","job_id":98968853563},{"name":"browser-e2e","job_id":98968853479},{"name":"runtime-integration","job_id":98971382960}]},"browser_evidence":{"artifact_id":9700496432,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:4d5d08ae3769a1dabfc1028b2c901d90a3906c3df9b6a485edd581ce0ad1f7af"},"runtime_evidence":{"artifact_id":9700788473,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:c62ae4a0db58ebc73bb310ee8f9b12303571209a0464501f484ee083a2dc6b96"}},
     {"task_id":"P2-B","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":36,"source_head":"ff998c184e1be42a1396ab8dfafaa4527aa30ba0","merge_commit_sha":"16c231c07a71eb16012991520a16018914e5a053","merged_at":"2026-08-28T20:19:55Z","main_head_verified":true,"note":"PR #36 merged with an expected-head SHA guard after exact-head Governance, CodeQL and full CI acceptance. SellerSettings now submits the stable media public ID as storefront-logo identity, uses the resolved URL only for preview/presentation, clears ID plus preview together, and retains the backend URL resolver only as bounded older-client/data compatibility."},
     {"task_id":"P2-C","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"6a505de4be8a96447e9697f8cc2a29a00644aa82","governance":{"workflow_run_id":33220498127,"status":"SUCCESS"},"codeql":{"workflow_run_id":33220498145,"status":"SUCCESS"},"ci":{"workflow_run_id":33220498182,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":99013328347},{"name":"sqlite-tests","job_id":99013328199},{"name":"mysql-tests","job_id":99013328321},{"name":"postgres-tests","job_id":99013328318},{"name":"browser-e2e","job_id":99013328394},{"name":"runtime-integration","job_id":99014855501}]},"browser_evidence":{"artifact_id":9705146372,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:e168ccda37a3211d3177107cd9f3f581b7f3418c43366255dff246bd2d443f29"},"runtime_evidence":{"artifact_id":9705269263,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:bcc67c6a4f557d11d496452178067720b7a850e9d53c4485c76f24ae0c0a55f6"}},
-    {"task_id":"P2-C","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":39,"source_head":"6a505de4be8a96447e9697f8cc2a29a00644aa82","merge_commit_sha":"602d9d5ae37f4a49d8ba8249c54538db35b8e95a","merged_at":"2026-08-28T23:52:33Z","main_head_verified":true,"note":"PR #39 merged with an expected-head guarded promotion after fresh Governance, CodeQL and full CI acceptance. P2-C added only the remaining-media boundary regression/source contract: review/message/KYC files remain domain-scoped storage, shipping label_url remains provider-owned, notification action_url remains navigation, profile avatar URL/path write identity remains unsupported, and historical product-media backfill remains reserved for P2-D."}
+    {"task_id":"P2-C","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":39,"source_head":"6a505de4be8a96447e9697f8cc2a29a00644aa82","merge_commit_sha":"602d9d5ae37f4a49d8ba8249c54538db35b8e95a","merged_at":"2026-08-28T23:52:33Z","main_head_verified":true,"note":"PR #39 merged with an expected-head guarded promotion after fresh Governance, CodeQL and full CI acceptance. P2-C added only the remaining-media boundary regression/source contract: review/message/KYC files remain domain-scoped storage, shipping label_url remains provider-owned, notification action_url remains navigation, profile avatar URL/path write identity remains unsupported, and historical product-media backfill remains reserved for P2-D."},
+    {"task_id":"P2-D","role":"EXACT_HEAD_ACCEPTANCE","status":"SUCCESS","source_head":"0d40acbc8426bf40fcc9898260e53fbd15ddccc4","governance":{"workflow_run_id":33244416916,"status":"SUCCESS"},"codeql":{"workflow_run_id":33244416775,"status":"SUCCESS"},"ci":{"workflow_run_id":33244416773,"status":"SUCCESS","passed_jobs":[{"name":"static-and-build","job_id":99079277615},{"name":"sqlite-tests","job_id":99079277684},{"name":"mysql-tests","job_id":99079277743},{"name":"postgres-tests","job_id":99079277682},{"name":"browser-e2e","job_id":99079277694},{"name":"runtime-integration","job_id":99080312281}]},"browser_evidence":{"artifact_id":9712480114,"artifact_name":"vsn-browser-e2e","artifact_digest":"sha256:b48467b53e0fe46b45349c0f0ac4c6f541f588e4c257424262b2f5e0850c392d"},"runtime_evidence":{"artifact_id":9712560076,"artifact_name":"vsn-launch-verification","artifact_digest":"sha256:8f18b7226ccc8ffbf24631dc586630947e838f647d3c1ec2315bd8c5dcafc261"}},
+    {"task_id":"P2-D","role":"MERGE_CLOSURE","status":"SUCCESS","pr_number":44,"source_head":"0d40acbc8426bf40fcc9898260e53fbd15ddccc4","merge_commit_sha":"730d36f9c7970f4ac358e44e670b097061b51a45","merged_at":"2026-08-29T10:16:01Z","main_head_verified":true,"note":"Promotion PR #44 merged the exact accepted P2-D head after fresh Governance, CodeQL and full CI. Historical product-media reconciliation is additive, tenant/provenance fail-closed, idempotent, preserves legacy URL compatibility, and leaves destructive compatibility cleanup unauthorized. P2 Media Architecture Completion is complete at 4/4 (100%)."}
   ],
   "next_exact_action": {
-    "type": "IMPLEMENT_P2_D",
-    "candidate_task": "P2-D",
-    "description": "After this state-only P2-C closure/P2-D activation merges and protected main is re-read, create a fresh short-lived implementation branch from that exact main SHA. Implement only the additive historical URL-backed product-media reconciliation/backfill contract: inventory legacy rows, prove tenant/storage ownership, create or reuse managed media identity, link rows without destructive cleanup, preserve metadata/order/alt/read parity, and prove zero unresolved legacy rows before any future compatibility-removal proposal.",
+    "type": "AUDIT_P3_A",
+    "candidate_task": "P3-A",
+    "description": "After this state-only P2 closure/P3 planning-gate carrier passes exact-head acceptance, merges, and protected main is re-read, create a fresh short-lived audit/planning branch from that exact main SHA. Produce a deterministic admin route/API/RBAC contract matrix, gap ledger and bounded ordered P3 repair sequence. P3-A changes no functional/admin runtime, schema, controller, React page, RBAC rule or visual design.",
     "preconditions": [
-      "Confirm protected main contains P2-C merge boundary 602d9d5ae37f4a49d8ba8249c54538db35b8e95a or a known state-only descendant before P2-D implementation.",
-      "Preserve P2-A managed media write/reference protections, P2-B stable seller-logo identity and P2-C domain-specific file/provider/navigation classifications.",
-      "Audit the actual product_images legacy schema, media asset storage model and current migration/data tooling before selecting implementation paths; do not assume every legacy URL has a recoverable local binary.",
-      "Treat unprovable ownership/storage/binary provenance as unresolved evidence, not permission to fetch arbitrary remote content or invent tenant ownership.",
-      "Keep the legacy URL read fallback and legacy URL storage intact throughout P2-D; destructive compatibility cleanup requires later independent authorization after zero-unresolved proof."
+      "Confirm protected main contains the accepted P2-D merge boundary 730d36f9c7970f4ac358e44e670b097061b51a45 or a known state-only descendant before P3-A audit work.",
+      "Preserve completed P2 managed-media identity/reference protections and the non-destructive legacy URL compatibility boundary; no compatibility cleanup is authorized by P3-A.",
+      "Read the current AGENTS.md P3 Functional/admin domain repair contract and inspect live admin routes, API routes/controllers, backend RBAC and existing semantic tests before classifying gaps.",
+      "Keep P3-A audit/planning-only; any proven runtime defect belongs to the later bounded repair sequence and must not be fixed on the audit carrier.",
+      "Keep P4 Untitled UI conversion, P5 certification and unrelated storefront/customer/seller redesign locked."
     ],
     "expected_evidence": [
-      "A deterministic tenant-aware inventory reports total legacy rows, resolved/backfilled rows and explicit unresolved rows.",
-      "Backfilled rows reference stable managed media identity without cross-vendor association or duplicate assets on retry.",
-      "File existence and integrity metadata/hashes where available, ordering, alt text and supported read parity are preserved.",
-      "Representative legacy/already-managed/unresolved/cross-tenant fixtures pass across SQLite, MySQL and PostgreSQL.",
-      "Zero unresolved legacy rows is mechanically proven before any later destructive compatibility-removal task may be proposed; P2-D itself removes no fallback/legacy column.",
-      "Governance, CodeQL and full CI including static/build, SQLite, MySQL, PostgreSQL, browser E2E/WCAG/W3C and runtime integration/restore/launch succeed on the exact final implementation head before merge."
+      "A source-backed matrix maps every /admin/* React route and UI permission to its API/controller/action and backend RBAC permission.",
+      "A per-domain gap ledger classifies CRUD, search/filter/pagination, loading/empty/error states, settings effects and destructive/financial semantics without conflating missing proof with a defect.",
+      "Existing PHPUnit/browser/source coverage is mapped to each domain and only missing happy-path/key-failure-path proof is identified.",
+      "Oversized shared files are identified with split-on-touch boundaries rather than expanded during the audit.",
+      "A prioritized bounded repair sequence defines dependency order, path budgets and required acceptance evidence while keeping P4/P5 locked.",
+      "The exact final P3-A audit/planning head passes Governance, CodeQL and full CI before any later repair package is activated."
     ]
   },
   "architecture_decisions": [
@@ -141,23 +144,26 @@
     {"id":"P2-A-AUDIT-001","decision":"Begin P2 with reconciliation of existing media contracts rather than immediate rewrites.","reason":"Product managed-media writes and seller-logo stable media ID behavior already have semantic coverage in the repository. P2 should preserve correct work, identify only real lifecycle/reference/legacy-data gaps, and avoid duplicating existing services or migrations."},
     {"id":"P2-B-SCOPE-001","decision":"Use the existing backend stable seller-logo ID contract and remove SellerSettings' URL-as-selection-identity seam before broader remaining-image-field or historical-media work.","reason":"Protected main already validates and persists logoMediaAssetId, resolves presentation URLs, enforces seller/global scope and now protects active storefront references from archive. SellerSettings still submitted MediaLibraryPanel item.url, making direct ID-native frontend/API completion the smallest remaining proven gap without schema churn."},
     {"id":"P2-C-SCOPE-001","decision":"Classify remaining media/file/URL surfaces by domain semantics before attempting any further normalization; do not force domain-scoped files, provider URLs, navigation URLs or dormant fields into the reusable media library by naming similarity alone.","reason":"Post-P2-B protected-main audit found no new active arbitrary first-party image URL writer: review images use uploaded disk/path storage with derived URLs, message attachments use immutable disk/path records, KYC uses private document paths, shipping labels are provider URLs, categories/promotions/games introduce no separate image URL writer, and avatar_path is exposed but has no current profile write contract. The only known historical URL-backed first-party media authority remains product legacy data, which is reserved for P2-D additive backfill."},
-    {"id":"P2-D-SCOPE-001","decision":"Perform historical product-media transition as additive, evidence-driven reconciliation only; preserve the legacy URL fallback/storage until zero unresolved rows and independent later authorization permit compatibility cleanup.","reason":"Accepted P2-A evidence established nullable media_asset_id plus legacy_url source as the intentional dual-generation transition seam. Ownership/storage provenance, file integrity, metadata/order/alt/read parity and tenant isolation must be proven before stable managed identity is linked; destructive cleanup is explicitly outside P2-D."
+    {"id":"P2-D-SCOPE-001","decision":"Perform historical product-media transition as additive, evidence-driven reconciliation only; preserve the legacy URL fallback/storage until zero unresolved rows and independent later authorization permit compatibility cleanup.","reason":"Accepted P2-A evidence established nullable media_asset_id plus legacy_url source as the intentional dual-generation transition seam. Ownership/storage provenance, file integrity, metadata/order/alt/read parity and tenant isolation must be proven before stable managed identity is linked; destructive cleanup is explicitly outside P2-D."},
+    {"id":"P2-EXIT-001","decision":"Close P2 after accepted P2-D implementation and advance only to the repository-defined P3 planning gate; P2 completion does not authorize destructive media compatibility cleanup.","reason":"P2-A through P2-D now have exact-head hosted acceptance and merge evidence. AGENTS.md defines P3 Functional/admin domain repair as the next phase, while legacy media fallback removal remains independently gated."},
+    {"id":"P3-A-AUDIT-001","decision":"Start P3 with a single audit/planning gate before any functional/admin repair package is implemented.","reason":"The admin surface spans many React routes, API controllers, RBAC mappings and high-risk financial/destructive domains. A deterministic contract matrix and ordered bounded repair plan are required to avoid a mega-fix, duplicated tests or accidental P4 visual migration. The current required=1 counts only this planning gate and does not mean P3 functional repair is complete."
     }
   ],
   "known_risks": [
-    "AGENTS.md still contains stale P0/P1 status text and 2026-08-22 media findings; repository evidence and this canonical checkpoint supersede historical status labels until the plan document is reconciled.",
-    "Historical URL-backed product/media rows are now the active P2-D data-migration risk: some rows may lack provable tenant ownership, recoverable storage provenance, binary existence or sufficient integrity metadata and must remain explicit unresolved blockers rather than being guessed into managed identity.",
-    "Blind remote fetching of historical URLs would convert delivery-location data into untrusted ingestion authority and is not authorized by the accepted additive migration strategy.",
-    "Backfill must be idempotent and must not duplicate media assets, cross vendor boundaries, reorder product media, lose alt text or silently change first-image/read semantics.",
-    "The dual-read legacy URL fallback and legacy URL storage must remain until a later independently authorized compatibility-removal task follows mechanically proven zero-unresolved evidence; P2-D is not destructive cleanup.",
-    "user_profiles.avatar_path remains a dormant/read-only legacy-shaped field; P2-D is product-media historical backfill only and must not expand into speculative customer media-library scope.",
-    "Domain-scoped review images, message attachments and KYC documents plus provider/navigation URLs remain outside P2-D reusable media migration scope under the accepted P2-C classification.",
-    "The backend seller logoUrl compatibility resolver may still serve older clients/data and must not be removed by P2-D unless independent later evidence and authorization explicitly cover it.",
+    "P2 is complete, but the legacy product-media URL fallback/storage remains an intentional compatibility seam; destructive cleanup still requires independent authorization and must not be pulled into P3-A.",
+    "The backend seller logoUrl compatibility resolver may still serve older clients/data and must not be removed without independent evidence and authorization.",
+    "The admin surface is materially multi-domain and spread across centralized routing plus large shared files; beginning with one broad repair would create regression and ownership risk.",
+    "UI route guards are not authorization proof; P3-A must verify each admin operation against backend Rbac::enforceAreaRequest mappings and fail-closed server enforcement.",
+    "Database-backed settings can still be presentation-only unless each key is traced to an observable runtime consumer, validation/default/cache behavior and edit permission.",
+    "Financial/refund/payout/COD/dispute and other destructive operations require explicit permission, attribution/audit and retry/idempotency analysis before repair work is authorized.",
+    "P4 Untitled UI conversion must not begin during P3-A or be used to hide unresolved functional/admin contract defects.",
+    "AGENTS.md contains historical audit-status prose alongside the current phase plan; canonical state and executable evidence remain authoritative for completion claims.",
     "Third-party dependencies retain their own license obligations even though the project-level VSN Commerce materials are proprietary."
   ],
   "unresolved_issues": [
-    "P2-D: inventory and additively backfill historical URL-backed product-media rows only where tenant/storage ownership and binary provenance are provable; preserve file/order/alt/read parity, prove retry safety and zero unresolved legacy rows, and leave destructive compatibility cleanup for a later independently authorized task.",
-    "AGENTS.md and some README progress prose remain stale relative to verified repository state and should be reconciled without rewriting historical audit context."
+    "P3-A: produce the source-backed admin route/API/RBAC contract matrix, per-domain gap ledger, existing-test coverage map and prioritized bounded repair sequence before authorizing functional P3 repair code.",
+    "Legacy product-media URL fallback/storage and older seller-logo URL compatibility remain preserved; any destructive compatibility cleanup requires a later independent evidence-driven authorization.",
+    "AGENTS.md and some README progress prose contain historical status language and should be reconciled later without rewriting their audit context."
   ],
-  "updated_at": "2026-08-29T05:44:00+05:00"
+  "updated_at": "2026-08-29T23:18:00+05:00"
 }
