@@ -1,25 +1,27 @@
 # P3-A — Remaining Route Verification Queue
 
-Status: **OPEN — MUST REACH ZERO BEFORE P3-A ACCEPTANCE**
+Status: **ZERO OPEN ROUTES — MATRIX/ACCEPTANCE RECONCILIATION STILL REQUIRED**
 
-This queue is deliberately separate from the finding ledger. A route remains here whenever backend permission mapping exists but component-level behavior has not yet been fully classified as read-only, capability-aware, contradictory or capability-gap.
+This queue is deliberately separate from the finding ledger. A route remains open only while backend permission mapping exists but component-level behavior has not yet been classified as read-only, capability-aware, contradictory or capability-gap.
 
-Removing a row requires source evidence for API methods/paths, backend permission, read vs mutation controls, and relevant loading/error/destructive semantics. Do not remove rows from inference.
-
-## Already source-verified positive controls
+## Source-verified positive controls
 
 - `/admin/access` — read-only RBAC inspection under `users.view`; no mutation surface.
 - `/admin/compliance` — capability-aware secondary permissions.
 - `/admin/acceptance` — capability-aware manage/sign/seal split.
+- `/admin/orders` — list-level component is read-only; pagination/list-completeness defect is C-P3A-029.
+- `/admin/returns` — list-level component is read-only; pagination/list-completeness defect is C-P3A-030. Detail mutations remain separately classified by C-P3A-009.
 
-## Already source-verified defects
+## Source-verified defects
 
-The following no longer need generic verification; they are classified in the acceptance ledger and supporting audits:
+All other protected admin route surfaces have concrete classifications in the acceptance ledger and supporting audit artifacts, including:
 
 - `/admin`
 - `/admin/users`
 - `/admin/vendors`
 - `/admin/catalog`
+- `/admin/catalog/new`
+- `/admin/catalog/:id/edit`
 - `/admin/promotions`
 - `/admin/loyalty`
 - `/admin/games`
@@ -40,35 +42,41 @@ The following no longer need generic verification; they are classified in the ac
 - `/admin/seller-quality`
 - `/admin/production-readiness`
 
-## Remaining route/component verification
+## Closed queue evidence
 
-### Q-01 — `/admin/catalog/new`
+### Q-01 / Q-02 — catalog new/edit
 
-Entry permission is `catalog.manage`. Verify the editor's supporting read dependencies (`/admin/catalog`, `/tax/classes`, media-library calls) do not create a hidden cross-domain permission contradiction for a principal that legitimately has catalog management authority.
+Closed by `docs/audits/P3-A-CATALOG-EDITOR-CAPABILITY-AUDIT.md`.
 
-### Q-02 — `/admin/catalog/:id/edit`
+Findings:
 
-Entry permission is `catalog.manage`. Verify product read/update/media-library/media attachment paths and supporting tax/catalog metadata dependencies under the complete editor lifecycle.
+- C-P3A-027 — mandatory reusable media-library read introduces `catalog.manage` → `media.view` cross-domain dependency.
+- C-P3A-028 — reusable media-library upload/archive controls require `media.manage` but are presented inside the catalog editor without that capability boundary.
 
 ### Q-03 — `/admin/orders`
 
-Entry permission is `orders.view`. Source appears list/search/read oriented; verify no hidden mutation control and confirm search/filter/loading/error/pagination contract.
+Closed by `docs/audits/P3-A-ORDER-RETURN-LIST-CONTRACT-AUDIT.md`.
+
+The list surface is read-only under `orders.view`; no hidden list mutation was found. C-P3A-029 records the dropped server pagination contract / list-completeness defect.
 
 ### Q-04 — `/admin/returns`
 
-Entry permission is `returns.view`. Verify list-level component is read-only or correctly capability-aware; keep detail mutation finding C-P3A-009 separate.
+Closed by `docs/audits/P3-A-ORDER-RETURN-LIST-CONTRACT-AUDIT.md`.
 
-## Cross-cutting verification still required after queue reaches zero
+The list surface is read-only under `returns.view`; no hidden list mutation was found. C-P3A-030 records the dropped server pagination contract / list-completeness defect. Detail mutations remain C-P3A-009.
 
-Route verification alone does not close P3-A. Final audit acceptance must also record:
+## Cross-cutting acceptance still required
 
-1. exact later repair owner/path budget per finding group;
+**Zero open Q-rows does not by itself accept P3-A.** Final audit acceptance still requires:
+
+1. parent 30-route matrix reconciled to every final classification;
 2. no duplicate/contradictory finding IDs across audit artifacts;
-3. parent matrix reconciled to the final classifications;
-4. exact-head CI + CodeQL + Governance Code Scanning PASS;
+3. concrete later repair owner/path budget for each finding group;
+4. final exact-head CI + CodeQL + Governance Code Scanning PASS;
 5. SELF REVIEW or independent review provenance;
-6. audit/planning-only merge, followed by a fresh later implementation branch.
+6. audit/planning-only merge;
+7. runtime repair to start later from a fresh branch after accepted audit merge.
 
 ## Stop rule
 
-P3 runtime/RBAC/UI repair remains unauthorized while any Q-row is open or while the parent matrix is unreconciled.
+P3 runtime/RBAC/UI repair remains unauthorized until the parent matrix and acceptance ledger are reconciled and the final audit carrier passes its own acceptance gates.
