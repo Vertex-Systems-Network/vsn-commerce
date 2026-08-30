@@ -1,25 +1,23 @@
 # P3-A — Admin Audit Acceptance Ledger
 
-Status: **IN PROGRESS — PLANNING / NO REPAIR AUTHORITY**
+Status: **SOURCE VERIFIED — FINAL CI / REVIEW / PROMOTION EVIDENCE PENDING**
 
 Repository: `Vertex-Systems-Network/vsn-commerce`  
 Lane: `agent/20260830-vsn-commerce-abd-196`  
 Parent: `docs/audits/P3-A-ADMIN-DOMAIN-CONTRACT-MATRIX.md`
 
-## Purpose
+## Authority boundary
 
-This ledger consolidates the source-verified P3-A admin authorization/presentation findings into one dependency-ordered planning boundary. It does not authorize React, Laravel, RBAC, schema, controller or runtime changes.
+This is the canonical P3-A finding registry and later-repair plan. It does **not** authorize React, Laravel, RBAC, schema, controller or runtime changes. Backend deny-by-default authorization remains authoritative.
 
-Backend deny-by-default authorization remains authoritative. P3-A defects identified here are route/component contract defects unless a separate finding proves a server-side bypass.
-
-## Source-verified findings
+## Canonical source-verified findings
 
 | ID | Domain | Classification | Core planning consequence |
 | --- | --- | --- | --- |
-| C-P3A-001 | Seller Quality | `CONTRADICTORY_UI_BACKEND_PERMISSION` | route uses `vendors.view`; required shipping-quality read uses `shipping.view` |
-| C-P3A-002 | Loyalty | `CAPABILITY_GAP` | `loyalty.view` surface exposes `loyalty.manage` writes |
+| C-P3A-001 | Seller Quality | `CONTRADICTORY_UI_BACKEND_PERMISSION` | `vendors.view` route depends on `shipping.view` data |
+| C-P3A-002 | Loyalty | `CAPABILITY_GAP` | view surface exposes `loyalty.manage` writes |
 | C-P3A-003 | Games / Production Readiness | `CAPABILITY_GAP` | view surfaces expose protected manage actions |
-| C-P3A-004 | Admin index | `CONTRADICTORY_UI_BACKEND_PERMISSION` | role-gated route requires mandatory `analytics.view` read |
+| C-P3A-004 | Admin index | `CONTRADICTORY_UI_BACKEND_PERMISSION` | route gate does not guarantee mandatory `analytics.view` |
 | C-P3A-005 | Admin index | `UNVERIFIED_OPERATIONAL_ASSERTION` | synthetic green subsystem status without health evidence |
 | C-P3A-006 | Order detail | `ROLE_CAPABILITY_DRIFT` | hard-coded roles substitute for permission authority |
 | C-P3A-007 | Shipping | `CAPABILITY_GAP` | `shipping.view` exposes `shipping.manage` actions |
@@ -31,7 +29,7 @@ Backend deny-by-default authorization remains authoritative. P3-A defects identi
 | C-P3A-013 | Settings | `CAPABILITY_GAP` | view route exposes settings writes |
 | C-P3A-014 | Users | `CAPABILITY_GAP` | `users.view` exposes create/role mutation |
 | C-P3A-015 | Vendors | `CAPABILITY_GAP` | `vendors.view` exposes create/status mutation |
-| C-P3A-016 | Vendors | `CONTRADICTORY_UI_BACKEND_PERMISSION / CROSS_DOMAIN_READ_DEPENDENCY` | mandatory seller-owner lookup also requires `users.view` |
+| C-P3A-016 | Vendors | `CONTRADICTORY_UI_BACKEND_PERMISSION / CROSS_DOMAIN_READ_DEPENDENCY` | seller-owner lookup also requires `users.view` |
 | C-P3A-017 | Catalog index | `CAPABILITY_GAP` | `catalog.view` exposes review/category writes |
 | C-P3A-018 | Promotions | `CAPABILITY_GAP` | `promotions.view` exposes create/lifecycle writes |
 | C-P3A-019 | Tax | `CAPABILITY_GAP` | `tax.view` exposes jurisdiction/rate/profile writes |
@@ -39,93 +37,209 @@ Backend deny-by-default authorization remains authoritative. P3-A defects identi
 | C-P3A-021 | Analytics | `CAPABILITY_GAP` | `analytics.view` exposes export/schedule management |
 | C-P3A-022 | Risk | `CAPABILITY_GAP` | `risk.view` exposes holds/case mutations |
 | C-P3A-023 | Media | `CAPABILITY_GAP` | `media.view` exposes upload/archive writes |
-| C-P3A-024 | Operations Center | `CONTRADICTORY_UI_BACKEND_PERMISSION / CROSS_DOMAIN_READ_DEPENDENCY` | `operations.view` mandatory load composes finance-domain reads |
+| C-P3A-024 | Operations Center | `CONTRADICTORY_UI_BACKEND_PERMISSION / CROSS_DOMAIN_READ_DEPENDENCY` | `operations.view` mandatory load composes finance reads |
 | C-P3A-025 | Operations Center | `CAPABILITY_GAP / FINANCIAL_ACTION_PRESENTATION` | finance/payout mutations lack `finance.manage` presentation gate |
 | C-P3A-026 | Operations Center | `CAPABILITY_GAP / INCIDENT_COMMAND_PRESENTATION` | incident mutations lack `operations.manage` presentation gate |
+| C-P3A-027 | Catalog editor | `CONTRADICTORY_UI_BACKEND_PERMISSION / CROSS_DOMAIN_READ_DEPENDENCY` | `catalog.manage` editor unconditionally loads reusable media requiring `media.view` |
+| C-P3A-028 | Catalog editor | `CAPABILITY_GAP / CROSS_DOMAIN_MEDIA_MANAGEMENT_PRESENTATION` | media-library upload/archive require `media.manage` but are rendered inside catalog editor without that boundary |
+| C-P3A-029 | Orders list | `PAGINATION_CONTRACT_GAP / LIST_COMPLETENESS` | server paginates but UI exposes only first page |
+| C-P3A-030 | Returns list | `PAGINATION_CONTRACT_GAP / LIST_COMPLETENESS` | server paginates but UI exposes only first page |
+
+Finding registry rule: **C-P3A-001 through C-P3A-030 are contiguous and canonical here.** Supporting audit files may explain the same ID but must not redefine its classification or authority consequence.
 
 ## Positive controls retained
 
-The audit has also identified local patterns that should be reused instead of inventing a new client authorization system:
-
 - `AdminCompliance` separates base view permission from review/security/audit capabilities.
 - `Acceptance` separates `acceptance.view`, `acceptance.manage`, `acceptance.sign` and `acceptance.seal`.
-- `AdminAccess` is a source-verified read-only `/admin/rbac` surface under `users.view`; no mutation control is present in the component.
-- dedicated `/admin/catalog/new` and `/admin/catalog/:id/edit` routes already enter under `catalog.manage`; later catalog repair should preserve that stronger route boundary.
-- `OperationsCenter` consumes server-returned health/launch state rather than synthesizing unconditional green status; permission composition should be repaired without regressing this server-authoritative observability behavior.
+- `AdminAccess` is read-only under `users.view`.
+- `AdminOrders` and `AdminReturns` are list-level read-only surfaces; their defects are pagination completeness, not hidden mutation presentation.
+- Operations Center uses server-returned operational state; later permission repair must preserve that truthfulness pattern.
 
 ## Systemic defect classes
 
-### A — route/API authority contradictions
+### A — route/API authority composition
 
-A route can be entered with one capability while its mandatory initial read requires another. Known instances:
-
-- `/admin` → `analytics.view`;
-- `/admin/seller-quality` → `shipping.view`;
-- `/admin/vendors` → `users.view` seller-owner lookup;
-- `/admin/operations` → finance-domain reads in addition to operations data.
-
-These must be resolved before generic mutation-button gating because a view-only principal can otherwise enter a route that cannot successfully initialize.
+Known instances: `/admin`, Seller Quality, Vendors seller-owner lookup, Operations Center finance composition, and Catalog Editor reusable-media composition. Repair the route/data contract without weakening backend RBAC.
 
 ### B — view/manage presentation drift
 
-Repeated pattern:
-
-`*.view route` → read succeeds → protected mutation controls are rendered → backend correctly requires `*.manage`.
-
-This is not evidence to weaken backend RBAC. Later repairs should make the UI capability-aware using the existing `hasPermission(...)` mechanism.
+Repeated pattern: `*.view` route → read succeeds → protected mutation controls render → backend correctly requires `*.manage`. Later UI repair must use existing `hasPermission(...)`; backend policy is not broadened to accommodate presentation drift.
 
 ### C — role-name authority drift
 
-Order detail and review moderation use hard-coded role names where backend permission authority already exists. Later repair should remove the duplicate role-policy model rather than expand it.
+Order detail and review moderation duplicate permission policy through role-name lists. Replace presentation decisions with permission checks; server authority remains unchanged unless separate backend evidence requires change.
 
 ### D — financial/security-sensitive presentation
 
-Returns, finance, payouts, tax, risk and operations incident/financial actions require more than cosmetic hiding. Their later acceptance packages must explicitly preserve server-side authorization, confirmation where appropriate, idempotency, immutable/auditable attribution and negative authorization tests.
+Returns, finance, payouts, tax, risk and operations incident/financial actions require explicit negative authorization coverage, confirmation where appropriate, idempotency and audit attribution in later packages.
 
 ### E — observability truthfulness
 
-AdminControl's synthetic green status is not authoritative health evidence. OperationsCenter provides the preferred server-derived model. Later repair should expose unknown/degraded/error states rather than infer health from unrelated page success.
+AdminControl synthetic green state is not authoritative health evidence. Unknown/degraded/error must remain representable.
 
-## Proposed dependency-ordered repair packages — NOT ACTIVATED
+### F — list/state completeness
 
-1. **P3-R1 — route/data authority composition**
-   - `/admin` analytics requirement;
-   - Seller Quality shipping authority;
-   - Vendors seller-owner lookup;
-   - Operations Center operations/finance composition.
-2. **P3-R2 — non-financial view/manage presentation**
-   - users, vendors, catalog index, promotions, loyalty, games, media, notifications, settings, production readiness.
-3. **P3-R3 — role-to-permission normalization**
-   - order detail;
-   - review moderation.
-4. **P3-R4 — financial/security-sensitive presentation hardening**
-   - shipping/payment sync where consequential;
-   - returns;
-   - tax;
-   - finance/payouts;
-   - risk holds/cases;
-   - operations incident/finance controls.
-5. **P3-R5 — operational observability correctness**
-   - replace unsupported AdminControl success assertions with authoritative state or non-status presentation.
-6. **P3-R6 — CRUD/state/loading/error/pagination completeness**
-   - execute only after authorization contracts are stable; do not mix structural UX cleanup into security-boundary fixes.
+Orders and Returns drop server pagination. Loading/retry/error-state cleanup remains secondary to authorization repair and belongs to a separate bounded package.
 
-Each later repair package must have a bounded path budget, explicit view-only/manage-capable negative tests, server contract proof, and its own CI/review evidence.
+## Later repair packages and exact path budgets — NOT ACTIVATED
 
-## Remaining P3-A acceptance work
+The paths below are maximum intended source budgets for each later package. A package must be created from fresh accepted `main`, re-read source, and reduce scope further if possible. Adding unrelated paths requires a new planning decision.
 
-Before P3-A itself is marked accepted:
+### P3-R1A — admin-index / seller-quality route-data composition
 
-1. reconcile the parent route matrix to these source-verified classifications;
-2. explicitly mark already-verified read-only/permission-aware positive controls;
-3. identify any route still only `BACKEND_MAPPED` without component-level read/mutation review;
-4. record concrete later owner/path budget for every unresolved row;
-5. verify the final audit head through CI + CodeQL + Governance Code Scanning;
-6. record SELF REVIEW or independent review provenance;
-7. merge audit/planning only; runtime repair must begin on a fresh later branch.
+Owner: **Admin UI routing + operational read contract**.
+
+Allowed source paths:
+
+1. `resources/js/App.jsx`
+2. `resources/js/pages/Systems.jsx`
+3. `resources/js/pages/SystemsServer.jsx`
+4. one focused browser/source contract test under `tests/Feature/`
+
+Findings: C-P3A-001, C-P3A-004.
+
+### P3-R1B — vendor owner lookup composition
+
+Owner: **Admin Vendors UI contract**.
+
+Allowed source paths:
+
+1. `resources/js/App.jsx` only if route entry must explicitly compose capability;
+2. `resources/js/pages/AdminVendors.jsx`
+3. one focused authorization/source contract test under `tests/Feature/`
+
+Finding: C-P3A-016. C-P3A-015 may be repaired in the same branch only if the final branch still remains inside this three-path budget and has separate view/manage negative coverage; otherwise use P3-R2A.
+
+### P3-R1C — catalog editor / reusable-media composition
+
+Owner: **Catalog UI + reusable media presentation boundary**.
+
+Allowed source paths:
+
+1. `resources/js/App.jsx` only if editor entry capability composition is deliberately changed;
+2. `resources/js/pages/CatalogManagement.jsx`
+3. `resources/js/components/MediaLibraryPanel.jsx`
+4. `tests/Feature/CatalogMediaWriteContractTest.php` or one replacement focused contract test
+
+Findings: C-P3A-027, C-P3A-028.
+
+Product-owned `/admin/products/{product}/media...` authority must remain catalog-owned unless a separate backend change is explicitly reviewed.
+
+### P3-R1D — Operations Center cross-domain composition
+
+Owner: **Operations UI capability composition**.
+
+Allowed source paths:
+
+1. `resources/js/App.jsx` only if route-entry composition changes;
+2. `resources/js/pages/Systems.jsx`
+3. `resources/js/pages/SystemsServer.jsx`
+4. `tests/Feature/AdminOperationalPanelTest.php`
+
+Findings: C-P3A-024, C-P3A-025, C-P3A-026.
+
+Do not weaken finance or operations backend permissions.
+
+### P3-R2A — core non-financial view/manage presentation
+
+Owner: **Admin UI capability presentation**.
+
+Split into sub-PRs of at most **two page source files + one focused test file**. Eligible source files/findings:
+
+- `resources/js/pages/AdminUsers.jsx` — C-P3A-014
+- `resources/js/pages/AdminVendors.jsx` — C-P3A-015
+- `resources/js/pages/CatalogManagement.jsx` — C-P3A-017
+- `resources/js/pages/Promotions.jsx` — C-P3A-018
+- `resources/js/pages/AdminEngagement.jsx` — C-P3A-002, C-P3A-003 games portion
+- `resources/js/pages/AdminMedia.jsx` / `resources/js/components/MediaLibraryPanel.jsx` — C-P3A-023
+- `resources/js/pages/AdminOperations.jsx` — C-P3A-012, C-P3A-013
+- `resources/js/pages/Production.jsx` — C-P3A-003 production-readiness portion
+
+Every sub-PR must test a view-only principal and the corresponding manage-capable principal.
+
+### P3-R3 — role-to-permission normalization
+
+Owner: **Admin UI permission model**.
+
+Allowed source paths:
+
+1. `resources/js/pages/AdminOperations.jsx` — C-P3A-006
+2. `resources/js/pages/AdminReviews.jsx` — C-P3A-020
+3. one focused browser/source contract test under `tests/Feature/`
+
+No new client authorization framework; reuse `useAuth().hasPermission(...)`.
+
+### P3-R4A — returns / finance / payouts / payment-shipping consequential actions
+
+Owner: **Admin financial/operations presentation**.
+
+Allowed source paths:
+
+1. `resources/js/pages/AdminOperations.jsx`
+2. one focused feature/source contract test under `tests/Feature/`
+
+Findings: C-P3A-007, C-P3A-008, C-P3A-009, C-P3A-010, C-P3A-011.
+
+Server idempotency, refund/payout authority and audit behavior are retained. Backend files are read-only dependencies unless a separate server defect is proven.
+
+### P3-R4B — tax / analytics / risk consequential actions
+
+Owner: **Admin specialized capability presentation**.
+
+Use separate sub-PRs, each limited to **one page source file + one focused test file**:
+
+- `resources/js/pages/Tax.jsx` — C-P3A-019
+- `resources/js/pages/AdminAnalytics.jsx` — C-P3A-021
+- `resources/js/pages/Risk.jsx` — C-P3A-022
+
+### P3-R5 — operational truthfulness
+
+Owner: **Admin operational observability**.
+
+Allowed source paths:
+
+1. `resources/js/pages/Systems.jsx`
+2. `resources/js/pages/SystemsServer.jsx` only if server-derived display mapping is required
+3. `tests/Feature/AdminOperationalPanelTest.php`
+
+Finding: C-P3A-005.
+
+Never replace synthetic green with another inferred success signal.
+
+### P3-R6 — pagination / loading / retry completeness
+
+Owner: **Admin list UX contract**.
+
+Allowed source paths:
+
+1. `resources/js/pages/AdminOperations.jsx`
+2. one focused browser/source contract test under `tests/Feature/`
+
+Findings: C-P3A-029, C-P3A-030 plus loading/error retry cleanup proven in the same list components. No return-detail mutation changes in this package.
+
+## Acceptance integrity checklist
+
+At this checkpoint:
+
+- 30 / 30 admin route surfaces are component-level verified in the parent matrix;
+- remaining route queue is zero;
+- canonical finding IDs are C-P3A-001..030 with no numeric gaps;
+- supporting audits retain the same classification/authority meaning as this registry;
+- later repair ownership/path budgets are recorded above;
+- runtime repair remains unauthorized.
+
+Still required before P3-A acceptance/merge:
+
+1. final exact-head CI PASS;
+2. final exact-head CodeQL PASS;
+3. final exact-head Governance Code Scanning PASS;
+4. clean review threads/comments and SELF REVIEW or independent review provenance;
+5. audit-only promotion/merge;
+6. post-merge re-read of `main` confirming only audit documentation landed;
+7. fresh later implementation branches for P3-R* packages.
 
 ## Current decision
 
-**P3-A remains IN PROGRESS.**
+**P3-A source audit is complete, but merge acceptance is still pending final exact-head CI/security/review evidence.**
 
-The audit has enough evidence to define the systemic repair architecture, but this ledger deliberately does not convert incomplete row verification into false acceptance and does not authorize implementation.
+Do not start runtime repair from this branch.
