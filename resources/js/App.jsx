@@ -123,7 +123,7 @@ export default function App() {
     <Route path="/access-denied" element={auth(<AccessDenied/>)}/>
 
     <Route path="/admin/*" element={role(ADMIN_AREA_ROLES, <AdminShell/>)}>
-      <Route index element={<AdminControl/>}/>
+      <Route index element={permit("analytics.view", <AdminControl/>)}/>
       <Route path="users" element={permit("users.view", <AdminUsers/>)}/>
       <Route path="access" element={permit("users.view", <AdminAccess/>)}/>
       <Route path="vendors" element={permit("vendors.view", <AdminVendors/>)}/>
@@ -150,7 +150,7 @@ export default function App() {
       <Route path="notifications" element={permit("notifications.view", <AdminNotifications/>)}/>
       <Route path="settings" element={permit("settings.view", <AdminSettings/>)}/>
       <Route path="operations" element={permit("operations.view", <OperationsCenter/>)}/>
-      <Route path="seller-quality" element={permit("vendors.view", <SellerQuality/>)}/>
+      <Route path="seller-quality" element={permit("shipping.view", <SellerQuality/>)}/>
       <Route path="production-readiness" element={permit("operations.view", <ProductionReadiness/>)}/>
       <Route path="acceptance" element={permit("acceptance.view", <Acceptance/>)}/>
     </Route>
