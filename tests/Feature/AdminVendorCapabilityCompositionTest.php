@@ -22,9 +22,9 @@ class AdminVendorCapabilityCompositionTest extends TestCase
     {
         $source = $this->vendorSource();
 
-        $this->assertStringContainsString("const canManage=hasPermission('vendors.manage'),canReadOwners=hasPermission('users.view'),canCreate=canManage&&canReadOwners;", $source);
-        $this->assertStringContainsString("canCreate?apiGet('/admin/users?role=seller&perPage=100'):Promise.resolve({items:[]})", $source);
-        $this->assertStringNotContainsString("apiGet('/admin/vendors'),apiGet('/admin/users?role=seller&perPage=100')", $source);
+        $this->assertStringContainsString('const canManage=hasPermission(\'vendors.manage\'),canReadOwners=hasPermission(\'users.view\'),canCreate=canManage&&canReadOwners;', $source);
+        $this->assertStringContainsString('canCreate?apiGet(\'/admin/users?role=seller&perPage=100\'):Promise.resolve({items:[]})', $source);
+        $this->assertStringNotContainsString('apiGet(\'/admin/vendors\'),apiGet(\'/admin/users?role=seller&perPage=100\')', $source);
     }
 
     /** Create-vendor presentation must fail closed unless both write and owner-read capabilities exist. */
@@ -33,7 +33,7 @@ class AdminVendorCapabilityCompositionTest extends TestCase
         $source = $this->vendorSource();
 
         $this->assertStringContainsString('{canCreate&&<Card><SectionHeader title="Create vendor"/>', $source);
-        $this->assertStringContainsString("if(!canCreate)return;", $source);
+        $this->assertStringContainsString('if(!canCreate)return;', $source);
     }
 
     /** Vendor status mutation presentation must require vendors.manage while read-only status remains visible. */
@@ -41,7 +41,7 @@ class AdminVendorCapabilityCompositionTest extends TestCase
     {
         $source = $this->vendorSource();
 
-        $this->assertStringContainsString("if(!canManage)return;", $source);
+        $this->assertStringContainsString('if(!canManage)return;', $source);
         $this->assertStringContainsString('{canManage?<select aria-label={`Marketplace status for ${v.name}`}', $source);
         $this->assertStringContainsString(':v.status}</td>', $source);
     }
