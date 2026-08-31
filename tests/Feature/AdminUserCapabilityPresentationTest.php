@@ -53,6 +53,6 @@ class AdminUserCapabilityPresentationTest extends TestCase
 
         $this->assertStringContainsString('{canManage?<select aria-label={`Role for ${u.name}`}', $source);
         $this->assertStringContainsString(":u.role.replaceAll('_',' ')}</td>", $source);
-        $this->assertStringContainsString("apiPut(`/admin/users/${user.id}`,{role:next})", $source);
+        $this->assertStringContainsString('apiPut(`/admin/users/${user.id}`,{role:next})', $source);
     }
 }
