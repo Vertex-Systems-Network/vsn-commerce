@@ -20,6 +20,26 @@ class AdminOperationalPanelTest extends TestCase
         return User::create(['name'=>ucwords(str_replace('_',' ',$role)),'email'=>$email,'password'=>'StrongPass123','role'=>$role]);
     }
 
+    /** Reads the live Systems route-module composition. */
+    private function systemsSource(): string
+    {
+        $source = file_get_contents(base_path('resources/js/pages/Systems.jsx'));
+
+        $this->assertIsString($source);
+
+        return $source;
+    }
+
+    /** Reads the canonical React route table. */
+    private function appSource(): string
+    {
+        $source = file_get_contents(base_path('resources/js/App.jsx'));
+
+        $this->assertIsString($source);
+
+        return $source;
+    }
+
     /** Verifies customer cannot access operational admin orders. */
     public function test_customer_cannot_access_operational_admin_orders(): void
     {
@@ -65,5 +85,41 @@ class AdminOperationalPanelTest extends TestCase
         $admin=$this->user('admin','ah-queues@example.test');
         $this->actingAs($admin)->getJson('/api/v1/admin/returns')->assertOk()->assertJsonPath('data.meta.total',0);
         $this->actingAs($admin)->getJson('/api/v1/admin/finance/payouts')->assertOk()->assertJsonCount(0,'data');
+    }
+
+    /** Operations view must remain independently usable without forcing finance read authority. */
+    public function test_operations_view_load_is_independent_of_finance_capability(): void
+    {
+        $app = $this->appSource();
+        $source = $this->systemsSource();
+
+        $this->assertStringContainsString('<Route path="operations" element={permit("operations.view", <OperationsCenter/>)}/>', $app);
+        $this->assertStringContainsString('const canViewFinance = hasPermission("finance.view");', $source);
+        $this->assertStringContainsString('setSystemOps(await apiGet("/admin/system/operations"));', $source);
+        $this->assertStringContainsString('if (!canViewFinance) {', $source);
+        $this->assertStringContainsString('apiGet("/admin/finance")', $source);
+    }
+
+    /** Finance writes and their presentation must require finance.manage. */
+    public function test_operations_finance_mutations_require_finance_manage(): void
+    {
+        $source = $this->systemsSource();
+
+        $this->assertStringContainsString('const canManageFinance = hasPermission("finance.manage");', $source);
+        $this->assertGreaterThanOrEqual(3, substr_count($source, 'if (!canManageFinance) return;'));
+        $this->assertStringContainsString('canManageFinance && payout.status === "requested"', $source);
+        $this->assertStringContainsString('canManageFinance && ["approved", "processing"].includes(payout.status)', $source);
+        $this->assertStringContainsString('{canManageFinance && <Button disabled={!!busy} onClick={reconcile}>', $source);
+    }
+
+    /** Incident-command mutations must require operations.manage while incident visibility remains read-only. */
+    public function test_operations_incident_commands_require_operations_manage(): void
+    {
+        $source = $this->systemsSource();
+
+        $this->assertStringContainsString('const canManageOperations = hasPermission("operations.manage");', $source);
+        $this->assertStringContainsString('if (!canManageOperations) return;', $source);
+        $this->assertStringContainsString('{canManageOperations && <><Field label="Operator update"', $source);
+        $this->assertStringContainsString('<SectionHeader title="Incident command"', $source);
     }
 }
