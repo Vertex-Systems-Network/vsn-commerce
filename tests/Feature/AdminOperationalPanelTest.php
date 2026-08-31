@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Domain\Settings\MarketplaceSettings;
-use App\Models\MarketplaceNotification;
-use App\Models\MarketplaceSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
