@@ -84,10 +84,10 @@ class AdminNotificationSettingsCapabilityPresentationTest extends TestCase
         $this->assertGreaterThanOrEqual(2, substr_count($source, 'if(!canManageSettings)return;'));
         $this->assertGreaterThanOrEqual(8, substr_count($source, 'disabled={!canManageSettings}'));
         $this->assertGreaterThanOrEqual(4, substr_count($source, '{canManageSettings&&<Button'));
-        $this->assertStringContainsString("groups.store?.storeName", $source);
-        $this->assertStringContainsString("groups.orders?.orderingEnabled", $source);
-        $this->assertStringContainsString("groups.catalog?.lowStockThreshold", $source);
-        $this->assertStringContainsString("groups.operations?.maintenanceBanner", $source);
+        $this->assertStringContainsString('groups.store?.storeName', $source);
+        $this->assertStringContainsString('groups.orders?.orderingEnabled', $source);
+        $this->assertStringContainsString('groups.catalog?.lowStockThreshold', $source);
+        $this->assertStringContainsString('groups.operations?.maintenanceBanner', $source);
     }
 
     /** The capability names used by the client are canonical published admin permissions. */
