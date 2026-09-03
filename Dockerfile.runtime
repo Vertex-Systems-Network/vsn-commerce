@@ -10,7 +10,7 @@ RUN npm ci --no-audit --no-fund && npm run build
 
 # composer.* always matches composer.json and also picks up composer.lock once it
 # has been generated. Production Launch Gate still blocks release without a lock.
-FROM composer:2.8 AS composer-base
+FROM composer:2.10 AS composer-base
 WORKDIR /app
 COPY composer.* ./
 
