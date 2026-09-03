@@ -28,7 +28,7 @@ RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions 
     && composer dump-autoload --no-dev --classmap-authoritative --no-interaction \
     && php artisan package:discover --ansi
 
-FROM php:8.4-cli-alpine AS php-base
+FROM php:8.5-cli-alpine AS php-base
 RUN apk add --no-cache \
         bash curl postgresql-client mariadb-client \
         libpq icu-libs oniguruma libxml2 freetype libjpeg-turbo libpng \
