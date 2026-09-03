@@ -80,7 +80,7 @@ jobs:
           cat > runtime-artifacts/locked-runtime-candidate.json <<JSON
           {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","staticQualityGates":["larastan-phpstan","pint","eslint-react-hooks-a11y"],"accessibilityGates":["axe-wcag-2.2","w3c-nu","wave-public-staging","interaction-clicks"],"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
           JSON
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: vsn-locked-runtime-candidate

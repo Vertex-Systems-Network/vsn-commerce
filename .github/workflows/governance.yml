@@ -41,7 +41,7 @@ jobs:
 
       - name: Upload governance evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vsn-governance-scan
           path: runtime-artifacts/governance.sarif
