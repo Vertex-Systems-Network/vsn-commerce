@@ -35,7 +35,7 @@ RUN apk add --no-cache \
     && apk add --no-cache --virtual .build-deps \
         libpq-dev icu-dev oniguruma-dev libxml2-dev freetype-dev libjpeg-turbo-dev libpng-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql pdo_pgsql pcntl posix bcmath intl mbstring opcache gd dom xml xmlwriter \
+    && docker-php-ext-install pdo_mysql pdo_pgsql pcntl bcmath intl gd \
     && apk del .build-deps
 WORKDIR /var/www/html
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs runtime
