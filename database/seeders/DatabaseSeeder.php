@@ -17,6 +17,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /** Defines the DatabaseSeeder class and its project responsibilities. */
 class DatabaseSeeder extends Seeder
@@ -26,7 +27,20 @@ class DatabaseSeeder extends Seeder
     {
         // This seeder is intentionally demo-only. Production must never receive
         // predictable demo users, passwords, catalog rows or payout data.
-        if (! config('vsn.demo.enabled', false)) {
+        $demoEnabled = (bool) config('vsn.demo.enabled', false);
+
+        if (app()->environment('production')) {
+            if ($demoEnabled) {
+                throw new RuntimeException(
+                    'Refusing to run VSN demo seed in production while VSN_DEMO_SEED_ENABLED is enabled.'
+                );
+            }
+
+            $this->command?->info('VSN demo seed skipped because the application environment is production.');
+            return;
+        }
+
+        if (! $demoEnabled) {
             $this->command?->info('VSN demo seed skipped because VSN_DEMO_SEED_ENABLED is false.');
             return;
         }
