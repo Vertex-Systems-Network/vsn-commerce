@@ -1,6 +1,9 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\ProductionSafetyServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\ProductionSafetyServiceProvider::class,
+    AppServiceProvider::class,
+    ProductionSafetyServiceProvider::class,
 ];
