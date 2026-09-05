@@ -2,24 +2,30 @@
 
 namespace Tests\Feature;
 
+use App\Providers\ProductionSafetyServiceProvider;
 use Database\Seeders\DatabaseSeeder;
-use RuntimeException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /** Guards predictable demo identities from production seeding. */
 class ProductionDemoSeedGuardTest extends TestCase
 {
-    /** Production must reject demo seeding even when the demo flag is explicitly enabled. */
-    public function test_production_rejects_demo_seed_when_flag_is_enabled(): void
+    use RefreshDatabase;
+
+    /** Production forces demo seeding off even when the demo flag is explicitly enabled. */
+    public function test_production_forces_demo_seed_off_when_flag_is_enabled(): void
     {
         $this->app['env'] = 'production';
         config()->set('vsn.demo.enabled', true);
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage(
-            'Refusing to run VSN demo seed in production while VSN_DEMO_SEED_ENABLED is enabled.'
-        );
+        (new ProductionSafetyServiceProvider($this->app))->boot();
 
-        (new DatabaseSeeder())->run();
+        $this->assertFalse(config('vsn.demo.enabled'));
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseMissing('users', ['email' => 'admin@example.test']);
+        $this->assertDatabaseMissing('users', ['email' => 'seller@example.test']);
+        $this->assertDatabaseMissing('users', ['email' => 'customer@example.test']);
     }
 }
