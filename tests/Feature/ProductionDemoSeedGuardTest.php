@@ -22,7 +22,7 @@ class ProductionDemoSeedGuardTest extends TestCase
 
         $this->assertFalse(config('vsn.demo.enabled'));
 
-        $this->seed(DatabaseSeeder::class);
+        app(DatabaseSeeder::class)->run();
 
         $this->assertDatabaseMissing('users', ['email' => 'admin@example.test']);
         $this->assertDatabaseMissing('users', ['email' => 'seller@example.test']);
