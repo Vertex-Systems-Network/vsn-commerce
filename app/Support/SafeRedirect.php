@@ -5,8 +5,16 @@ namespace App\Support;
 /** Normalizes post-authentication redirects to same-origin application paths only. */
 final class SafeRedirect
 {
-    /** Returns a safe local path or the supplied local fallback. */
+    /** Returns a safe local path or a validated local fallback. */
     public static function localPath(?string $value, string $fallback = '/dashboard'): string
+    {
+        $safeFallback = self::validatedLocalPath($fallback) ?? '/dashboard';
+
+        return self::validatedLocalPath($value) ?? $safeFallback;
+    }
+
+    /** Returns a normalized local path when the candidate cannot cross the origin boundary. */
+    private static function validatedLocalPath(?string $value): ?string
     {
         $candidate = trim((string) $value);
 
@@ -17,7 +25,7 @@ final class SafeRedirect
             || str_contains($candidate, '\\')
             || preg_match('/[\x00-\x1F\x7F]/', $candidate) === 1
         ) {
-            return $fallback;
+            return null;
         }
 
         $parts = parse_url($candidate);
@@ -28,7 +36,7 @@ final class SafeRedirect
             || isset($parts['user'])
             || isset($parts['pass'])
         ) {
-            return $fallback;
+            return null;
         }
 
         return $candidate;
