@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\UserResource;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\SafeRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,8 +38,8 @@ class SocialAuthController extends Controller
         abort_unless(in_array($provider, self::CORE_PROVIDERS, true), 501, ucfirst($provider).' OAuth adapter is not enabled yet.');
         abort_unless($this->configured($provider), 503, ucfirst($provider).' OAuth credentials are not configured.');
 
-        $next = $request->string('redirect', '/dashboard')->toString();
-        $request->session()->put('oauth_next', str_starts_with($next, '/') ? $next : '/dashboard');
+        $next = SafeRedirect::localPath($request->string('redirect', '/dashboard')->toString());
+        $request->session()->put('oauth_next', $next);
 
         $authorizationUrl = Socialite::driver($provider)->redirect()->getTargetUrl();
 
@@ -54,7 +54,7 @@ class SocialAuthController extends Controller
         abort_unless(in_array($provider, self::CORE_PROVIDERS, true), 501);
 
         $frontend = rtrim((string) config('vsn.frontend_url'), '/');
-        $next = $request->session()->pull('oauth_next', '/dashboard');
+        $next = SafeRedirect::localPath((string) $request->session()->pull('oauth_next', '/dashboard'));
 
         try {
             $remote = Socialite::driver($provider)->user();
