@@ -54,6 +54,16 @@ sarifRules.push({
   },
 });
 
+sarifRules.push({
+  id: 'unpinned-external-action',
+  name: 'UnpinnedExternalAction',
+  shortDescription: { text: 'External GitHub Actions must be pinned to an immutable 40-character commit SHA.' },
+  properties: {
+    tags: ['security', 'governance', 'github-actions', 'supply-chain'],
+    'security-severity': '8.0',
+  },
+});
+
 const results = [];
 const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
   .split('\0')
@@ -105,6 +115,23 @@ for (const file of tracked) {
         'This workflow combines pull_request_target with actions/checkout. Review it to ensure untrusted PR code cannot execute with privileged permissions.',
         file,
         lineAt(text, checkout.index),
+      );
+    }
+  }
+
+  if (file.startsWith('.github/workflows/')) {
+    const actionUsePattern = /^\s*-?\s*uses:\s*([^@\s]+)@([^\s#]+)(?:\s+#.*)?$/gm;
+    for (const match of text.matchAll(actionUsePattern)) {
+      const action = match[1];
+      const ref = match[2];
+      if (action.startsWith('./') || action.startsWith('docker://')) continue;
+      if (/^[0-9a-f]{40}$/i.test(ref)) continue;
+
+      addResult(
+        'unpinned-external-action',
+        `External action ${action}@${ref} is mutable. Pin it to an immutable 40-character commit SHA.`,
+        file,
+        lineAt(text, match.index ?? 0),
       );
     }
   }
