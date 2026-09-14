@@ -10,22 +10,27 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 jobs:
   locked-runtime-acceptance:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
-      - uses: actions/checkout@v7
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
           extensions: pdo_sqlite, sqlite3, pdo_mysql, mbstring, bcmath, gd, intl, dom, xml, xmlwriter
           tools: composer:v2
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '22'
           cache: 'npm'
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           distribution: temurin
           java-version: '21'
@@ -80,7 +85,7 @@ jobs:
           cat > runtime-artifacts/locked-runtime-candidate.json <<JSON
           {"schema":"vsn-locked-runtime-candidate-v1","passed":true,"release":"$RELEASE","commitSha":"$GITHUB_SHA","composerLockSha256":"$COMPOSER_SHA","npmLockSha256":"$NPM_SHA","sourceTreeSha256":"$TREE_SHA","staticQualityGates":["larastan-phpstan","pint","eslint-react-hooks-a11y"],"accessibilityGates":["axe-wcag-2.2","w3c-nu","wave-public-staging","interaction-clicks"],"generatedAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
           JSON
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: vsn-locked-runtime-candidate
