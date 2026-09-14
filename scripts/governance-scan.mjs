@@ -32,6 +32,34 @@ const rules = [
     securitySeverity: '9.0',
     pattern: /\bAKIA[0-9A-Z]{16}\b/g,
   },
+  {
+    id: 'openai-api-key',
+    name: 'OpenAIApiKey',
+    shortDescription: 'OpenAI API keys must not be committed or exposed to repository agents.',
+    securitySeverity: '9.8',
+    pattern: /\bsk-(?!ant-)(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}\b/g,
+  },
+  {
+    id: 'anthropic-api-key',
+    name: 'AnthropicApiKey',
+    shortDescription: 'Anthropic API keys must not be committed or exposed to repository agents.',
+    securitySeverity: '9.8',
+    pattern: /\bsk-ant-[A-Za-z0-9_-]{20,}\b/g,
+  },
+  {
+    id: 'google-api-key',
+    name: 'GoogleApiKey',
+    shortDescription: 'Google/Gemini API keys must not be committed or exposed to repository agents.',
+    securitySeverity: '9.8',
+    pattern: /\bAIza[0-9A-Za-z_-]{35}\b/g,
+  },
+  {
+    id: 'stripe-live-secret',
+    name: 'StripeLiveSecret',
+    shortDescription: 'Stripe live secret or restricted keys must not be committed.',
+    securitySeverity: '9.8',
+    pattern: /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/g,
+  },
 ];
 
 const sarifRules = rules.map((rule) => ({
@@ -89,7 +117,6 @@ function addResult(ruleId, message, file, line) {
 
 for (const file of tracked) {
   if (binaryExtensions.has(extname(file).toLowerCase())) continue;
-  if (file === '.env.example') continue;
 
   let buffer;
   try {
