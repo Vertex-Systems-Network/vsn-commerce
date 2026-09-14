@@ -26,6 +26,13 @@ class AppServiceProvider extends ServiceProvider
     /** Handles boot for the app service provider workflow. */
     public function boot(): void
     {
+        // Predictable demo users and simulator-only behavior are never allowed in
+        // network-facing or unknown environments, even if a deployment accidentally
+        // carries VSN_DEMO_SEED_ENABLED=true. E2E is explicit and isolated by design.
+        if (! app()->environment(['local', 'testing', 'e2e'])) {
+            config(['vsn.demo.enabled' => false]);
+        }
+
         Model::preventLazyLoading();
         if (app()->isProduction()) {
             Model::handleLazyLoadingViolationUsing(/** Inline callback for this operation. */ function (Model $model, string $relation): void {
