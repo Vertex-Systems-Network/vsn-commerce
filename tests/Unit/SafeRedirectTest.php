@@ -13,6 +13,7 @@ class SafeRedirectTest extends TestCase
     {
         $this->assertSame('/dashboard', SafeRedirect::localPath('/dashboard'));
         $this->assertSame('/orders?tab=open#latest', SafeRedirect::localPath('/orders?tab=open#latest'));
+        $this->assertSame('/login', SafeRedirect::localPath(null, '/login'));
     }
 
     /** External, scheme-relative, malformed, and control-character targets fail closed. */
@@ -29,5 +30,10 @@ class SafeRedirectTest extends TestCase
         ] as $candidate) {
             $this->assertSame('/dashboard', SafeRedirect::localPath($candidate));
         }
+
+        $this->assertSame(
+            '/dashboard',
+            SafeRedirect::localPath('//attacker.example/phish', '//fallback.attacker.example'),
+        );
     }
 }
