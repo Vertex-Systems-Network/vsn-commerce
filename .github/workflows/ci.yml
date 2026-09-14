@@ -152,6 +152,7 @@ jobs:
       - name: Run desktop + mobile browser E2E, click, WCAG and W3C gates
         run: npx playwright test --project=chromium --project=mobile-chromium
       - name: Run WAVE public staging audit when configured
+        if: github.event_name != 'pull_request'
         env:
           WAVE_API_KEY: ${{ secrets.WAVE_API_KEY }}
           WAVE_BASE_URL: ${{ vars.WAVE_BASE_URL }}
