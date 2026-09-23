@@ -782,3 +782,10 @@ The desired end state is a single Laravel + React ecommerce application where:
 ---
 
 When this file conflicts with an old milestone claim, verify current code/runtime and update the stale documentation. Do not preserve a defect for the sake of keeping an old “done” statement true.
+
+
+## VSN organization next-action handoff
+
+Before every user-facing development handoff, read and follow `.ai/NEXT-ACTION-OPTIONS.md`.
+
+If the user sends only this repository's GitHub URL, perform the policy's read-only bootstrap and return shuffled numbered next-action options. A URL-only message never authorizes a repository mutation. A later numeric selection must revalidate live repository state before acting.
