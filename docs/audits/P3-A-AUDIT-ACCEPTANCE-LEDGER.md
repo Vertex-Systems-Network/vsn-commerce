@@ -194,6 +194,12 @@ Use separate sub-PRs, each limited to **one page source file + one focused test 
 - `resources/js/pages/AdminAnalytics.jsx` — C-P3A-021
 - `resources/js/pages/Risk.jsx` — C-P3A-022
 
+Acceptance: **✅ MERGED / VERIFIED_PRESENT**.
+
+- Tax / C-P3A-019 — PR #88 merged 2026-09-07, merge commit `13e45f337780f654cfe0fcfa1bf0fae4258a3c0c`; `tax.manage` hides and fail-closes consequential Admin Tax writes while preserving view evidence, with `tests/Feature/AdminTaxCapabilityPresentationTest.php`.
+- Risk / C-P3A-022 — PR #91 merged 2026-09-05, merge commit `0a13c67aece8bdb577612551c45bf510899e5243`; `risk.manage` gates holds, evaluations, case/status updates, and releases, with `tests/Feature/AdminRiskCapabilityPresentationTest.php`.
+- Analytics / C-P3A-021 — PR #92 merged 2026-09-05, merge commit `d4ea6dc97ed49bc19c40a311d99deb3065c89263`; `analytics.manage` gates export/schedule mutations while retaining read-only reporting evidence, with `tests/Feature/AdminAnalyticsCapabilityPresentationTest.php`.
+
 ### P3-R5 — operational truthfulness
 
 Owner: **Admin operational observability**.
