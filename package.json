@@ -33,7 +33,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.3",
+    "react-router-dom": "^7.18.4",
     "vite": "^8.2.2"
   },
   "devDependencies": {
