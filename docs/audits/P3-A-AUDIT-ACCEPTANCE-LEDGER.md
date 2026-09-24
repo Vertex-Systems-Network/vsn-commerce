@@ -180,6 +180,8 @@ Allowed source paths:
 
 Findings: C-P3A-007, C-P3A-008, C-P3A-009, C-P3A-010, C-P3A-011.
 
+Acceptance: **✅ MERGED / VERIFIED_PRESENT** — PR #80 landed on 2026-09-03 as merge commit `878b96d22ed029dc79ef40e9bb3ba5cbd33390b3`. The accepted implementation gates shipping, payment, return/refund, finance reconciliation, and payout lifecycle writes by their manage capabilities while preserving view-only access, with `tests/Feature/AdminConsequentialActionCapabilityPresentationTest.php` locking the presentation contract.
+
 Server idempotency, refund/payout authority and audit behavior are retained. Backend files are read-only dependencies unless a separate server defect is proven.
 
 ### P3-R4B — tax / analytics / risk consequential actions
